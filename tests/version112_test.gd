@@ -71,7 +71,7 @@ func run() -> void:
 	ui._next_hand()
 	ui.ai.speech_actor = 1
 	ui.ai.speech_event = ui.game.events.size()
-	ui.ai.speech_stamp = "%s:%d" % [ui.session_id, ui.game.hand_number]
+	ui.ai.speech_stamp = "%s:%d" % [ui.storage.session_id, ui.game.hand_number]
 	ui.ai.speech_phase = "river" if ui.game.phase != "river" else "flop"
 	ui.ai._on_speech_received({"content": '{"text":"这注我跟了。"}'})
 	verify(ui.ai.dialogue.is_empty(), "late speech from another street is discarded")

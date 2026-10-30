@@ -17,7 +17,7 @@ func setup(main):
 		{"node": func(): return host.screen.menu_sheet, "back": func(): host.screen.menu_sheet.close(), "focus": func(): return host.screen.menu_sheet.close_button},
 		{"node": func(): return host.screen.bet_sheet, "back": func(): host.screen.bet_sheet.close(), "focus": func(): return host.screen.bet_sheet.close_button},
 		{"node": func(): return host.screen.lobby, "back": func(): host._close_lobby(), "focus": func(): return host.screen.start_button},
-		{"node": func(): return host.home, "back": func(): host._request_confirmation("退出 Somnicard？", "当前牌桌与已完成的记录会保留在本机。", "退出", func(): host._save_session(); host.get_tree().quit()), "focus": func(): return host.home.primary}
+		{"node": func(): return host.home, "back": func(): host._request_confirmation("退出 Somnicard？", "当前牌桌与已完成的记录会保留在本机。", "退出", func(): host.storage.save_session(); host.get_tree().quit()), "focus": func(): return host.home.primary}
 	]
 
 func top() -> Control:

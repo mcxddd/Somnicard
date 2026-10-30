@@ -1,5 +1,5 @@
 extends Node
-## Depends on host: game, paused, modals, _refresh, _schedule_bot, _bot_step, _open_info, _open_settings, _request_confirmation, _save_session, _save_preferences, _action_stamp, settings, screen.turn_label, screen.table_view, screen.controls, session_id, session_stamp, settings_status, opponent_profiles, difficulty, bots, smoke_mode.
+## Depends on host: game, paused, modals, _refresh, _schedule_bot, _bot_step, _open_info, _open_settings, _request_confirmation, storage.save_session, _save_preferences, _action_stamp, settings, screen.turn_label, screen.table_view, screen.controls, storage.session_id, storage.session_stamp, settings_status, opponent_profiles, difficulty, bots, smoke_mode.
 var host
 const AIConfig = preload("res://scripts/ai/config.gd")
 const AIProtocol = preload("res://scripts/ai/protocol.gd")
@@ -128,12 +128,12 @@ func _on_received(result: Dictionary) -> void:
 		speech_actor = actor
 		speech_phase = host.game.phase
 		speech_event = host.game.events.size()
-		speech_stamp = "%s:%d" % [host.session_id, host.game.hand_number]
+		speech_stamp = "%s:%d" % [host.storage.session_id, host.game.hand_number]
 		speech_client.send(seat_service(actor), seat_key(actor), AIProtocol.messages(host.game.view_for(actor), actor, seats[actor - 1], Profiles.resolve(host.opponent_profiles, actor, host.difficulty), AIMemory.normalize(memories.get(str(actor), {})), true, dialogue), 4, context(actor, "speech"))
 	host._schedule_bot()
 
 func _on_speech_received(result: Dictionary) -> void:
-	if host.game == null or speech_stamp != "%s:%d" % [host.session_id, host.game.hand_number] or result.has("error"): return
+	if host.game == null or speech_stamp != "%s:%d" % [host.storage.session_id, host.game.hand_number] or result.has("error"): return
 	if not AIProtocol.speech_current(host.game.view_for(speech_actor), speech_actor, speech_event, speech_phase):
 		trace.resolve(str(result.get("trace_id", "")), "未展示：牌局已推进，原发言对应的动作已过时")
 		return
@@ -148,10 +148,10 @@ func _on_speech_received(result: Dictionary) -> void:
 	trace.resolve(str(result.get("trace_id", "")), "已展示桌边发言")
 	dialogue.append({"seat": speech_actor, "name": host.game.seats[speech_actor].name, "text": line, "event": speech_event})
 	if dialogue.size() > 8: dialogue.pop_front()
-	host.session_stamp = ""
+	host.storage.session_stamp = ""
 	host.screen.table_view.sync_speech(dialogue)
 	update_bar()
-	host._save_session()
+	host.storage.save_session()
 
 func update_bar() -> void:
 	if bar == null: return
@@ -188,7 +188,7 @@ func finish_hand() -> void:
 	if host.game == null or host.game.phase != "complete": return
 	# Stop late speech from modifying a history record already saved.
 	if speech_client != null: speech_client.cancel()
-	var identity = "%s:%d" % [host.session_id, host.game.hand_number]
+	var identity = "%s:%d" % [host.storage.session_id, host.game.hand_number]
 	if hand_recorded == identity: return
 	hand_recorded = identity
 	var changed = false
@@ -307,7 +307,7 @@ func apply_settings(values: Dictionary) -> bool:
 	error = ""
 	cancel()
 	apply_names()
-	host.session_stamp = ""
+	host.storage.session_stamp = ""
 	return true
 
 func library_action(action: String, id: String, name: String) -> void:
@@ -344,8 +344,8 @@ func edit_library(action: String, id: String, name: String) -> void:
 	host.settings.opponent_editor._render()
 	apply_names()
 	host._save_preferences()
-	host.session_stamp = ""
-	host._save_session()
+	host.storage.session_stamp = ""
+	host.storage.save_session()
 
 func seat_service(id: int) -> Dictionary:
 	return AIServices.resolve(profiles, seats[id - 1].service_id, service)

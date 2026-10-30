@@ -42,10 +42,10 @@ func _run() -> void:
 	verify(ui.screen.next_button.visible and not ui.screen.fold_button.visible, "settlement controls")
 	# Check actual serialization and replay, then remove only this test's own record.
 	ui.smoke_mode = false
-	ui.saved_hand = -1
-	ui.session_id = "__test_%d_%d" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
-	ui._save_record()
-	var path = "user://hands/%s-%04d.json" % [ui.session_id, ui.game.hand_number]
+	ui.storage.saved_hand = -1
+	ui.storage.session_id = "__test_%d_%d" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
+	ui.storage.save_record()
+	var path = "user://hands/%s-%04d.json" % [ui.storage.session_id, ui.game.hand_number]
 	verify(FileAccess.file_exists(path), "completed record written")
 	if FileAccess.file_exists(path):
 		var record = JSON.parse_string(FileAccess.get_file_as_string(path))

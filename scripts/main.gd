@@ -7,6 +7,8 @@ const ModalStack = preload("res://scripts/app/modal_stack.gd")
 var modals = ModalStack.new()
 const TableScreen = preload("res://scripts/ui/table_screen.gd")
 var screen = TableScreen.new()
+const TableStorage = preload("res://scripts/app/table_storage.gd")
+var storage = TableStorage.new()
 const AIConfig = preload("res://scripts/ai/config.gd")
 const AIServices = preload("res://scripts/ai/services.gd")
 const AIVault = preload("res://scripts/ai/vault.gd")
@@ -45,15 +47,10 @@ var paused: bool = false
 var smoke_mode: bool = false
 var selected_raise: int = 20
 var decision_key: String = ""
-var session_id: String = ""
-var saved_hand: int = -1
-var save_status: String = ""
 var mobile_layout: bool = true
 var review
 var resume_button: Button
 var resume_status: Label
-var session_stamp: String = ""
-var session_save_error: bool = false
 var settings
 var confirmation
 var confirmation_action: Callable
@@ -76,6 +73,8 @@ func _ready() -> void:
 	add_child(modals)
 	add_child(screen)
 	screen.host = self
+	storage.host = self
+	add_child(storage)
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version", "1.4.1")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_update_scale()
@@ -109,7 +108,7 @@ func _build_ui() -> void:
 	coach.configure(_settings_values())
 	_build_home()
 	screen.build_lobby()
-	training_store = TrainingStore.new("user://training/profile.json" if _session_enabled() else "")
+	training_store = TrainingStore.new("user://training/profile.json" if storage.enabled() else "")
 	review = Review.new()
 	screen.safe_root.add_child(review)
 	review.training_store = training_store
@@ -196,7 +195,7 @@ func _home_destination(destination: String) -> void:
 	match destination:
 		"play":
 			if game != null: _continue_table()
-			elif _session_enabled() and FileAccess.file_exists("user://session.json"): _resume_session()
+			elif storage.enabled() and FileAccess.file_exists("user://session.json"): _resume_session()
 			else: _open_lobby()
 		"new": _open_lobby()
 		"training": _open_training()
@@ -208,7 +207,7 @@ func _home_destination(destination: String) -> void:
 func _open_home() -> void:
 	bot_timer.stop()
 	screen.amount_input.apply()
-	_save_session()
+	storage.save_session()
 	coach.collapse()
 	screen.lobby.hide()
 	home.show()
@@ -218,10 +217,10 @@ func _open_home() -> void:
 
 func _update_home() -> void:
 	var detail = "%d 人桌 · 第 %d 手 · %s" % [player_count, game.hand_number, PHASES.get(game.phase, "准备中")] if game != null else ""
-	home.update_session(game != null, _session_enabled() and FileAccess.file_exists("user://session.json"), detail)
+	home.update_session(game != null, storage.enabled() and FileAccess.file_exists("user://session.json"), detail)
 	if training_store != null: home.update_learning(training_store.data)
 	if not settings_status.is_empty(): home.status.text = settings_status
-	if session_save_error: home.status.text = "当前牌桌保存失败，请检查存储空间。"
+	if storage.session_save_error: home.status.text = "当前牌桌保存失败，请检查存储空间。"
 
 func _continue_table() -> void:
 	if game == null: return
@@ -236,7 +235,7 @@ func _return_text() -> String:
 func _update_table_summary() -> void:
 	var depth = [50, 100, 200][screen.depth_picker.selected]
 	screen.lobby_note.text = "%d 人桌 · 每人 %d BB · 盲注 5 / 10
-%s" % [selected_count, depth, "现有牌桌将被替换，开始前需要确认。" if game != null or (_session_enabled() and FileAccess.file_exists("user://session.json")) else "虚拟筹码 · 无前注 · 无抽水"]
+%s" % [selected_count, depth, "现有牌桌将被替换，开始前需要确认。" if game != null or (storage.enabled() and FileAccess.file_exists("user://session.json")) else "虚拟筹码 · 无前注 · 无抽水"]
 
 func _select_count(count: int) -> void:
 	selected_count = clampi(count, 2, 9)
@@ -274,7 +273,7 @@ func _close_lobby() -> void:
 func _commit_table() -> void:
 	var count = selected_count
 	var depth = [50, 100, 200][screen.depth_picker.selected]
-	if game != null or (_session_enabled() and FileAccess.file_exists("user://session.json")):
+	if game != null or (storage.enabled() and FileAccess.file_exists("user://session.json")):
 		_request_confirmation("重开 %d 人练习桌？" % count, "所有座位将重置为 %d BB。当前牌桌的进度会被替换，已完成的历史牌局会保留。" % depth, "重置并入座", _apply_new_table.bind(count, depth))
 	else: _apply_new_table(count, depth)
 
@@ -293,9 +292,9 @@ func _start_table(count: int) -> void:
 	paused = false
 	screen.lobby.hide()
 	home.hide()
-	session_id = "%d-%d" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
+	storage.session_id = "%d-%d" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
 	ai.trace.clear()
-	session_stamp = ""
+	storage.session_stamp = ""
 	var stacks = []
 	stacks.resize(player_count)
 	stacks.fill(starting_bb * 10)
@@ -309,7 +308,7 @@ func _start_table(count: int) -> void:
 		game.seats[id]["style"] = bots[id].style_name()
 	ai.reset_memory()
 	ai.apply_names()
-	saved_hand = -1
+	storage.saved_hand = -1
 	decision_key = ""
 	_next_hand()
 
@@ -328,7 +327,7 @@ func _next_hand() -> void:
 		screen.turn_label.text = err
 		return
 	opponent_changes = [{"event": 0, "profiles": Profiles.snapshot(opponent_profiles, player_count, difficulty)}]
-	save_status = ""
+	storage.save_status = ""
 	decision_key = ""
 	_refresh()
 	_schedule_bot()
@@ -470,16 +469,16 @@ func _refresh() -> void:
 	if paused or modals.is_open(): ai.cancel()
 	var view = game.view_for(0)
 	var done = view.phase == "complete"
-	if feedback_player != null: feedback_player.sync(game, session_id, paused or modals.is_open() or smoke_mode)
+	if feedback_player != null: feedback_player.sync(game, storage.session_id, paused or modals.is_open() or smoke_mode)
 	screen.header.text = "%d 人桌 · 第 %d 手" % [player_count, view.hand]
 	screen.header.tooltip_text = "ID " + History.hand_id(game.record_state())
 	screen.pause_button.text = "继续" if paused else "暂停"
 	screen.table_view.update_table(view, prefs.use_bb, paused or modals.is_open())
 	screen.table_view.sync_speech(ai.dialogue)
 	if done:
-		_save_record()
+		storage.save_record()
 		screen.turn_label.text = "你 · " + screen.table_view.Outcome.net_text(view, 0, prefs.use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
-		if save_status.contains("失败"): screen.turn_label.text += "\n" + save_status
+		if storage.save_status.contains("失败"): screen.turn_label.text += "\n" + storage.save_status
 	elif paused or modals.is_open(): screen.turn_label.text = "牌局已暂停"
 	elif view.seats[0].folded: screen.turn_label.text = "你已弃牌 · 正在观看其余玩家" + ("（快进）" if screen.fast_fold.button_pressed else "")
 	else: screen.turn_label.text = "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
@@ -489,8 +488,8 @@ func _refresh() -> void:
 	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not modals.is_open())
 	_update_explanation(view)
 	_update_log(view)
-	_save_session()
-	if session_save_error: screen.turn_label.text += " · 当前进度保存失败，请检查存储空间"
+	storage.save_session()
+	if storage.session_save_error: screen.turn_label.text += " · 当前进度保存失败，请检查存储空间"
 	if settings_status != "": screen.turn_label.text += " · " + settings_status
 
 func _update_controls(view: Dictionary) -> void:
@@ -564,31 +563,6 @@ func _update_log(view: Dictionary) -> void:
 			for id in pot.shares: shares.append("%s +%s" % [view.seats[id].name, _money(pot.shares[id])])
 			lines.append("%s %s：%s" % ["主池" if index == 0 else "边池 %d" % index, _money(pot.amount), "，".join(shares)])
 	screen.log_view.text = "\n\n".join(lines)
-
-func _save_record() -> void:
-	ai.finish_hand()
-	if saved_hand == game.hand_number: return
-	if smoke_mode:
-		save_status = "测试模式"
-		saved_hand = game.hand_number
-		return
-	var record = game.completed_record()
-	record["seat_names"] = game.seats.map(func(s): return s.name)
-	record["ai_dialogue"] = ai.dialogue.duplicate(true)
-	record["online_seats"] = ai.seats.slice(0, player_count - 1).map(func(p): return p.enabled)
-	record["id"] = History.hand_id(record)
-	record["difficulty"] = difficulty
-	record["bot_version"] = LocalBot.VERSION
-	record["opponents"] = Profiles.snapshot(opponent_profiles, player_count, difficulty)
-	record["opponent_changes"] = opponent_changes.duplicate(true)
-	record["table_size"] = player_count
-	record["saved_at"] = Time.get_datetime_string_from_system().replace("T", " ")
-	if History.save(record, "%s-%04d.json" % [session_id, game.hand_number]) != OK:
-		save_status = "保存失败 · 请检查存储空间；返回此页会重试"
-		return
-	saved_hand = game.hand_number
-	save_status = "记录已保存"
-	if training.store != null: training.store.suggest_hand(record)
 
 func _event_text(event: Dictionary) -> String:
 	var name_text = game.seats[event.seat].name if event.has("seat") else ""
@@ -727,16 +701,6 @@ func _review_units_changed(bb: bool) -> void:
 	_unit_changed(1 if bb else 0)
 	screen.unit_picker.select(1 if bb else 0)
 
-func _session_enabled() -> bool:
-	return not smoke_mode and DisplayServer.get_name() != "headless" and "--capture-test" not in OS.get_cmdline_user_args()
-
-func _save_session() -> void:
-	if not _session_enabled() or game == null or game.phase == "idle": return
-	var stamp = "%s:%d:%d:%d" % [session_id, game.hand_number, game.events.size(), saved_hand]
-	if stamp == session_stamp: return
-	session_save_error = Session.save(game, session_id, starting_bb, saved_hand, "user://", Profiles.snapshot(opponent_profiles, player_count, difficulty), opponent_changes, opponent_profiles, difficulty, ai.session_state()) != OK
-	if not session_save_error: session_stamp = stamp
-
 func _resume_session() -> void:
 	var rebuilt = Session.restore()
 	if rebuilt.has("error"):
@@ -757,10 +721,10 @@ func _resume_session() -> void:
 	selected_count = player_count
 	starting_bb = int(rebuilt.record.starting_bb)
 	screen.depth_picker.select([50, 100, 200].find(starting_bb))
-	session_id = rebuilt.record.session_id
-	saved_hand = int(rebuilt.record.saved_hand)
-	save_status = "记录已保存" if saved_hand == game.hand_number else ""
-	session_stamp = ""
+	storage.session_id = rebuilt.record.session_id
+	storage.saved_hand = int(rebuilt.record.saved_hand)
+	storage.save_status = "记录已保存" if storage.saved_hand == game.hand_number else ""
+	storage.session_stamp = ""
 	decision_key = ""
 	bots.clear()
 	for id in range(1, player_count):
@@ -838,8 +802,8 @@ func _apply_settings(values: Dictionary) -> void:
 			var change = {"event": game.events.size(), "profiles": current_profiles}
 			if not opponent_changes.is_empty() and opponent_changes.back().get("event") == game.events.size(): opponent_changes[-1] = change
 			else: opponent_changes.append(change)
-		session_stamp = ""
-		_save_session()
+		storage.session_stamp = ""
+		storage.save_session()
 	coach.configure(_settings_values())
 	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
 	review.ai_coach.configure(_settings_values())
@@ -897,7 +861,7 @@ func _accept_confirmation() -> void:
 	_schedule_bot()
 
 func _action_stamp() -> String:
-	return "%s:%d:%d:%d" % [session_id, game.hand_number, game.events.size(), game.actor] if game != null else ""
+	return "%s:%d:%d:%d" % [storage.session_id, game.hand_number, game.events.size(), game.actor] if game != null else ""
 
 func _smoke_test() -> void:
 	_start_table(2)

@@ -64,7 +64,7 @@ func run() -> void:
 	ui.ai.speech_actor = 1
 	ui.ai.speech_phase = "preflop"
 	ui.ai.speech_event = ui.game.events.size()
-	ui.ai.speech_stamp = "%s:%d" % [ui.session_id,ui.game.hand_number]
+	ui.ai.speech_stamp = "%s:%d" % [ui.storage.session_id,ui.game.hand_number]
 	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.ai.speech_event,"preflop"),"new speech is accepted for original action")
 	ui.game.act(2,"call")
 	ui.game.act(3,"raise",90)
