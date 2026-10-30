@@ -24,7 +24,7 @@ func _run() -> void:
 	var initial = ui._settings_values()
 	ui.settings.controls.felt.select(1)
 	ui.settings.controls.felt.item_selected.emit(1)
-	verify(not ui.settings.apply_button.disabled and ui.felt_theme == 0, "draft changes do not apply early")
+	verify(not ui.settings.apply_button.disabled and ui.prefs.felt_theme == 0, "draft changes do not apply early")
 	ui._back()
 	verify(ui._settings_values() == initial and ui.lobby.visible and ui.start_button.has_focus(), "back discards settings draft and restores lobby")
 	ui._start_table(2)
@@ -46,10 +46,10 @@ func _run() -> void:
 	ui.settings.controls.sidebar.button_pressed = false
 	ui.settings.controls.confirm_all_in.button_pressed = false
 	ui.settings.apply_button.pressed.emit()
-	verify(not ui.settings.visible and not ui.use_bb and ui.speed_index == 2 and ui.felt_theme == 1, "apply closes and commits selected settings")
+	verify(not ui.settings.visible and not ui.prefs.use_bb and ui.prefs.speed_index == 2 and ui.prefs.felt_theme == 1, "apply closes and commits selected settings")
 	verify(ui.selected_raise == 37 and ui.amount_input.value == 37 and ui.game.view_for(0) == before, "unit apply keeps exact target and game")
 	verify(ui.table_view.four_color and ui.review.table_view.four_color and not ui.table_view.motion, "table and review share visuals")
-	verify(not ui.fast_fold.button_pressed and not ui.sidebar.visible and not ui.confirm_all_in, "all toggles take effect")
+	verify(not ui.fast_fold.button_pressed and not ui.sidebar.visible and not ui.prefs.confirm_all_in, "all toggles take effect")
 	var applied = ui._settings_values()
 	ui._open_settings()
 	verify(ui.settings.values() == applied and ui.settings.apply_button.disabled, "reopen reads applied state")
@@ -82,7 +82,7 @@ func _run() -> void:
 	ui.confirmation.accept_button.pressed.emit()
 	verify(ui.player_count == 6 and ui.game.chip_total() == 3000 and ui.starting_bb == 50, "confirmed reset applies exact draft")
 	# Every all-in route is protected, and confirming cannot submit twice.
-	ui.confirm_all_in = true
+	ui.prefs.confirm_all_in = true
 	for route in ["all_in", "raise", "call"]:
 		ui.game = Table.new([100, 100], 5, 10, 10)
 		ui.game.start_hand(0)
@@ -105,12 +105,12 @@ func _run() -> void:
 		ui.confirmation.accept_button.pressed.emit()
 		verify(ui.game.view_for(0) == after, "duplicate confirmation does not replay action")
 	ui._start_table(2)
-	ui.confirm_all_in = false
+	ui.prefs.confirm_all_in = false
 	ui.all_in_button.pressed.emit()
 	verify(not ui.confirmation.visible and ui.game.seats[0].stack == 0, "protection can be disabled")
 	# A pending callback must be invalidated if the underlying decision changes.
 	ui._start_table(2)
-	ui.confirm_all_in = true
+	ui.prefs.confirm_all_in = true
 	ui.all_in_button.pressed.emit()
 	ui.game.act(0, "call")
 	before = ui.game.view_for(0)
@@ -142,7 +142,7 @@ func _run() -> void:
 	verify(ui.game.phase == "preflop" and ui.game.chip_total() == ui.starting_bb * 20, "confirmed refill starts fresh table")
 	ui._start_table(9)
 	ui.smoke_mode = false
-	ui.speed_index = 2
+	ui.prefs.speed_index = 2
 	ui._schedule_bot()
 	ui._open_settings()
 	before = ui.game.view_for(0)

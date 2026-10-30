@@ -83,7 +83,7 @@ func run() -> void:
 	ui.settings.controls.performance.select(1)
 	var changed = ui.settings.values()
 	ui._apply_settings(changed)
-	verify(ui.sound_level == 0 and ui.haptics_enabled and ui.performance_mode == 1, "feedback settings apply together")
+	verify(ui.prefs.sound_level == 0 and ui.prefs.haptics_enabled and ui.prefs.performance_mode == 1, "feedback settings apply together")
 	verify(ui.feedback_player.volume == 0, "mute stops audio")
 	var table = preload("res://scripts/poker/table.gd").new([100, 100])
 	table.start_hand(0)

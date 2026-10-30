@@ -172,8 +172,8 @@ func _run() -> void:
 	verify(t.store.mark(id).star and t.store.mark(id).note == "标记测试", "notes editor writes independent metadata")
 	ui.review.close()
 	ui._start_table(2)
-	ui.coach_after = true
-	ui.confirm_all_in = false
+	ui.prefs.coach_after = true
+	ui.prefs.confirm_all_in = false
 	var live_before = Advisor.information(ui.game.view_for(0))
 	ui._human_action("check_call")
 	verify(ui.review.visible and ui.review.live_mode and Advisor.information(ui.review.frames[0].view) == live_before, "after-action coach explains prior information while table is paused")

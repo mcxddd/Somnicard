@@ -195,7 +195,7 @@ func _teaching_tests() -> void:
 	ui._open_advice()
 	verify(ui.review.job != null, "live teaching starts incremental job")
 	ui.review.teaching_toggle.pressed.emit()
-	verify(not ui.live_teaching and ui.review_teaching and ui.review.job == null and ui.review.analysis.is_empty(), "live switch independent, cancels and clears")
+	verify(not ui.prefs.live_teaching and ui.prefs.review_teaching and ui.review.job == null and ui.review.analysis.is_empty(), "live switch independent, cancels and clears")
 	ui.review._analyze()
 	verify(ui.review.job == null and not ui.review.analyze_button.visible, "disabled teaching cannot start computation")
 	ui.review.close()
@@ -204,7 +204,7 @@ func _teaching_tests() -> void:
 	ui.settings.controls.live_teaching.button_pressed = true
 	ui.settings.controls.review_teaching.button_pressed = false
 	ui.settings.apply_button.pressed.emit()
-	verify(ui.live_teaching and not ui.review_teaching, "settings applies independent modes")
+	verify(ui.prefs.live_teaching and not ui.prefs.review_teaching, "settings applies independent modes")
 	ui._open_advice()
 	var ticks = 0
 	while ui.review.job != null and ticks < 1000:
@@ -218,7 +218,7 @@ func _teaching_tests() -> void:
 	ui.review.set_teaching(true, false)
 	verify(ui.review.analysis.is_empty() and not ui.review.range_button.visible, "no cached teaching leaks into disabled review")
 	ui.review._toggle_teaching()
-	verify(ui.review_teaching and ui.live_teaching, "review toggle updates only review preference")
+	verify(ui.prefs.review_teaching and ui.prefs.live_teaching, "review toggle updates only review preference")
 	var path = "user://strategy-preferences-test.cfg"
 	var prefs = Preferences.DEFAULTS.duplicate()
 	prefs.live_teaching = false

@@ -87,18 +87,18 @@ func _ready() -> void:
 	verify(ui.home.visible and not ui.lobby.visible and ui.game == null, "cancel keeps empty home")
 	await tap(ui.home.entries.settings, "home opens settings")
 	await tap(ui.settings.tabs[1], "open display category")
-	var original: bool = ui.four_color
+	var original: bool = ui.prefs.four_color
 	await reveal(ui.settings.scroll, ui.settings.controls.four_color)
 	await tap(ui.settings.controls.four_color, "change draft four-color")
-	verify(ui.settings.values().four_color != original and ui.four_color == original, "draft does not apply before save")
+	verify(ui.settings.values().four_color != original and ui.prefs.four_color == original, "draft does not apply before save")
 	await tap(ui.settings.cancel_button, "discard display draft")
-	verify(ui.four_color == original and ui.home.visible, "cancel restores original")
+	verify(ui.prefs.four_color == original and ui.home.visible, "cancel restores original")
 	await tap(ui.home.entries.settings, "reopen settings")
 	await tap(ui.settings.tabs[1], "reopen display")
 	await reveal(ui.settings.scroll, ui.settings.controls.four_color)
 	await tap(ui.settings.controls.four_color, "change display again")
 	await tap(ui.settings.apply_button, "save display")
-	verify(ui.four_color != original and not ui.settings.visible, "save applies display")
+	verify(ui.prefs.four_color != original and not ui.settings.visible, "save applies display")
 	# Learning is a real native-touch path, with persisted completion and layered back.
 	await tap(ui.home.learning, "open learning route")
 	await tap(ui.learning_center.body.get_child(4), "choose pricing lesson")
@@ -140,9 +140,9 @@ func _ready() -> void:
 	var total = ui.game.chip_total()
 	var before_events = ui.game.events.size()
 	await tap(ui.unit_picker.buttons[0], "show chip amount")
-	verify(not ui.use_bb, "amount unit selected")
+	verify(not ui.prefs.use_bb, "amount unit selected")
 	await tap(ui.unit_picker.buttons[1], "show BB")
-	verify(ui.use_bb and ui.game.events.size() == before_events and ui.game.chip_total() == total, "unit switching preserves game")
+	verify(ui.prefs.use_bb and ui.game.events.size() == before_events and ui.game.chip_total() == total, "unit switching preserves game")
 	# Repeated seat configuration must not stack controls or lose target.
 	for repeat in range(4):
 		var seat = repeat % 2 + 1
@@ -166,7 +166,7 @@ func _ready() -> void:
 	await tap(ui.bet_sheet.close_button, "close sizing without placing bet")
 	await tap(ui.unit_picker.buttons[0], "switch amount at table header")
 	await tap(ui.bet_open_button, "reopen sizing in chip amounts")
-	verify(ui.selected_raise == 25 and not ui.use_bb, "unit conversion keeps raise amount")
+	verify(ui.selected_raise == 25 and not ui.prefs.use_bb, "unit conversion keeps raise amount")
 	await tap(ui.all_in_button, "request all-in")
 	verify(ui.confirmation.visible and ui.game.events.size() == before_events, "all-in waits for confirmation")
 	await tap(ui.confirmation.cancel_button, "cancel all-in")

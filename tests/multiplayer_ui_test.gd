@@ -127,7 +127,7 @@ func _run() -> void:
 	# Start a real 9-seat timer chain, then verify modal cancellation resumes it.
 	ui._start_table(9)
 	ui.smoke_mode = false
-	ui.speed_index = 2
+	ui.prefs.speed_index = 2
 	ui._schedule_bot()
 	ui._open_lobby()
 	before = ui.game.view_for(0)

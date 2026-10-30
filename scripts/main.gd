@@ -1,6 +1,8 @@
 extends Control
 const TableAI = preload("res://scripts/ai/table_ai.gd")
 var ai = TableAI.new()
+const UserPrefs = preload("res://scripts/app/user_prefs.gd")
+var prefs = UserPrefs.new()
 const AIConfig = preload("res://scripts/ai/config.gd")
 const AIServices = preload("res://scripts/ai/services.gd")
 const AIVault = preload("res://scripts/ai/vault.gd")
@@ -44,8 +46,6 @@ var bot = LocalBot.new()
 var bot_timer: Timer
 var paused: bool = false
 var smoke_mode: bool = false
-var use_bb: bool = true
-var speed_index: int = 1
 var selected_raise: int = 20
 var decision_key: String = ""
 var session_id: String = ""
@@ -93,22 +93,10 @@ var session_save_error: bool = false
 var settings
 var confirmation
 var confirmation_action: Callable
-var felt_theme: int = 0
-var four_color: bool = false
-var motion: bool = true
-var confirm_all_in: bool = true
-var show_sidebar: bool = true
-var fast_fold_enabled: bool = true
-var live_teaching: bool = true
-var review_teaching: bool = true
 var coach
 var difficulty: int = 1
 var opponent_profiles: Array = Profiles.normalize([])
 var opponent_changes: Array = []
-var coach_after: bool = false
-var coach_auto: bool = false
-var coach_detail: int = 0
-var coach_side: int = 1
 var last_table_count: int = 2
 var settings_status: String = ""
 const portrait: bool = true
@@ -142,9 +130,6 @@ var layout_ready: bool = false
 var learning_center
 var support_center
 var feedback_player
-var sound_level = 1
-var haptics_enabled = false
-var performance_mode = 0
 
 func _ready() -> void:
 	ai.host = self
@@ -152,7 +137,7 @@ func _ready() -> void:
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version", "1.4.1")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_update_scale()
-	show_sidebar = not mobile_layout
+	prefs.show_sidebar = not mobile_layout
 	_load_preferences()
 	_build_ui()
 	review.ai_coach.configure(_settings_values())
@@ -192,7 +177,7 @@ func _build_ui() -> void:
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(header)
 	unit_picker = UnitSwitch.new()
-	unit_picker.select(1 if use_bb else 0)
+	unit_picker.select(1 if prefs.use_bb else 0)
 	unit_picker.custom_minimum_size = Vector2(110, 48)
 	unit_picker.tooltip_text = "切换整桌和下注输入的显示单位，实际筹码不变"
 	unit_picker.item_selected.connect(_unit_changed)
@@ -202,7 +187,7 @@ func _build_ui() -> void:
 	speed_picker = OptionButton.new()
 	speed_picker.custom_minimum_size = Vector2(112, 48)
 	for text in ["慢速", "标准速度", "快速"]: speed_picker.add_item(text)
-	speed_picker.select(speed_index)
+	speed_picker.select(prefs.speed_index)
 	speed_picker.item_selected.connect(_speed_changed)
 	add_child(speed_picker)
 	speed_picker.hide()
@@ -222,7 +207,7 @@ func _build_ui() -> void:
 	table_view = TableView.new()
 	table_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(table_view)
-	table_view.set_preferences(felt_theme, four_color, motion)
+	table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	dock = UI.panel(Color("10252d"), 16, 14)
 	main.add_child(dock)
 	controls = VBoxContainer.new()
@@ -300,7 +285,7 @@ func _build_ui() -> void:
 	side.add_child(log_view)
 	fast_fold = CheckBox.new()
 	fast_fold.text = "弃牌后快进电脑行动"
-	fast_fold.button_pressed = fast_fold_enabled
+	fast_fold.button_pressed = prefs.fast_fold_enabled
 	side.add_child(fast_fold)
 	fast_fold.hide()
 	side.add_child(UI.label("D 庄家 · SB 小盲 · BB 大盲\n虚拟筹码 · 离线电脑对战", 14, UI.MUTED))
@@ -328,8 +313,8 @@ func _build_ui() -> void:
 	training.closed.connect(_close_training)
 	training.replay_requested.connect(_training_replay_requested)
 	review.units_changed.connect(_review_units_changed)
-	review.table_view.set_preferences(felt_theme, four_color, motion)
-	review.set_teaching(live_teaching, review_teaching)
+	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
+	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
 	review.ai_coach.configure(_settings_values())
 	training.ai_coach.configure(_settings_values())
 	review.teaching_changed.connect(_teaching_changed)
@@ -372,8 +357,8 @@ func _build_product() -> void:
 	confirmation.z_index = 30
 
 func _apply_feedback_preferences() -> void:
-	if feedback_player != null: feedback_player.configure({"sound": sound_level, "haptics": haptics_enabled})
-	if not smoke_mode: Engine.max_fps = 30 if performance_mode == 1 else 60
+	if feedback_player != null: feedback_player.configure({"sound": prefs.sound_level, "haptics": prefs.haptics_enabled})
+	if not smoke_mode: Engine.max_fps = 30 if prefs.performance_mode == 1 else 60
 
 func _open_product(name: String) -> void:
 	bot_timer.stop()
@@ -620,7 +605,7 @@ func _human_action(action: String, amount: int = 0, confirmed: bool = false) -> 
 	if action == "check_call": action = "check" if game.legal_actions(0).check else "call"
 	var seat = game.seats[0]
 	var commits_stack = action == "all_in" or (action == "raise" and amount == seat.street_bet + seat.stack) or (action == "call" and game.legal_actions(0).call_amount == seat.stack)
-	if confirm_all_in and commits_stack and not confirmed:
+	if prefs.confirm_all_in and commits_stack and not confirmed:
 		var stamp = _action_stamp()
 		_request_confirmation("投入全部剩余筹码？", "本次将投入 %s，本轮总额为 %s。确认后不能撤回；可在设置中关闭全押确认。" % [_money(seat.stack), _money(seat.street_bet + seat.stack)], "确认全押", func():
 			if stamp == _action_stamp(): _human_action(action, amount, true))
@@ -631,8 +616,8 @@ func _human_action(action: String, amount: int = 0, confirmed: bool = false) -> 
 		turn_label.text = err
 		return
 	_refresh()
-	if coach_after and live_teaching:
-		review.open_live(decision_before, use_bb)
+	if prefs.coach_after and prefs.live_teaching:
+		review.open_live(decision_before, prefs.use_bb)
 		review.title.text = "刚才的决策 · 行动后讲解"
 		review.close_button.text = "继续对局"
 		_sync_modal_focus()
@@ -647,7 +632,7 @@ func _submit_raise() -> void:
 func _schedule_bot() -> void:
 	bot_timer.stop()
 	if not smoke_mode and game != null and game.actor > 0 and not paused and not _modal_open() and not ai.client.busy and ai.error.is_empty():
-		bot_timer.start(0.08 if game.seats[0].folded and fast_fold.button_pressed else SPEEDS[speed_index])
+		bot_timer.start(0.08 if game.seats[0].folded and fast_fold.button_pressed else SPEEDS[prefs.speed_index])
 
 func _bot_step() -> void:
 	if game == null or game.actor <= 0 or paused or _modal_open(): return
@@ -671,7 +656,7 @@ func _toggle_pause() -> void:
 	_schedule_bot()
 
 func _speed_changed(index: int) -> void:
-	speed_index = index
+	prefs.speed_index = index
 	_save_preferences()
 	_schedule_bot()
 
@@ -681,8 +666,8 @@ func _toggle_sidebar() -> void:
 func _unit_changed(index: int) -> void:
 	# Commit any typed value in the OLD unit before switching display units.
 	amount_input.apply()
-	use_bb = index == 1
-	review.set_units(use_bb)
+	prefs.use_bb = index == 1
+	review.set_units(prefs.use_bb)
 	unit_picker.select(index)
 	sheet_units.select(index)
 	_refresh()
@@ -732,21 +717,21 @@ func _set_target(requested: int) -> void:
 
 func _amount_changed(value: float) -> void:
 	if game == null or game.actor != 0: return
-	_set_target(roundi(value * (game.big_blind if use_bb else 1)))
+	_set_target(roundi(value * (game.big_blind if prefs.use_bb else 1)))
 
 func _sync_amount() -> void:
 	var legal = game.legal_actions(0)
 	if legal.is_empty(): return
-	var factor = float(game.big_blind if use_bb else 1)
+	var factor = float(game.big_blind if prefs.use_bb else 1)
 	amount_input.set_block_signals(true)
 	amount_input.step = 1.0 / factor
-	amount_input.suffix = "BB" if use_bb else ""
+	amount_input.suffix = "BB" if prefs.use_bb else ""
 	amount_input.min_value = mini(legal.min_raise_to, legal.max_raise_to) / factor
 	amount_input.max_value = legal.max_raise_to / factor
 	amount_input.value = selected_raise / factor
 	# SpinBox defers its text refresh. Keep the editor synchronized immediately so
 	# apply() during a rapid unit switch cannot reparse the previous displayed value.
-	amount_input.get_line_edit().text = ("%.1f BB" % (selected_raise / factor)) if use_bb else str(selected_raise)
+	amount_input.get_line_edit().text = ("%.1f BB" % (selected_raise / factor)) if prefs.use_bb else str(selected_raise)
 	amount_input.set_block_signals(false)
 	amount_slider.set_block_signals(true)
 	amount_slider.min_value = mini(legal.min_raise_to, legal.max_raise_to)
@@ -770,11 +755,11 @@ func _refresh() -> void:
 	header.text = "%d 人桌 · 第 %d 手" % [player_count, view.hand]
 	header.tooltip_text = "ID " + History.hand_id(game.record_state())
 	pause_button.text = "继续" if paused else "暂停"
-	table_view.update_table(view, use_bb, paused or _modal_open())
+	table_view.update_table(view, prefs.use_bb, paused or _modal_open())
 	table_view.sync_speech(ai.dialogue)
 	if done:
 		_save_record()
-		turn_label.text = "你 · " + table_view.Outcome.net_text(view, 0, use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
+		turn_label.text = "你 · " + table_view.Outcome.net_text(view, 0, prefs.use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
 		if save_status.contains("失败"): turn_label.text += "\n" + save_status
 	elif paused or _modal_open(): turn_label.text = "牌局已暂停"
 	elif view.seats[0].folded: turn_label.text = "你已弃牌 · 正在观看其余玩家" + ("（快进）" if fast_fold.button_pressed else "")
@@ -782,7 +767,7 @@ func _refresh() -> void:
 	ai.update_bar()
 	if ai.client != null and ai.client.busy: turn_label.text = game.seats[game.actor].name + " · 在线思考中…"
 	_update_controls(view)
-	coach.sync(view, use_bb, live_teaching and (not coach_after or done), not paused and not _modal_open())
+	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not _modal_open())
 	_update_explanation(view)
 	_update_log(view)
 	_save_session()
@@ -794,7 +779,7 @@ func _update_controls(view: Dictionary) -> void:
 	var active = not legal.is_empty() and not paused and (not _modal_open() or _top_modal() == bet_sheet)
 	advice_button.disabled = not active or _modal_open()
 	advice_button.hide()
-	advice_button.tooltip_text = "根据当时信息分析，返回后自己选择行动" if live_teaching else "打开教学设置"
+	advice_button.tooltip_text = "根据当时信息分析，返回后自己选择行动" if prefs.live_teaching else "打开教学设置"
 	var done = view.phase == "complete"
 	fold_button.disabled = not active
 	call_button.disabled = not active
@@ -835,7 +820,7 @@ func _update_controls(view: Dictionary) -> void:
 		amount_note.text = "等待当前玩家行动 · 快捷按钮仅填入金额，点击加注后才提交"
 
 func _update_explanation(view: Dictionary) -> void:
-	if not live_teaching:
+	if not prefs.live_teaching:
 		explanation.text = "对局教学已关闭 · 下方保留公开行动记录。"
 		return
 	if view.phase == "complete":
@@ -903,7 +888,7 @@ func _event_text(event: Dictionary) -> String:
 	return ""
 
 func _money(chips: int) -> String:
-	return UI.money(chips, game.big_blind, use_bb)
+	return UI.money(chips, game.big_blind, prefs.use_bb)
 
 func _cards_text(cards: Array) -> String:
 	var words = []
@@ -925,37 +910,21 @@ func _add_quick(text: String, callback: Callable) -> void:
 
 func _load_preferences() -> void:
 	if smoke_mode or "--capture-test" in OS.get_cmdline_user_args(): return
-	var prefs = Preferences.load_values("user://preferences.cfg", show_sidebar)
-	sound_level = prefs.sound
-	haptics_enabled = prefs.haptics
-	performance_mode = prefs.performance
-	selected_count = prefs.players
+	var saved = Preferences.load_values("user://preferences.cfg", prefs.show_sidebar)
+	prefs.load(saved)
+	selected_count = saved.players
 	last_table_count = selected_count
-	starting_bb = prefs.depth
-	use_bb = prefs.bb
-	speed_index = prefs.speed
-	fast_fold_enabled = prefs.fast_fold
-	show_sidebar = prefs.sidebar
-	felt_theme = prefs.felt
-	four_color = prefs.four_color
-	motion = prefs.motion
-	confirm_all_in = prefs.confirm_all_in
-	live_teaching = prefs.live_teaching
-	review_teaching = prefs.review_teaching
-	difficulty = prefs.difficulty
-	opponent_profiles = prefs.opponents
-	ai.profiles = prefs.ai_profiles
+	starting_bb = saved.depth
+	difficulty = saved.difficulty
+	opponent_profiles = saved.opponents
+	ai.profiles = saved.ai_profiles
 	ai.keys = AIVault.load_keys(ai.profiles)
 	ai.key = str(ai.keys.get("default", ""))
-	ai.live_coach = prefs.ai_live_coach
-	ai.review_coach = prefs.ai_review_coach
-	ai.coach_service_id = prefs.coach_service_id
-	ai.service = prefs.ai_service
-	ai.seats = prefs.ai_seats
-	coach_after = prefs.coach_after
-	coach_auto = prefs.coach_auto
-	coach_detail = prefs.coach_detail
-	coach_side = prefs.coach_side
+	ai.live_coach = saved.ai_live_coach
+	ai.review_coach = saved.ai_review_coach
+	ai.coach_service_id = saved.coach_service_id
+	ai.service = saved.ai_service
+	ai.seats = saved.ai_seats
 
 func _save_preferences() -> void:
 	if smoke_mode or "--capture-test" in OS.get_cmdline_user_args(): return
@@ -1000,7 +969,7 @@ func _open_history() -> void:
 	bot_timer.stop()
 	amount_input.apply()
 	_restore_background_focus()
-	review.open_history(use_bb)
+	review.open_history(prefs.use_bb)
 	review.close_button.text = _return_text()
 	_block_background_focus(self)
 	review.close_button.grab_focus()
@@ -1012,17 +981,17 @@ func _open_advice() -> void:
 		_review_current_hand()
 		return
 	if game.actor != 0: return
-	if coach_after:
+	if prefs.coach_after:
 		turn_label.text = "先行动，再看教练已开启；本次操作后会显示讲解。"
 		return
-	if not live_teaching:
+	if not prefs.live_teaching:
 		_open_settings()
 		settings._select_page(3)
 		return
 	amount_input.apply()
 	bot_timer.stop()
 	_restore_background_focus()
-	review.open_live(game.view_for(0), use_bb)
+	review.open_live(game.view_for(0), prefs.use_bb)
 	review.close_button.text = "返回牌桌"
 	_block_background_focus(self)
 	_refresh()
@@ -1041,7 +1010,7 @@ func _review_current_hand() -> void:
 		turn_label.text = rebuilt.error
 		return
 	_open_history()
-	review.open_replay(rebuilt, use_bb)
+	review.open_replay(rebuilt, prefs.use_bb)
 	review.next_decision()
 	review._select_portrait_tab(true)
 	if review.teaching_enabled(): review._analyze()
@@ -1172,13 +1141,12 @@ func _sync_modal_focus() -> void:
 		elif home.visible: home.primary.grab_focus()
 
 func _settings_values() -> Dictionary:
-	return {"sound": sound_level, "haptics": haptics_enabled, "performance": performance_mode, "bb": use_bb, "speed": speed_index, "fast_fold": fast_fold_enabled, "sidebar": show_sidebar,
-		"felt": felt_theme, "four_color": four_color, "motion": motion, "confirm_all_in": confirm_all_in,
-		"live_teaching": live_teaching, "review_teaching": review_teaching, "difficulty": difficulty, "opponents": opponent_profiles.duplicate(true),
-		"coach_after": coach_after, "coach_auto": coach_auto, "coach_detail": coach_detail, "coach_side": coach_side,
+	var values = prefs.values()
+	values.merge({"difficulty": difficulty, "opponents": opponent_profiles.duplicate(true),
 		"ai_service": ai.service.duplicate(true), "ai_seats": ai.seats.duplicate(true), "ai_key": ai.key,
 		"ai_profiles": AIServices.normalize(ai.profiles, ai.service), "ai_keys": ai.keys.duplicate(), "coach_service_id": ai.coach_service_id,
-		"ai_live_coach": ai.live_coach, "ai_review_coach": ai.review_coach}
+		"ai_live_coach": ai.live_coach, "ai_review_coach": ai.review_coach})
+	return values
 
 func _open_settings() -> void:
 	bot_timer.stop()
@@ -1193,27 +1161,11 @@ func _open_settings() -> void:
 
 func _apply_settings(values: Dictionary) -> void:
 	if not ai.apply_settings(values): return
-	sound_level = int(values.get("sound", 1))
-	haptics_enabled = bool(values.get("haptics", false))
-	performance_mode = int(values.get("performance", 0))
-	_apply_feedback_preferences()
 	# Commit typed text in its original unit, then update presentation atomically.
 	amount_input.apply()
-	use_bb = values.bb
-	speed_index = values.speed
-	fast_fold_enabled = values.fast_fold
-	show_sidebar = values.sidebar
-	felt_theme = values.felt
-	four_color = values.four_color
-	motion = values.motion
-	confirm_all_in = values.confirm_all_in
-	live_teaching = values.get("live_teaching", true)
-	review_teaching = values.get("review_teaching", true)
+	prefs.assign(values)
+	_apply_feedback_preferences()
 	difficulty = values.get("difficulty", 1)
-	coach_after = values.get("coach_after", false)
-	coach_auto = values.get("coach_auto", false)
-	coach_detail = values.get("coach_detail", 0)
-	coach_side = values.get("coach_side", 1)
 	opponent_profiles = Profiles.normalize(values.get("opponents", opponent_profiles))
 	for id in bots:
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
@@ -1230,16 +1182,16 @@ func _apply_settings(values: Dictionary) -> void:
 		session_stamp = ""
 		_save_session()
 	coach.configure(_settings_values())
-	review.set_teaching(live_teaching, review_teaching)
+	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
 	review.ai_coach.configure(_settings_values())
 	training.ai_coach.configure(_settings_values())
-	unit_picker.select(1 if use_bb else 0)
-	speed_picker.select(speed_index)
-	fast_fold.button_pressed = fast_fold_enabled
+	unit_picker.select(1 if prefs.use_bb else 0)
+	speed_picker.select(prefs.speed_index)
+	fast_fold.button_pressed = prefs.fast_fold_enabled
 	sidebar.hide()
-	table_view.set_preferences(felt_theme, four_color, motion)
-	review.table_view.set_preferences(felt_theme, four_color, motion)
-	review.set_units(use_bb)
+	table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
+	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
+	review.set_units(prefs.use_bb)
 	_save_preferences()
 	settings.ai_page.stop()
 	settings.ai_page.key.text = ""
@@ -1258,8 +1210,8 @@ func _close_settings() -> void:
 	_schedule_bot()
 
 func _teaching_changed(live: bool, enabled: bool) -> void:
-	if live: live_teaching = enabled
-	else: review_teaching = enabled
+	if live: prefs.live_teaching = enabled
+	else: prefs.review_teaching = enabled
 	_save_preferences()
 	_refresh()
 
@@ -1383,7 +1335,7 @@ func _build_sheets() -> void:
 	sheet_units = OptionButton.new()
 	sheet_units.add_item("筹码金额")
 	sheet_units.add_item("大盲 BB")
-	sheet_units.select(1 if use_bb else 0)
+	sheet_units.select(1 if prefs.use_bb else 0)
 	sheet_units.custom_minimum_size.y = 48
 	sheet_units.item_selected.connect(_unit_changed)
 	bet_sheet.content.add_child(sheet_units)
@@ -1427,7 +1379,7 @@ func _open_bet() -> void:
 	if game == null or paused or _modal_open() or not game.legal_actions(0).get("raise", false): return
 	bot_timer.stop()
 	bet_sheet.open("选择下注金额")
-	sheet_units.select(1 if use_bb else 0)
+	sheet_units.select(1 if prefs.use_bb else 0)
 	_sync_modal_focus()
 	_refresh()
 
@@ -1481,11 +1433,11 @@ func _process(_delta: float) -> void:
 func _open_training() -> void:
 	bot_timer.stop()
 	training_origin = {}
-	training.use_bb = use_bb
+	training.use_bb = prefs.use_bb
 	training.difficulty = difficulty
 	training.opponent_profiles = opponent_profiles.duplicate(true)
-	training.speed = SPEEDS[speed_index]
-	training.table_view.set_preferences(felt_theme, four_color, motion)
+	training.speed = SPEEDS[prefs.speed_index]
+	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	training.return_text = "‹ " + _return_text()
 	training._select_hub_page(0)
 	training.open_hub()
@@ -1496,11 +1448,11 @@ func _practice_from_review(record: Dictionary, point: int) -> void:
 	bot_timer.stop()
 	training_origin = {"record": record.duplicate(true), "index": review.index}
 	review.hide()
-	training.use_bb = use_bb
+	training.use_bb = prefs.use_bb
 	training.difficulty = difficulty
 	training.opponent_profiles = opponent_profiles.duplicate(true)
-	training.speed = SPEEDS[speed_index]
-	training.table_view.set_preferences(felt_theme, four_color, motion)
+	training.speed = SPEEDS[prefs.speed_index]
+	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	training.open_case(record, point)
 	_sync_modal_focus()
 	_refresh()
@@ -1514,8 +1466,8 @@ func _training_replay_requested(payload: Dictionary) -> void:
 	training.hide()
 	training_replay = true
 	if payload.has("original"):
-		review.open_comparison([{"record": payload.original, "label": "原牌局"}, {"record": record, "label": "重打分支 · " + ("未知牌重采样" if payload.mode == "sampled" else "保留原牌")}], 1, use_bb)
-	else: review.open_replay(rebuilt, use_bb)
+		review.open_comparison([{"record": payload.original, "label": "原牌局"}, {"record": record, "label": "重打分支 · " + ("未知牌重采样" if payload.mode == "sampled" else "保留原牌")}], 1, prefs.use_bb)
+	else: review.open_replay(rebuilt, prefs.use_bb)
 	review.close_button.text = "返回训练"
 	_sync_modal_focus()
 
@@ -1523,7 +1475,7 @@ func _close_training() -> void:
 	if not training_origin.is_empty():
 		var rebuilt = History.replay(training_origin.record)
 		if not rebuilt.has("error"):
-			review.open_replay(rebuilt, use_bb)
+			review.open_replay(rebuilt, prefs.use_bb)
 			review.seek(training_origin.index)
 		training_origin = {}
 	_sync_modal_focus()
