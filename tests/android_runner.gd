@@ -140,9 +140,9 @@ func _ready() -> void:
 	verify(not ui.ai.trace.for_seat(1).is_empty(), "Android network records requests by seat")
 	verify(not JSON.stringify(ui.ai.trace.entries).contains("DUMMY_"), "Android trace contains no dummy credentials")
 	ui._seat_details(1)
-	verify(ui.ai_inspector.visible and ui.ai_inspector.complete, "completed Android hand unlocks inspector")
+	verify(ui.screen.ai_inspector.visible and ui.screen.ai_inspector.complete, "completed Android hand unlocks inspector")
 	await shot("seat-request-history")
-	ui.info_sheet.close()
+	ui.screen.info_sheet.close()
 	# A deliberately truncated reasoning fixture exercises the real Android HTTP path.
 	ui.ai.profiles[0].service.model = "reasoning-fixture"
 	ui._start_table(2)
@@ -156,10 +156,10 @@ func _ready() -> void:
 	verify(logs.any(func(e): return e.state == "retrying" and e.finish_reason == "length") and logs.any(func(e): return e.state == "complete" and e.limit == 16384), "Android captures both attempts and larger budget")
 	ui.ai.speech_client.cancel()
 	ui._seat_details(1)
-	ui.ai_inspector._detail(logs.back())
-	verify(not ui.ai_inspector.complete, "live Android hand keeps messages locked")
+	ui.screen.ai_inspector._detail(logs.back())
+	verify(not ui.screen.ai_inspector.complete, "live Android hand keeps messages locked")
 	await shot("seat-request-locked")
-	ui.info_sheet.close()
+	ui.screen.info_sheet.close()
 	for count in [6, 9]:
 		ui._start_table(count)
 		ui.bot_timer.stop()
@@ -167,7 +167,7 @@ func _ready() -> void:
 		ui.ai.dialogue = [{"seat": 1, "event": ui.game.events.size(), "text": "这一下够狠啊，想把我赶走可没那么容易。"}]
 		ui._refresh()
 		ui.bot_timer.stop()
-		verify(ui.table_view.speech_bubble.visible, "seat bubble visible on Android %d players" % count)
+		verify(ui.screen.table_view.speech_bubble.visible, "seat bubble visible on Android %d players" % count)
 		verify(not ui.ai.bar.visible, "speech does not add bottom text box")
 		await shot("speech-%d" % count)
 	ui._open_settings()

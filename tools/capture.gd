@@ -121,7 +121,7 @@ func _capture() -> void:
 		for frame in range(8): await process_frame
 		if "--gto-rows" in OS.get_cmdline_user_args(): instance.review.analysis_scroll.reset_scroll(roundi(instance.review.strategy_rows.global_position.y - instance.review.analysis_scroll.get_child(0).global_position.y))
 	if "--midnight" in OS.get_cmdline_user_args():
-		instance.table_view.set_preferences(1, true, false)
+		instance.screen.table_view.set_preferences(1, true, false)
 		instance.review.table_view.set_preferences(1, true, false)
 	if "--confirm" in OS.get_cmdline_user_args(): instance._human_action("all_in")
 	if "--bet" in OS.get_cmdline_user_args(): instance._open_bet()
@@ -130,7 +130,7 @@ func _capture() -> void:
 	if "--seat-repeat" in OS.get_cmdline_user_args():
 		for id in [2, 2, 5, 1, 2]:
 			instance._seat_details(id)
-			instance.info_opponent_button.pressed.emit()
+			instance.screen.info_opponent_button.pressed.emit()
 			instance.settings.cancel()
 		instance._seat_details(2)
 	if "--coach" in OS.get_cmdline_user_args():
@@ -260,7 +260,7 @@ func _capture() -> void:
 		var entry = {"id": "capture", "context": {"seat": 1, "hand": instance.game.hand_number, "phase": "flop", "event": 10, "purpose": "decision"}, "model": "demonstration-model", "url": "https://example.invalid/v1/chat/completions", "attempt": 2, "limit": 16384, "state": "complete", "finish_reason": "stop", "elapsed_ms": 1680, "http_status": 200, "usage": {"input_tokens": 1260, "output_tokens": 156, "reasoning_tokens": 128}, "request": {"model": "demonstration-model", "messages": [{"role": "user", "content": "演示请求记录，非真实服务调用"}]}, "response": '{"action":"call","amount":0}'}
 		instance.ai.trace.append(entry)
 		instance._seat_details(1)
-		if "--request-detail" in OS.get_cmdline_user_args(): instance.ai_inspector._detail(entry)
+		if "--request-detail" in OS.get_cmdline_user_args(): instance.screen.ai_inspector._detail(entry)
 		for frame in range(12): await process_frame
 	if "--layout-metrics" in OS.get_cmdline_user_args():
 		var ai_page = instance.settings.ai_page

@@ -54,12 +54,12 @@ func run() -> void:
 	ui.settings.cancel()
 	# Reopening seat configuration must never grow the overlay tree.
 	ui._start_table(9)
-	var initial_nodes = ui.info_sheet.content.get_child_count()
+	var initial_nodes = ui.screen.info_sheet.content.get_child_count()
 	for i in range(24):
 		ui._seat_details(i % 8 + 1)
-		ui.info_opponent_button.pressed.emit()
+		ui.screen.info_opponent_button.pressed.emit()
 		ui.settings.cancel()
-		verify(ui.info_sheet.content.get_child_count() == initial_nodes, "repeated seat configuration does not accumulate widgets")
+		verify(ui.screen.info_sheet.content.get_child_count() == initial_nodes, "repeated seat configuration does not accumulate widgets")
 		verify(ui.settings.opponent_editor.selected == i % 8 + 1, "seat configuration retains its intended target")
 	# Training uses a shorter table than normal play; wagers must not cover public cards.
 	ui.training.history_directory = "user://audit-empty-history"

@@ -83,7 +83,7 @@ func run() -> void:
 			ui._start_table(count)
 			ui.bot_timer.stop()
 			await settle()
-			var table = ui.table_view
+			var table = ui.screen.table_view
 			for seat in range(1, count):
 				table.clear_speech()
 				table.sync_speech([{"seat": seat, "event": ui.game.events.size(), "text": "这一下够狠啊，想把我赶走可没那么容易。"}])
@@ -98,11 +98,11 @@ func run() -> void:
 				var until: int = table.speech_until
 				table.sync_speech([{"seat": seat, "event": ui.game.events.size(), "text": "这一下够狠啊，想把我赶走可没那么容易。"}])
 				verify(table.speech_until == until, "refresh does not restart bubble lifetime")
-	ui.table_view.speech_until = 1
-	ui.table_view._process(0.1)
-	verify(not ui.table_view.speech_bubble.visible, "bubble expires automatically")
-	ui.table_view.sync_speech([{"seat": "bad", "event": "bad", "text": "malformed"}])
-	verify(not ui.table_view.speech_bubble.visible, "malformed imported speech safely ignored")
+	ui.screen.table_view.speech_until = 1
+	ui.screen.table_view._process(0.1)
+	verify(not ui.screen.table_view.speech_bubble.visible, "bubble expires automatically")
+	ui.screen.table_view.sync_speech([{"seat": "bad", "event": "bad", "text": "malformed"}])
+	verify(not ui.screen.table_view.speech_bubble.visible, "malformed imported speech safely ignored")
 	var trace = Trace.new()
 	var entry = {"id": "1", "context": {"seat": 1, "hand": ui.game.hand_number}, "state": "complete", "request": {"messages": [{"content": "PRIVATE_HOLE_SENTINEL KEY_SENTINEL"}], "api_key": "KEY_SENTINEL"}, "response": "PRIVATE_REPLY_SENTINEL Bearer KEY_SENTINEL", "reasoning_content": "PRIVATE_REASONING_SENTINEL"}
 	trace.append(entry, ["KEY_SENTINEL"])
@@ -112,21 +112,21 @@ func run() -> void:
 	ui.ai.trace = trace
 	ui.ai.seats[0].enabled = true
 	ui._seat_details(1)
-	ui.ai_inspector._detail(trace.entries[0])
-	verify(not text_in(ui.ai_inspector).contains("PRIVATE_HOLE_SENTINEL") and not text_in(ui.ai_inspector).contains("PRIVATE_REPLY_SENTINEL"), "live inspector blocks prompts and replies with private cards")
-	ui.info_sheet.close()
+	ui.screen.ai_inspector._detail(trace.entries[0])
+	verify(not text_in(ui.screen.ai_inspector).contains("PRIVATE_HOLE_SENTINEL") and not text_in(ui.screen.ai_inspector).contains("PRIVATE_REPLY_SENTINEL"), "live inspector blocks prompts and replies with private cards")
+	ui.screen.info_sheet.close()
 	while ui.game.phase != "complete": ui.game.act(ui.game.actor, "check" if ui.game.legal_actions(ui.game.actor).check else "call")
 	ui._refresh()
 	ui._seat_details(1)
-	ui.ai_inspector._detail(trace.entries[0])
-	verify(text_in(ui.ai_inspector).contains("PRIVATE_HOLE_SENTINEL") and text_in(ui.ai_inspector).contains("PRIVATE_REPLY_SENTINEL"), "completed hand unlocks full sent messages and visible response")
+	ui.screen.ai_inspector._detail(trace.entries[0])
+	verify(text_in(ui.screen.ai_inspector).contains("PRIVATE_HOLE_SENTINEL") and text_in(ui.screen.ai_inspector).contains("PRIVATE_REPLY_SENTINEL"), "completed hand unlocks full sent messages and visible response")
 	verify(not JSON.stringify(ui.ai.session_state()).contains("PRIVATE_HOLE_SENTINEL"), "traces do not enter saved table or backups")
-	ui.info_sheet.close()
+	ui.screen.info_sheet.close()
 	for i in range(210): trace.append({"id": str(i), "context": {"seat": i % 2 + 1, "hand": 1}, "request": {}, "response": "x".repeat(32768)})
 	verify(trace.entries.size() <= 160 and JSON.stringify(trace.entries).to_utf8_buffer().size() <= Trace.MAX_BYTES, "retention bounded by count and bytes")
 	verify(trace.for_seat(1).all(func(e): return e.context.seat == 1), "seat history never mixes opponents")
 	ui._start_table(2)
-	verify(ui.ai.trace.entries.is_empty() and not ui.table_view.speech_bubble.visible, "new table clears traces and old speech")
+	verify(ui.ai.trace.entries.is_empty() and not ui.screen.table_view.speech_bubble.visible, "new table clears traces and old speech")
 	ui.queue_free()
 	await process_frame
 	print("VERSION113_TESTS: %d checks, %d failures" % [checks, failures])

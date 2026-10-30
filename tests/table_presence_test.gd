@@ -29,7 +29,7 @@ func _run() -> void:
 			verify(ui.game.button == 0 and ui.game.small_blind_seat == (0 if count == 2 else 1) and ui.game.big_blind_seat == (1 if count == 2 else 2), "initial button and blinds " + str(count))
 			verify(ui.game.actor == (0 if count == 2 else 3 % count), "preflop first actor " + str(count))
 			for id in range(count):
-				var node = ui.table_view.seat_nodes[id]
+				var node = ui.screen.table_view.seat_nodes[id]
 				verify(node.badge.visible == (id == ui.game.button), "only dealer has D badge")
 				verify(node.blind.visible == (id in [ui.game.small_blind_seat, ui.game.big_blind_seat]), "only blind seats have blind badge")
 				verify(node.name.text == ui.game.seats[id].name, "names have no position suffix")
@@ -37,9 +37,9 @@ func _run() -> void:
 			# Display stress fixture: every seat has an amount, without changing engine state.
 			var snapshot = ui.game.view_for(0)
 			for seat in snapshot.seats: seat.street_bet = 125
-			ui.table_view.update_table(snapshot, true)
+			ui.screen.table_view.update_table(snapshot, true)
 			await settle()
-			var table = ui.table_view
+			var table = ui.screen.table_view
 			for id in range(count):
 				var marker = table.seat_nodes[id].bet
 				verify(marker.visible and marker.amount == 125 and marker.text == "12.5 BB" and marker.value_label.text == "12.5" and marker.unit_label.text == "BB", "bet amount reflects street in BB")
@@ -53,7 +53,7 @@ func _run() -> void:
 				text_rect.position += label.global_position
 				verify(not rect.intersects(text_rect), "%d bet %d avoids pot number" % [count, id])
 				for other in range(id + 1, count): verify(not rect.intersects(table.seat_nodes[other].bet.get_global_rect()), "%d bet markers separate" % count)
-			ui.table_view.update_table(snapshot, false)
+			ui.screen.table_view.update_table(snapshot, false)
 			verify(table.seat_nodes[0].bet.value_label.text == "125" and table.seat_nodes[0].bet.unit_label.text == "筹码", "bet amount switches to exact chips")
 			# Small blind fractions and the full nine-player bankroll remain exact and legible.
 			for chips in [0, 5, 18000]:
@@ -89,10 +89,10 @@ func _run() -> void:
 	verify(sparse.small_blind_seat == 2 and sparse.big_blind_seat == 3, "empty seat skipped by blinds")
 	ui._start_table(6)
 	var before_units = ui.game.record_state()
-	ui.unit_picker.buttons[0].pressed.emit()
-	verify(not ui.prefs.use_bb and ui.unit_picker.selected == 0 and ui.game.record_state() == before_units, "segmented chip selector preserves game")
-	ui.unit_picker.buttons[1].pressed.emit()
-	verify(ui.prefs.use_bb and ui.unit_picker.selected == 1 and ui.game.record_state() == before_units, "segmented BB selector preserves game")
+	ui.screen.unit_picker.buttons[0].pressed.emit()
+	verify(not ui.prefs.use_bb and ui.screen.unit_picker.selected == 0 and ui.game.record_state() == before_units, "segmented chip selector preserves game")
+	ui.screen.unit_picker.buttons[1].pressed.emit()
+	verify(ui.prefs.use_bb and ui.screen.unit_picker.selected == 1 and ui.game.record_state() == before_units, "segmented BB selector preserves game")
 	passive(ui.game)
 	ui._refresh()
 	var id = History.hand_id(ui.game.completed_record())

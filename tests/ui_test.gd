@@ -18,28 +18,28 @@ func _run() -> void:
 	ui.smoke_mode = true
 	ui.bot_timer.stop()
 	ui._start_table(2)
-	ui.unit_picker.select(0)
+	ui.screen.unit_picker.select(0)
 	ui._unit_changed(0)
-	verify(not ui.call_button.disabled and ui.call_button.text == "跟注\n5", "initial human controls")
+	verify(not ui.screen.call_button.disabled and ui.screen.call_button.text == "跟注\n5", "initial human controls")
 	# A freshly typed value must be committed even without pressing Enter first.
-	ui.amount_input.get_line_edit().text = "60"
-	ui.raise_button.pressed.emit()
+	ui.screen.amount_input.get_line_edit().text = "60"
+	ui.screen.raise_button.pressed.emit()
 	verify(ui.game.current_bet == 60 and ui.game.seats[0].street_bet == 60, "typed raise uses street total")
-	verify(ui.call_button.disabled and ui.raise_button.disabled, "input locked during bot turn")
+	verify(ui.screen.call_button.disabled and ui.screen.raise_button.disabled, "input locked during bot turn")
 	ui.game.act(1, "call")
 	ui._refresh()
 	verify(ui.game.phase == "flop" and ui.game.actor == 1, "human raise and bot call reach flop")
 	var steps = 0
 	while ui.game.phase != "complete" and steps < 100:
 		if ui.game.actor == 0:
-			ui.call_button.pressed.emit()
+			ui.screen.call_button.pressed.emit()
 		else:
 			var legal = ui.game.legal_actions(ui.game.actor)
 			ui.game.act(ui.game.actor, "check" if legal.check else "call")
 			ui._refresh()
 		steps += 1
 	verify(ui.game.phase == "complete" and ui.game.result.showdown and ui.game.chip_total() == 2000, "UI showdown settles")
-	verify(ui.next_button.visible and not ui.fold_button.visible, "settlement controls")
+	verify(ui.screen.next_button.visible and not ui.screen.fold_button.visible, "settlement controls")
 	# Check actual serialization and replay, then remove only this test's own record.
 	ui.smoke_mode = false
 	ui.saved_hand = -1
@@ -60,16 +60,16 @@ func _run() -> void:
 			verify(JSON.parse_string(JSON.stringify(replay.result)) == record.result, "saved replay has identical settlement")
 		verify(DirAccess.remove_absolute(path) == OK, "remove only the test record")
 	ui.smoke_mode = true
-	ui.next_button.pressed.emit()
+	ui.screen.next_button.pressed.emit()
 	verify(ui.game.hand_number == 2 and ui.game.button == 1, "next hand rotates button")
 	ui.game.act(1, "call")
 	ui._refresh()
-	ui.fold_button.pressed.emit()
+	ui.screen.fold_button.pressed.emit()
 	verify(ui.game.phase == "complete" and not ui.game.result.showdown, "fold button ends hand")
 	# Real bot timer path, not just direct engine calls.
-	ui.next_button.pressed.emit()
+	ui.screen.next_button.pressed.emit()
 	ui.smoke_mode = false
-	ui.call_button.pressed.emit()
+	ui.screen.call_button.pressed.emit()
 	verify(not ui.bot_timer.is_stopped(), "bot timer scheduled")
 	await create_timer(1.5).timeout
 	verify(ui.game.events.any(func(e): return e.kind == "action" and e.seat == 1), "bot responds via timer")
@@ -79,7 +79,7 @@ func _run() -> void:
 	ui.game = Table.new([1000, 1000])
 	ui.game.start_hand(0)
 	ui._refresh()
-	ui.all_in_button.pressed.emit()
+	ui.screen.all_in_button.pressed.emit()
 	verify(ui.confirmation.visible and ui.game.seats[0].stack == 995, "all-in waits for explicit confirmation")
 	ui.confirmation.accept_button.pressed.emit()
 	verify(ui.game.seats[0].stack == 0 and ui.game.actor == 1, "all-in button commits stack")

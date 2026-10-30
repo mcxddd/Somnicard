@@ -155,7 +155,7 @@ func run() -> void:
 	quit(1 if failures else 0)
 
 func _seat_buttons(ui) -> Array:
-	return ui.info_sheet.content.get_children().filter(func(c): return c is Button and c.text == "配置这位对手" and c.is_visible_in_tree())
+	return ui.screen.info_sheet.content.get_children().filter(func(c): return c is Button and c.text == "配置这位对手" and c.is_visible_in_tree())
 
 func _test_seat_sheet(ui) -> void:
 	ui._start_table(6)
@@ -166,13 +166,13 @@ func _test_seat_sheet(ui) -> void:
 		var buttons = _seat_buttons(ui)
 		verify(buttons.size() == 1, "repeated seat details contain exactly one configuration action")
 		if not buttons.is_empty(): buttons[0].pressed.emit()
-		verify(ui.settings.visible and not ui.info_sheet.visible and ui.settings.opponent_editor.selected == id, "configuration action selects the currently viewed opponent")
+		verify(ui.settings.visible and not ui.screen.info_sheet.visible and ui.settings.opponent_editor.selected == id, "configuration action selects the currently viewed opponent")
 		if cycle % 2 == 0: ui.settings.cancel()
 		else: ui.settings.apply_button.pressed.emit()
 		ui._seat_details(0)
 		verify(_seat_buttons(ui).is_empty(), "hero details never retain opponent configuration actions")
 		ui.modals.back()
 		ui._toggle_sidebar()
-		verify(ui.info_sheet.visible and _seat_buttons(ui).is_empty(), "action record sheet never retains opponent configuration actions")
+		verify(ui.screen.info_sheet.visible and _seat_buttons(ui).is_empty(), "action record sheet never retains opponent configuration actions")
 		ui.modals.back()
 	verify(ui.game.record_state() == before, "opening and closing configuration preserves the hand")

@@ -1,5 +1,5 @@
 extends Node
-## Depends on host: game, paused, modals, _refresh, _schedule_bot, _bot_step, _open_info, _open_settings, _request_confirmation, _save_session, _save_preferences, _action_stamp, settings, turn_label, table_view, controls, session_id, session_stamp, settings_status, opponent_profiles, difficulty, bots, smoke_mode.
+## Depends on host: game, paused, modals, _refresh, _schedule_bot, _bot_step, _open_info, _open_settings, _request_confirmation, _save_session, _save_preferences, _action_stamp, settings, screen.turn_label, screen.table_view, screen.controls, session_id, session_stamp, settings_status, opponent_profiles, difficulty, bots, smoke_mode.
 var host
 const AIConfig = preload("res://scripts/ai/config.gd")
 const AIProtocol = preload("res://scripts/ai/protocol.gd")
@@ -53,12 +53,12 @@ func build() -> void:
 	bar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bar.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bar.add_theme_font_size_override("font_size", 17)
-	host.controls.add_child(bar)
-	host.controls.move_child(bar, 1)
+	host.screen.controls.add_child(bar)
+	host.screen.controls.move_child(bar, 1)
 	bar.hide()
 	recovery = HBoxContainer.new()
-	host.controls.add_child(recovery)
-	host.controls.move_child(recovery, 2)
+	host.screen.controls.add_child(recovery)
+	host.screen.controls.move_child(recovery, 2)
 	for pair in [["重试", retry], ["本手本地接管", take_over], ["配置服务", open_settings]]:
 		var button = UI.button(pair[0], pair[1], UI.GREEN, 48)
 		button.add_theme_font_size_override("font_size", 17)
@@ -103,7 +103,7 @@ func _on_exchange(entry: Dictionary) -> void:
 	if entry.get("context", {}).is_empty(): return
 	trace.append(entry, keys.values() + [key])
 	if entry.get("state") == "retrying" and entry.context.get("purpose") == "decision" and host.game != null:
-		host.turn_label.text = host.game.seats[int(entry.context.seat)].name + (" · 回复未完成，扩大额度重试中…" if entry.get("finish_reason") in ["length", "max_tokens"] else " · 正在调整接口兼容格式…")
+		host.screen.turn_label.text = host.game.seats[int(entry.context.seat)].name + (" · 回复未完成，扩大额度重试中…" if entry.get("finish_reason") in ["length", "max_tokens"] else " · 正在调整接口兼容格式…")
 
 func _on_received(result: Dictionary) -> void:
 	if stamp != host._action_stamp() or host.game == null or host.paused or host.modals.is_open() or host.game.actor != self.actor: return
@@ -149,7 +149,7 @@ func _on_speech_received(result: Dictionary) -> void:
 	dialogue.append({"seat": speech_actor, "name": host.game.seats[speech_actor].name, "text": line, "event": speech_event})
 	if dialogue.size() > 8: dialogue.pop_front()
 	host.session_stamp = ""
-	host.table_view.sync_speech(dialogue)
+	host.screen.table_view.sync_speech(dialogue)
 	update_bar()
 	host._save_session()
 

@@ -19,16 +19,16 @@ func _run() -> void:
 	ui.smoke_mode = true
 	ui._open_lobby()
 	ui._open_settings()
-	verify(ui.lobby.visible and ui.settings.visible and ui.settings.cancel_button.has_focus(), "settings opens over lobby with focus")
-	verify(ui.start_button.focus_mode == Control.FOCUS_NONE, "lobby controls blocked under settings")
+	verify(ui.screen.lobby.visible and ui.settings.visible and ui.settings.cancel_button.has_focus(), "settings opens over lobby with focus")
+	verify(ui.screen.start_button.focus_mode == Control.FOCUS_NONE, "lobby controls blocked under settings")
 	var initial = ui._settings_values()
 	ui.settings.controls.felt.select(1)
 	ui.settings.controls.felt.item_selected.emit(1)
 	verify(not ui.settings.apply_button.disabled and ui.prefs.felt_theme == 0, "draft changes do not apply early")
 	ui.modals.back()
-	verify(ui._settings_values() == initial and ui.lobby.visible and ui.start_button.has_focus(), "back discards settings draft and restores lobby")
+	verify(ui._settings_values() == initial and ui.screen.lobby.visible and ui.screen.start_button.has_focus(), "back discards settings draft and restores lobby")
 	ui._start_table(2)
-	ui.amount_input.get_line_edit().text = "3.7"
+	ui.screen.amount_input.get_line_edit().text = "3.7"
 	var before = ui.game.view_for(0)
 	ui._open_settings()
 	verify(ui.selected_raise == 37, "typed amount preserved when opening settings")
@@ -47,9 +47,9 @@ func _run() -> void:
 	ui.settings.controls.confirm_all_in.button_pressed = false
 	ui.settings.apply_button.pressed.emit()
 	verify(not ui.settings.visible and not ui.prefs.use_bb and ui.prefs.speed_index == 2 and ui.prefs.felt_theme == 1, "apply closes and commits selected settings")
-	verify(ui.selected_raise == 37 and ui.amount_input.value == 37 and ui.game.view_for(0) == before, "unit apply keeps exact target and game")
-	verify(ui.table_view.four_color and ui.review.table_view.four_color and not ui.table_view.motion, "table and review share visuals")
-	verify(not ui.fast_fold.button_pressed and not ui.sidebar.visible and not ui.prefs.confirm_all_in, "all toggles take effect")
+	verify(ui.selected_raise == 37 and ui.screen.amount_input.value == 37 and ui.game.view_for(0) == before, "unit apply keeps exact target and game")
+	verify(ui.screen.table_view.four_color and ui.review.table_view.four_color and not ui.screen.table_view.motion, "table and review share visuals")
+	verify(not ui.screen.fast_fold.button_pressed and not ui.screen.sidebar.visible and not ui.prefs.confirm_all_in, "all toggles take effect")
 	var applied = ui._settings_values()
 	ui._open_settings()
 	verify(ui.settings.values() == applied and ui.settings.apply_button.disabled, "reopen reads applied state")
@@ -67,18 +67,18 @@ func _run() -> void:
 	var old_game = ui.game
 	ui._open_lobby()
 	ui._select_count(9)
-	ui.depth_picker.select(2)
-	ui.start_button.pressed.emit()
+	ui.screen.depth_picker.select(2)
+	ui.screen.start_button.pressed.emit()
 	verify(ui.confirmation.visible and ui.game == old_game, "reset waits for confirmation")
-	verify(ui.confirmation.cancel_button.has_focus() and ui.start_button.focus_mode == Control.FOCUS_NONE, "confirmation is top focus scope")
+	verify(ui.confirmation.cancel_button.has_focus() and ui.screen.start_button.focus_mode == Control.FOCUS_NONE, "confirmation is top focus scope")
 	ui.modals.back()
-	verify(ui.lobby.visible and not ui.confirmation.visible and ui.game.view_for(0) == before, "cancel reset preserves hand")
+	verify(ui.screen.lobby.visible and not ui.confirmation.visible and ui.game.view_for(0) == before, "cancel reset preserves hand")
 	ui._close_lobby()
-	verify(ui.selected_count == 2 and ui.starting_bb == 100 and ui.depth_picker.selected == 1, "closing table setup discards count/depth draft")
+	verify(ui.selected_count == 2 and ui.starting_bb == 100 and ui.screen.depth_picker.selected == 1, "closing table setup discards count/depth draft")
 	ui._open_lobby()
 	ui._select_count(6)
-	ui.depth_picker.select(0)
-	ui.start_button.pressed.emit()
+	ui.screen.depth_picker.select(0)
+	ui.screen.start_button.pressed.emit()
 	ui.confirmation.accept_button.pressed.emit()
 	verify(ui.player_count == 6 and ui.game.chip_total() == 3000 and ui.starting_bb == 50, "confirmed reset applies exact draft")
 	# Every all-in route is protected, and confirming cannot submit twice.
@@ -106,12 +106,12 @@ func _run() -> void:
 		verify(ui.game.view_for(0) == after, "duplicate confirmation does not replay action")
 	ui._start_table(2)
 	ui.prefs.confirm_all_in = false
-	ui.all_in_button.pressed.emit()
+	ui.screen.all_in_button.pressed.emit()
 	verify(not ui.confirmation.visible and ui.game.seats[0].stack == 0, "protection can be disabled")
 	# A pending callback must be invalidated if the underlying decision changes.
 	ui._start_table(2)
 	ui.prefs.confirm_all_in = true
-	ui.all_in_button.pressed.emit()
+	ui.screen.all_in_button.pressed.emit()
 	ui.game.act(0, "call")
 	before = ui.game.view_for(0)
 	ui.confirmation.accept_button.pressed.emit()
@@ -122,7 +122,7 @@ func _run() -> void:
 	ui.game = Table.new([1000, 1000])
 	ui.game.start_hand(0, opening + range(52).filter(func(card): return card not in opening))
 	ui._refresh()
-	ui.all_in_button.pressed.emit()
+	ui.screen.all_in_button.pressed.emit()
 	before = ui.game.view_for(0)
 	ui.smoke_mode = false
 	ui._notification(Control.NOTIFICATION_APPLICATION_FOCUS_OUT)
@@ -158,11 +158,11 @@ func _run() -> void:
 		ui._start_table(count)
 		await process_frame
 		await process_frame
-		for seat in ui.table_view.seat_nodes:
+		for seat in ui.screen.table_view.seat_nodes:
 			for card in seat.cards:
 				if card.visible: verify(seat.panel.get_global_rect().encloses(card.get_global_rect()), "visible card artwork fits seat")
 		for id in range(1, count):
-			for card in ui.table_view.seat_nodes[id].cards: verify(card.card_id == -1, "card back never contains opponent card id")
+			for card in ui.screen.table_view.seat_nodes[id].cards: verify(card.card_id == -1, "card back never contains opponent card id")
 	ui._open_history()
 	verify(ui.review.close_button.text == "返回牌桌", "history return label matches origin")
 	ui.review.close()
@@ -170,7 +170,7 @@ func _run() -> void:
 	ui._open_history()
 	verify(ui.review.close_button.text == "返回选桌", "nested history return label matches origin")
 	ui._notification(Control.NOTIFICATION_WM_GO_BACK_REQUEST)
-	verify(ui.lobby.visible and not ui.review.visible, "Android back dismisses top modal only")
+	verify(ui.screen.lobby.visible and not ui.review.visible, "Android back dismisses top modal only")
 	ui.queue_free()
 	await process_frame
 	print("EXPERIENCE_TESTS: %d checks, %d failures" % [checks, failures])

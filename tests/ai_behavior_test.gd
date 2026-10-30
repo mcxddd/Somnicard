@@ -81,7 +81,7 @@ func run() -> void:
 	verify(ui.ai.dialogue.size() == 1,"controller accepts fresh reply for the current action")
 	ui.game.act(2,"call")
 	ui._refresh()
-	verify(ui.game.phase == "flop" and not ui.table_view.speech_bubble.visible,"previous-street bubble disappears when betting progresses")
+	verify(ui.game.phase == "flop" and not ui.screen.table_view.speech_bubble.visible,"previous-street bubble disappears when betting progresses")
 	ui.queue_free()
 	await process_frame
 	print("AI_BEHAVIOR_TESTS: %d checks, %d failures" % [checks,failures])
