@@ -1,0 +1,13 @@
+.godot/
+builds/
+.local/
+*.keystore
+*.jks
+.env
+.env.*
+!.env.example
+
+android/build/
+.codex-remote-attachments/
+__pycache__/
+*.pyc

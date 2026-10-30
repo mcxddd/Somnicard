@@ -1,0 +1,88 @@
+extends SceneTree
+const Protocol = preload("res://scripts/ai/protocol.gd")
+const Config = preload("res://scripts/ai/config.gd")
+const Table = preload("res://scripts/poker/table.gd")
+const Cases = preload("res://tools/benchmarks/behavior_cases.gd")
+const Providers = preload("res://scripts/ai/providers.gd")
+var checks = 0
+var failures = 0
+func _initialize() -> void: call_deferred("run")
+func verify(ok: bool, message: String) -> void:
+	checks += 1
+	if not ok: failures += 1; printerr("FAIL: " + message)
+func run() -> void:
+	var defaults = Providers.options({"endpoint":"https://api.commandcode.ai/provider/v1","model":"deepseek/deepseek-v4.1-flash"})
+	verify(defaults.thinking and defaults.json and defaults.token_key == "max_tokens","CommandCode DeepSeek gets direct-provider structured non-thinking defaults")
+	verify(not Providers.options({"endpoint":"https://api.commandcode.ai/provider/v1","model":"claude-sonnet-5"}).thinking,"DeepSeek compatibility change does not affect Claude")
+	verify(not Providers.options({"endpoint":"https://other.example/v1","model":"deepseek-v4.1-flash"}).thinking,"unknown gateways are not assumed to accept vendor parameters")
+	var table = Table.new([1000,1000],5,10,5)
+	table.start_hand(0)
+	var observation = Protocol.observation(table.view_for(0),0)
+	verify(observation.actions[0].amount == 5 and observation.actions[1].amount == 10,"actual blind payments survive serialization")
+	verify(observation.seats[0].position == "BTN/SB" and observation.seats[1].position == "BB","heads-up positions explicit")
+	table.act(0,"all_in")
+	observation = Protocol.observation(table.view_for(1),1)
+	verify(observation.actions[-1].all_in and observation.actions[-1].full_raise,"all-in and reopening information survive serialization")
+	var fixtures = Cases.new()
+	var cases = fixtures.cases()
+	var royal: Dictionary = cases[0].view
+	var facts = Protocol.decision_facts(royal,1)
+	verify(facts.current_made_hand.name == "同花顺" and not facts.current_made_hand.uses_only_board,"private royal hand evaluated correctly")
+	facts = Protocol.decision_facts(cases[1].view,1)
+	verify(facts.current_made_hand.uses_only_board,"board-only royal is identified without inferring opponents")
+	verify(is_equal_approx(float(facts.call_break_even_if_no_more_betting),0.495),"call price includes only additional contribution")
+	facts = Protocol.decision_facts(cases[4].view,1)
+	verify(facts.current_made_hand.name == "高牌","missed draw fixture really has no straight or pair")
+	facts = Protocol.decision_facts(cases[5].view,1)
+	verify(facts.can_check_for_free and facts.call_cost_chips == 0,"free check is explicit")
+	var view: Dictionary = royal.duplicate(true)
+	view["deck"] = [51,50]
+	view.events.append({"kind":"street","phase":"future","board":[51,50,49,48,47]})
+	view.seats[0].hole = [51,50]
+	var messages = Protocol.messages(view,1,Config.seats([])[0],{"difficulty":1,"aggression":0},{})
+	var data = JSON.parse_string(messages[1].content)
+	verify(not data.observation.has("deck") and not data.observation.seats[0].has("your_hole"),"facts do not widen private-card access")
+	verify(data.observation.actions.all(func(e): return e.get("phase") != "future"),"future/non-prefix board events cannot escape")
+	var speech = JSON.parse_string(Protocol.messages(view,1,Config.seats([])[0],{"difficulty":1,"aggression":0},{},true)[1].content)
+	verify(not speech.has("decision_facts") and not JSON.stringify(speech).contains("your_hole"),"speech receives no private hand facts")
+	# Short-stack side pot: the call price must exclude chips this player cannot win.
+	var short = Table.new([1000,20,1000],5,10,5)
+	short.start_hand(0)
+	short.act(0,"raise",100)
+	facts = Protocol.decision_facts(short.view_for(1),1)
+	verify(facts.call_cost_chips == 15 and facts.eligible_pot_after_call_chips == 50,"side-pot money outside own cap excluded")
+	fixtures.free()
+	# Reproduce a delayed line arriving after the speaker acts again in SAME street.
+	var ui = load("res://scenes/main.tscn").instantiate()
+	root.add_child(ui)
+	ui.smoke_mode = true
+	ui._start_table(6)
+	ui.bot_timer.stop()
+	ui.game = Table.new([1000,1000,1000,1000,1000,1000],5,10,5)
+	ui.game.start_hand(4)
+	ui.game.act(1,"raise",30)
+	ui.speech_actor = 1
+	ui.speech_phase = "preflop"
+	ui.speech_event = ui.game.events.size()
+	ui.speech_stamp = "%s:%d" % [ui.session_id,ui.game.hand_number]
+	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.speech_event,"preflop"),"new speech is accepted for original action")
+	ui.game.act(2,"call")
+	ui.game.act(3,"raise",90)
+	ui.game.act(4,"call")
+	ui.game.act(5,"call")
+	ui.game.act(0,"call")
+	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.speech_event,"preflop"),"others acting does not automatically discard relevant speech")
+	ui.game.act(1,"call")
+	verify(ui.game.phase == "preflop" and ui.game.actor == 2,"reproducer stays on same street after speaker's second action")
+	ui._speech_received({"content":'{"text":"这注我先抬起来。"}'})
+	verify(ui.ai_dialogue.is_empty(),"controller rejects delayed contradictory speech from earlier action")
+	ui.speech_event = ui.game.events.size()
+	ui._speech_received({"content":'{"text":"这注我跟了。"}'})
+	verify(ui.ai_dialogue.size() == 1,"controller accepts fresh reply for the current action")
+	ui.game.act(2,"call")
+	ui._refresh()
+	verify(ui.game.phase == "flop" and not ui.table_view.speech_bubble.visible,"previous-street bubble disappears when betting progresses")
+	ui.queue_free()
+	await process_frame
+	print("AI_BEHAVIOR_TESTS: %d checks, %d failures" % [checks,failures])
+	quit(1 if failures else 0)

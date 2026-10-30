@@ -1,0 +1,119 @@
+{
+  "method": "Independent sequence-form LP via scipy HiGHS, within the exported abstraction only",
+  "cases": [
+    {
+      "scenario": 0,
+      "detail": 0,
+      "buckets": 8,
+      "public_nodes": 24,
+      "sequence_variables": [
+        273,
+        273
+      ],
+      "lp_value": 1.3401146790347638,
+      "cfr_value": 1.1093366246603953,
+      "value_difference": 0.2307780543743685,
+      "lp_best_response_epsilon": 0.5120845253390363,
+      "reported_epsilon": 0.512084525339036,
+      "certificate_error": 2.220446049250313e-16,
+      "converged": false,
+      "duration_ms": 7892,
+      "max_step_us": 8524
+    },
+    {
+      "scenario": 0,
+      "detail": 1,
+      "buckets": 12,
+      "public_nodes": 72,
+      "sequence_variables": [
+        1273,
+        1273
+      ],
+      "lp_value": 1.5656510294431438,
+      "cfr_value": 1.3877559425482933,
+      "value_difference": 0.17789508689485056,
+      "lp_best_response_epsilon": 0.2621357169640546,
+      "reported_epsilon": 0.262135716964056,
+      "certificate_error": 1.4432899320127035e-15,
+      "converged": false,
+      "duration_ms": 74784,
+      "max_step_us": 11542
+    },
+    {
+      "scenario": 1,
+      "detail": 0,
+      "buckets": 8,
+      "public_nodes": 12,
+      "sequence_variables": [
+        161,
+        113
+      ],
+      "lp_value": 3.391283858545493,
+      "cfr_value": 3.273779599785473,
+      "value_difference": 0.11750425876001991,
+      "lp_best_response_epsilon": 0.24245050083879738,
+      "reported_epsilon": 0.242450500838796,
+      "certificate_error": 1.3877787807814457e-15,
+      "converged": false,
+      "duration_ms": 5427,
+      "max_step_us": 5861
+    },
+    {
+      "scenario": 1,
+      "detail": 1,
+      "buckets": 12,
+      "public_nodes": 36,
+      "sequence_variables": [
+        529,
+        745
+      ],
+      "lp_value": 3.4732388732045454,
+      "cfr_value": 3.357717628528969,
+      "value_difference": 0.11552124467557645,
+      "lp_best_response_epsilon": 0.13195232308909155,
+      "reported_epsilon": 0.131952323089091,
+      "certificate_error": 5.551115123125783e-16,
+      "converged": true,
+      "duration_ms": 41827,
+      "max_step_us": 9513
+    },
+    {
+      "scenario": 2,
+      "detail": 0,
+      "buckets": 8,
+      "public_nodes": 5,
+      "sequence_variables": [
+        49,
+        65
+      ],
+      "lp_value": -16.052330217196467,
+      "cfr_value": -16.07131903504555,
+      "value_difference": 0.018988817849084683,
+      "lp_best_response_epsilon": 0.17048825347346952,
+      "reported_epsilon": 0.170488253473472,
+      "certificate_error": 2.4702462297909733e-15,
+      "converged": true,
+      "duration_ms": 4258,
+      "max_step_us": 5754
+    },
+    {
+      "scenario": 2,
+      "detail": 1,
+      "buckets": 12,
+      "public_nodes": 17,
+      "sequence_variables": [
+        361,
+        241
+      ],
+      "lp_value": -16.180065820404327,
+      "cfr_value": -16.413947639606352,
+      "value_difference": 0.23388181920202555,
+      "lp_best_response_epsilon": 0.12942040215895645,
+      "reported_epsilon": 0.129420402158949,
+      "certificate_error": 7.438494264988549e-15,
+      "converged": true,
+      "duration_ms": 28830,
+      "max_step_us": 10553
+    }
+  ]
+}
