@@ -116,7 +116,7 @@ func _run() -> void:
 	ui.review.training_store = ui.training.store
 	ui._open_training()
 	while ui.training.scan_cursor >= 0: await process_frame
-	verify(ui._top_modal() == ui.training and not ui.training.start_button.disabled, "training is an independent modal")
+	verify(ui.modals.top() == ui.training and not ui.training.start_button.disabled, "training is an independent modal")
 	var t = ui.training
 	t.source_picker.select(4)
 	t.start_set()

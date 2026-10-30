@@ -107,9 +107,9 @@ func _run() -> void:
 	verify(ui.review.analysis_panel.global_position.y >= ui.review.table_view.board_row.get_global_rect().end.y, "overlay leaves community cards visible")
 	ui.review.next_decision()
 	verify(ui.review.left.visible and ui.review.analysis_panel.visible, "next decision keeps same table and overlay")
-	ui._back()
+	ui.modals.back()
 	verify(ui.review.visible and not ui.review.analysis_panel.visible and ui.review.job == null, "back collapses analysis and cancels job")
-	ui._back()
+	ui.modals.back()
 	verify(not ui.review.visible and ui.game.phase == "complete", "second back returns to completed live hand")
 	ui.queue_free()
 	await process_frame

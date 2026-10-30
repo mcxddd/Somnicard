@@ -62,7 +62,7 @@ func _run() -> void:
 	await settle()
 	var before = ui.game.record_state()
 	ui.coach.avatar.pressed.emit()
-	verify(ui.coach.expanded and not ui.review.visible and not ui._modal_open(), "coach stays on playable table")
+	verify(ui.coach.expanded and not ui.review.visible and not ui.modals.is_open(), "coach stays on playable table")
 	while ui.coach.job != null: await process_frame
 	verify(ui.game.record_state() == before and not ui.coach.analysis.is_empty(), "coaching does not act or change game")
 	verify(ui.coach.hole_cards[0].card_id == ui.game.seats[0].hole[0], "expanded coach retains own hand context")
@@ -82,7 +82,7 @@ func _run() -> void:
 	ui._apply_settings(settings)
 	ui._start_table(2)
 	verify(ui.coach.expanded and ui.coach.job != null, "automatic coach starts on hero decision")
-	ui._back()
+	ui.modals.back()
 	verify(not ui.coach.expanded and ui.coach.job == null, "back cancels floating coach")
 	settings.coach_auto = false
 	ui._apply_settings(settings)

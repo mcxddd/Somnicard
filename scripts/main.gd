@@ -3,11 +3,12 @@ const TableAI = preload("res://scripts/ai/table_ai.gd")
 var ai = TableAI.new()
 const UserPrefs = preload("res://scripts/app/user_prefs.gd")
 var prefs = UserPrefs.new()
+const ModalStack = preload("res://scripts/app/modal_stack.gd")
+var modals = ModalStack.new()
 const AIConfig = preload("res://scripts/ai/config.gd")
 const AIServices = preload("res://scripts/ai/services.gd")
 const AIVault = preload("res://scripts/ai/vault.gd")
 var ai_inspector
-var last_system_back_ms: int = -1000
 const Table = preload("res://scripts/poker/table.gd")
 const Eval = preload("res://scripts/poker/evaluator.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
@@ -82,7 +83,6 @@ var start_button: Button
 var cancel_button: Button
 var preset_buttons: Dictionary = {}
 var mobile_layout: bool = true
-var background_focus: Dictionary = {}
 var review
 var advice_button: Button
 var review_hand_button: Button
@@ -134,12 +134,14 @@ var feedback_player
 func _ready() -> void:
 	ai.host = self
 	add_child(ai)
+	add_child(modals)
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version", "1.4.1")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_update_scale()
 	prefs.show_sidebar = not mobile_layout
 	_load_preferences()
 	_build_ui()
+	modals.setup(self)
 	review.ai_coach.configure(_settings_values())
 	training.ai_coach.configure(_settings_values())
 	layout_ready = true
@@ -365,15 +367,15 @@ func _open_product(name: String) -> void:
 	ai.cancel()
 	amount_input.apply()
 	coach.collapse()
-	_restore_background_focus()
+	modals.restore_background()
 	if name == "academy": learning_center.open()
 	else: support_center.open()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _close_product() -> void:
 	_update_home()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
@@ -405,7 +407,7 @@ func _open_home() -> void:
 	lobby.hide()
 	home.show()
 	_update_home()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _update_home() -> void:
@@ -418,7 +420,7 @@ func _update_home() -> void:
 func _continue_table() -> void:
 	if game == null: return
 	home.hide()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
@@ -516,9 +518,9 @@ func _select_count(count: int) -> void:
 func _open_lobby() -> void:
 	bot_timer.stop()
 	amount_input.apply()
-	_restore_background_focus()
+	modals.restore_background()
 	lobby.show()
-	_block_background_focus(self)
+	modals.block_background(self)
 	cancel_button.text = "‹ 主界面" if home.visible else "‹ 返回牌桌"
 	lobby_scroll.reset_scroll()
 	if game != null:
@@ -531,10 +533,10 @@ func _open_lobby() -> void:
 func _close_lobby() -> void:
 	selected_count = player_count
 	depth_picker.select([50, 100, 200].find(starting_bb))
-	_restore_background_focus()
+	modals.restore_background()
 	lobby.hide()
 	if home.visible: _update_home()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
@@ -553,7 +555,7 @@ func _apply_new_table(count: int, depth: int) -> void:
 func _start_table(count: int) -> void:
 	ai.cancel()
 	bot_timer.stop()
-	_restore_background_focus()
+	modals.restore_background()
 	player_count = clampi(count, 2, 9)
 	last_table_count = player_count
 	selected_count = player_count
@@ -581,7 +583,7 @@ func _start_table(count: int) -> void:
 	_next_hand()
 
 func _next_hand() -> void:
-	if game == null or paused or _modal_open(): return
+	if game == null or paused or modals.is_open(): return
 	if game.phase == "complete" and (game.seats[0].stack == 0 or game.seats.filter(func(s): return s.stack > 0).size() < 2):
 		_request_confirmation("补码重开本桌？", "所有座位将恢复为 %d BB，重新开始 %d 人练习桌。已完成的历史牌局会保留。" % [starting_bb, player_count], "补码并重开", _apply_new_table.bind(player_count, starting_bb))
 		return
@@ -601,7 +603,7 @@ func _next_hand() -> void:
 	_schedule_bot()
 
 func _human_action(action: String, amount: int = 0, confirmed: bool = false) -> void:
-	if game == null or game.actor != 0 or paused or _modal_open(): return
+	if game == null or game.actor != 0 or paused or modals.is_open(): return
 	if action == "check_call": action = "check" if game.legal_actions(0).check else "call"
 	var seat = game.seats[0]
 	var commits_stack = action == "all_in" or (action == "raise" and amount == seat.street_bet + seat.stack) or (action == "call" and game.legal_actions(0).call_amount == seat.stack)
@@ -620,7 +622,7 @@ func _human_action(action: String, amount: int = 0, confirmed: bool = false) -> 
 		review.open_live(decision_before, prefs.use_bb)
 		review.title.text = "刚才的决策 · 行动后讲解"
 		review.close_button.text = "继续对局"
-		_sync_modal_focus()
+		modals.sync_focus()
 		_refresh()
 	else: _schedule_bot()
 
@@ -631,11 +633,11 @@ func _submit_raise() -> void:
 
 func _schedule_bot() -> void:
 	bot_timer.stop()
-	if not smoke_mode and game != null and game.actor > 0 and not paused and not _modal_open() and not ai.client.busy and ai.error.is_empty():
+	if not smoke_mode and game != null and game.actor > 0 and not paused and not modals.is_open() and not ai.client.busy and ai.error.is_empty():
 		bot_timer.start(0.08 if game.seats[0].folded and fast_fold.button_pressed else SPEEDS[prefs.speed_index])
 
 func _bot_step() -> void:
-	if game == null or game.actor <= 0 or paused or _modal_open(): return
+	if game == null or game.actor <= 0 or paused or modals.is_open(): return
 	if ai.seats[game.actor - 1].enabled and not ai.local_hand.has(game.actor):
 		ai.request()
 		return
@@ -648,7 +650,7 @@ func _bot_step() -> void:
 	_schedule_bot()
 
 func _toggle_pause() -> void:
-	if _modal_open(): return
+	if modals.is_open(): return
 	paused = not paused
 	if paused: ai.cancel()
 	bot_timer.stop()
@@ -685,20 +687,6 @@ func _quick_minimum() -> void:
 
 func _adjust_bb(delta: int) -> void:
 	if game != null: _set_target(selected_raise + delta * game.big_blind)
-
-func _block_background_focus(node: Node) -> void:
-	# A mouse-blocking overlay alone does not trap Tab navigation. Keep background
-	# controls out of the keyboard focus chain until this modal is dismissed.
-	if node == _top_modal(): return
-	if node is Control and not background_focus.has(node):
-		background_focus[node] = node.focus_mode
-		node.focus_mode = Control.FOCUS_NONE
-	for child in node.get_children(): _block_background_focus(child)
-
-func _restore_background_focus() -> void:
-	for node in background_focus:
-		if is_instance_valid(node): node.focus_mode = background_focus[node]
-	background_focus.clear()
 
 func _quick_pot(fraction: float) -> void:
 	if game == null or game.actor != 0: return
@@ -748,26 +736,26 @@ func _sync_amount() -> void:
 
 func _refresh() -> void:
 	if game == null: return
-	if paused or _modal_open(): ai.cancel()
+	if paused or modals.is_open(): ai.cancel()
 	var view = game.view_for(0)
 	var done = view.phase == "complete"
-	if feedback_player != null: feedback_player.sync(game, session_id, paused or _modal_open() or smoke_mode)
+	if feedback_player != null: feedback_player.sync(game, session_id, paused or modals.is_open() or smoke_mode)
 	header.text = "%d 人桌 · 第 %d 手" % [player_count, view.hand]
 	header.tooltip_text = "ID " + History.hand_id(game.record_state())
 	pause_button.text = "继续" if paused else "暂停"
-	table_view.update_table(view, prefs.use_bb, paused or _modal_open())
+	table_view.update_table(view, prefs.use_bb, paused or modals.is_open())
 	table_view.sync_speech(ai.dialogue)
 	if done:
 		_save_record()
 		turn_label.text = "你 · " + table_view.Outcome.net_text(view, 0, prefs.use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
 		if save_status.contains("失败"): turn_label.text += "\n" + save_status
-	elif paused or _modal_open(): turn_label.text = "牌局已暂停"
+	elif paused or modals.is_open(): turn_label.text = "牌局已暂停"
 	elif view.seats[0].folded: turn_label.text = "你已弃牌 · 正在观看其余玩家" + ("（快进）" if fast_fold.button_pressed else "")
 	else: turn_label.text = "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
 	ai.update_bar()
 	if ai.client != null and ai.client.busy: turn_label.text = game.seats[game.actor].name + " · 在线思考中…"
 	_update_controls(view)
-	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not _modal_open())
+	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not modals.is_open())
 	_update_explanation(view)
 	_update_log(view)
 	_save_session()
@@ -776,8 +764,8 @@ func _refresh() -> void:
 
 func _update_controls(view: Dictionary) -> void:
 	var legal = view.legal
-	var active = not legal.is_empty() and not paused and (not _modal_open() or _top_modal() == bet_sheet)
-	advice_button.disabled = not active or _modal_open()
+	var active = not legal.is_empty() and not paused and (not modals.is_open() or modals.top() == bet_sheet)
+	advice_button.disabled = not active or modals.is_open()
 	advice_button.hide()
 	advice_button.tooltip_text = "根据当时信息分析，返回后自己选择行动" if prefs.live_teaching else "打开教学设置"
 	var done = view.phase == "complete"
@@ -793,8 +781,8 @@ func _update_controls(view: Dictionary) -> void:
 	for button in quick_buttons: button.disabled = raise_button.disabled
 	next_button.visible = done
 	review_hand_button.visible = done
-	review_hand_button.disabled = _modal_open()
-	next_button.disabled = paused or _modal_open()
+	review_hand_button.disabled = modals.is_open()
+	next_button.disabled = paused or modals.is_open()
 	next_button.text = "补码重开本桌" if game.seats[0].stack == 0 or game.seats.filter(func(s): return s.stack > 0).size() < 2 else "下一手 · 保留筹码"
 	for button in [fold_button, call_button, raise_button, all_in_button]: button.visible = not done
 	sizing_row.visible = not done
@@ -937,21 +925,13 @@ func _save_preferences() -> void:
 		elif lobby.visible: lobby_note.text += "\n" + settings_status
 		else: turn_label.text += " · " + settings_status
 
-func _system_back(now_ms: int = -1) -> void:
-	# Notification may arrive before or after the BACK key event on Android 16.
-	# Deduplicate notifications themselves instead of depending on key ordering.
-	var now = Time.get_ticks_msec() if now_ms < 0 else now_ms
-	if now - last_system_back_ms < 350: return
-	last_system_back_ms = now
-	_back()
-
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo: return
 	if event.keycode == KEY_ESCAPE:
-		_back()
+		modals.back()
 		get_viewport().set_input_as_handled()
 		return
-	if _modal_open():
+	if modals.is_open():
 		get_viewport().set_input_as_handled()
 		return
 	if get_viewport().gui_get_focus_owner() is LineEdit: return
@@ -968,10 +948,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _open_history() -> void:
 	bot_timer.stop()
 	amount_input.apply()
-	_restore_background_focus()
+	modals.restore_background()
 	review.open_history(prefs.use_bb)
 	review.close_button.text = _return_text()
-	_block_background_focus(self)
+	modals.block_background(self)
 	review.close_button.grab_focus()
 	_refresh()
 
@@ -990,10 +970,10 @@ func _open_advice() -> void:
 		return
 	amount_input.apply()
 	bot_timer.stop()
-	_restore_background_focus()
+	modals.restore_background()
 	review.open_live(game.view_for(0), prefs.use_bb)
 	review.close_button.text = "返回牌桌"
-	_block_background_focus(self)
+	modals.block_background(self)
 	_refresh()
 
 func _open_help() -> void:
@@ -1019,9 +999,9 @@ func _close_review() -> void:
 	if training_replay:
 		training_replay = false
 		training.show()
-		_sync_modal_focus()
+		modals.sync_focus()
 		return
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
@@ -1045,7 +1025,7 @@ func _resume_session() -> void:
 		resume_status.text = "无法恢复：" + rebuilt.error + "。仍可新开练习桌或查看已完成的历史。"
 		return
 	bot_timer.stop()
-	_restore_background_focus()
+	modals.restore_background()
 	game = rebuilt.game
 	if rebuilt.record.get("opponent_settings") is Dictionary:
 		opponent_profiles = rebuilt.record.opponent_settings.profiles
@@ -1096,49 +1076,10 @@ func _notification(what: int) -> void:
 			if bet_sheet.visible: bet_sheet.close()
 			_refresh()
 	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		_system_back()
+		modals.system_back()
 	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_save_preferences()
 		get_tree().quit()
-
-func _top_modal() -> Control:
-	for overlay in [confirmation, learning_center, support_center, settings, training, review, info_sheet, menu_sheet, bet_sheet, lobby, home]:
-		if overlay != null and overlay.visible: return overlay
-	return null
-
-func _modal_open() -> bool:
-	return _top_modal() != null
-
-func _back() -> void:
-	if confirmation.visible: confirmation.cancel()
-	elif learning_center != null and learning_center.visible: learning_center.back_action()
-	elif support_center != null and support_center.visible: support_center.back_action()
-	elif settings.visible: settings.back_action()
-	elif training.visible: training.back_action()
-	elif review.visible: review.back_action()
-	elif info_sheet.visible: info_sheet.close()
-	elif menu_sheet.visible: menu_sheet.close()
-	elif bet_sheet.visible: bet_sheet.close()
-	elif coach.expanded: coach.collapse()
-	elif lobby.visible: _close_lobby()
-	elif home.visible: _request_confirmation("退出 Somnicard？", "当前牌桌与已完成的记录会保留在本机。", "退出", func(): _save_session(); get_tree().quit())
-	else: _open_home()
-
-func _sync_modal_focus() -> void:
-	_restore_background_focus()
-	if _modal_open():
-		_block_background_focus(self)
-		if confirmation.visible: confirmation.cancel_button.grab_focus()
-		elif learning_center != null and learning_center.visible: learning_center.back_button.grab_focus()
-		elif support_center != null and support_center.visible: support_center.back_button.grab_focus()
-		elif settings.visible: settings.cancel_button.grab_focus()
-		elif training.visible: training.close_button.grab_focus()
-		elif review.visible: review.close_button.grab_focus()
-		elif info_sheet.visible: info_sheet.close_button.grab_focus()
-		elif menu_sheet.visible: menu_sheet.close_button.grab_focus()
-		elif bet_sheet.visible: bet_sheet.close_button.grab_focus()
-		elif lobby.visible: start_button.grab_focus()
-		elif home.visible: home.primary.grab_focus()
 
 func _settings_values() -> Dictionary:
 	var values = prefs.values()
@@ -1151,12 +1092,12 @@ func _settings_values() -> Dictionary:
 func _open_settings() -> void:
 	bot_timer.stop()
 	amount_input.apply()
-	_restore_background_focus()
+	modals.restore_background()
 	settings.player_count = selected_count if lobby.visible or game == null else player_count
 	settings.ai_library = ai.store.companions
 	settings.open(_settings_values())
 	settings.context.text = "当前牌桌暂停中 · 保存后返回原来的位置" if game != null else "应用于本机的所有练习桌"
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _apply_settings(values: Dictionary) -> void:
@@ -1205,7 +1146,7 @@ func _apply_settings(values: Dictionary) -> void:
 
 func _close_settings() -> void:
 	if home.visible: _update_home()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
@@ -1217,22 +1158,22 @@ func _teaching_changed(live: bool, enabled: bool) -> void:
 
 func _request_confirmation(heading: String, message: String, action_text: String, callback: Callable) -> void:
 	bot_timer.stop()
-	_restore_background_focus()
+	modals.restore_background()
 	confirmation_action = callback
 	confirmation.open(heading, message, action_text)
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _cancel_confirmation() -> void:
 	confirmation_action = Callable()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
 func _accept_confirmation() -> void:
 	var callback = confirmation_action
 	confirmation_action = Callable()
-	_sync_modal_focus()
+	modals.sync_focus()
 	if callback.is_valid(): callback.call()
 	_refresh()
 	_schedule_bot()
@@ -1319,7 +1260,7 @@ func _arrange_ui() -> void:
 	for i in range(lobby_welcome.get_child_count()): lobby_welcome.get_child(i).visible = i in [0, 1]
 	lobby_note.custom_minimum_size = Vector2(0, 60)
 	if game != null: _refresh()
-	_sync_modal_focus()
+	modals.sync_focus()
 	if is_instance_valid(previous_focus) and previous_focus.is_visible_in_tree() and previous_focus.focus_mode != Control.FOCUS_NONE:
 		previous_focus.grab_focus()
 
@@ -1376,11 +1317,11 @@ func _build_sheets() -> void:
 	safe_root.move_child(confirmation, -1)
 
 func _open_bet() -> void:
-	if game == null or paused or _modal_open() or not game.legal_actions(0).get("raise", false): return
+	if game == null or paused or modals.is_open() or not game.legal_actions(0).get("raise", false): return
 	bot_timer.stop()
 	bet_sheet.open("选择下注金额")
 	sheet_units.select(1 if prefs.use_bb else 0)
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _submit_all_in() -> void:
@@ -1390,7 +1331,7 @@ func _submit_all_in() -> void:
 func _open_menu() -> void:
 	bot_timer.stop()
 	menu_sheet.open("牌桌菜单")
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _open_info(heading: String, message: String, opponent_id: int = -1) -> void:
@@ -1401,11 +1342,11 @@ func _open_info(heading: String, message: String, opponent_id: int = -1) -> void
 	info_opponent_id = opponent_id
 	info_opponent_button.visible = game != null and opponent_id > 0 and opponent_id < game.seats.size()
 	info_sheet.open(heading)
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _seat_details(id: int) -> void:
-	if game == null or _modal_open() or id < 0 or id >= game.seats.size(): return
+	if game == null or modals.is_open() or id < 0 or id >= game.seats.size(): return
 	var seat = game.view_for(0).seats[id]
 	var model_note = ""
 	if id > 0 and ai.seats[id - 1].enabled:
@@ -1422,7 +1363,7 @@ func _seat_details(id: int) -> void:
 
 func _close_sheet() -> void:
 	if game != null and game.actor == 0: amount_input.apply()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 
@@ -1441,7 +1382,7 @@ func _open_training() -> void:
 	training.return_text = "‹ " + _return_text()
 	training._select_hub_page(0)
 	training.open_hub()
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _practice_from_review(record: Dictionary, point: int) -> void:
@@ -1454,7 +1395,7 @@ func _practice_from_review(record: Dictionary, point: int) -> void:
 	training.speed = SPEEDS[prefs.speed_index]
 	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	training.open_case(record, point)
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 
 func _training_replay_requested(payload: Dictionary) -> void:
@@ -1469,7 +1410,7 @@ func _training_replay_requested(payload: Dictionary) -> void:
 		review.open_comparison([{"record": payload.original, "label": "原牌局"}, {"record": record, "label": "重打分支 · " + ("未知牌重采样" if payload.mode == "sampled" else "保留原牌")}], 1, prefs.use_bb)
 	else: review.open_replay(rebuilt, prefs.use_bb)
 	review.close_button.text = "返回训练"
-	_sync_modal_focus()
+	modals.sync_focus()
 
 func _close_training() -> void:
 	if not training_origin.is_empty():
@@ -1478,7 +1419,7 @@ func _close_training() -> void:
 			review.open_replay(rebuilt, prefs.use_bb)
 			review.seek(training_origin.index)
 		training_origin = {}
-	_sync_modal_focus()
+	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
 

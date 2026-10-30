@@ -1,5 +1,5 @@
 extends Node
-## Depends on host: game, paused, _modal_open, _refresh, _schedule_bot, _bot_step, _open_info, _open_settings, _request_confirmation, _save_session, _save_preferences, _action_stamp, settings, turn_label, table_view, controls, session_id, session_stamp, settings_status, opponent_profiles, difficulty, bots, smoke_mode.
+## Depends on host: game, paused, modals, _refresh, _schedule_bot, _bot_step, _open_info, _open_settings, _request_confirmation, _save_session, _save_preferences, _action_stamp, settings, turn_label, table_view, controls, session_id, session_stamp, settings_status, opponent_profiles, difficulty, bots, smoke_mode.
 var host
 const AIConfig = preload("res://scripts/ai/config.gd")
 const AIProtocol = preload("res://scripts/ai/protocol.gd")
@@ -106,7 +106,7 @@ func _on_exchange(entry: Dictionary) -> void:
 		host.turn_label.text = host.game.seats[int(entry.context.seat)].name + (" · 回复未完成，扩大额度重试中…" if entry.get("finish_reason") in ["length", "max_tokens"] else " · 正在调整接口兼容格式…")
 
 func _on_received(result: Dictionary) -> void:
-	if stamp != host._action_stamp() or host.game == null or host.paused or host._modal_open() or host.game.actor != self.actor: return
+	if stamp != host._action_stamp() or host.game == null or host.paused or host.modals.is_open() or host.game.actor != self.actor: return
 	stamp = ""
 	var decision = result if result.has("error") else AIProtocol.decision(result.content, host.game.legal_actions(self.actor))
 	if decision.has("error"):
@@ -159,7 +159,7 @@ func update_bar() -> void:
 	recovery.visible = not error.is_empty()
 	if not error.is_empty(): bar.text = "连接暂停 · " + error
 	else: bar.text = "本手部分 AI 已由本地电脑接管 · 点击查看"
-	for button in recovery.get_children(): button.disabled = host.paused or host._modal_open()
+	for button in recovery.get_children(): button.disabled = host.paused or host.modals.is_open()
 
 func open_dialogue() -> void:
 	var lines: Array = []
@@ -169,12 +169,12 @@ func open_dialogue() -> void:
 	host._open_info("本手 AI 发言与状态", "\n\n".join(lines))
 
 func retry() -> void:
-	if host.paused or host._modal_open(): return
+	if host.paused or host.modals.is_open(): return
 	error = ""
 	request()
 
 func take_over() -> void:
-	if host.game == null or host.game.actor <= 0 or host.paused or host._modal_open(): return
+	if host.game == null or host.game.actor <= 0 or host.paused or host.modals.is_open(): return
 	local_hand[host.game.actor] = true
 	error = ""
 	cancel()

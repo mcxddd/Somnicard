@@ -25,7 +25,7 @@ func _run() -> void:
 	ui.settings.controls.felt.select(1)
 	ui.settings.controls.felt.item_selected.emit(1)
 	verify(not ui.settings.apply_button.disabled and ui.prefs.felt_theme == 0, "draft changes do not apply early")
-	ui._back()
+	ui.modals.back()
 	verify(ui._settings_values() == initial and ui.lobby.visible and ui.start_button.has_focus(), "back discards settings draft and restores lobby")
 	ui._start_table(2)
 	ui.amount_input.get_line_edit().text = "3.7"
@@ -71,7 +71,7 @@ func _run() -> void:
 	ui.start_button.pressed.emit()
 	verify(ui.confirmation.visible and ui.game == old_game, "reset waits for confirmation")
 	verify(ui.confirmation.cancel_button.has_focus() and ui.start_button.focus_mode == Control.FOCUS_NONE, "confirmation is top focus scope")
-	ui._back()
+	ui.modals.back()
 	verify(ui.lobby.visible and not ui.confirmation.visible and ui.game.view_for(0) == before, "cancel reset preserves hand")
 	ui._close_lobby()
 	verify(ui.selected_count == 2 and ui.starting_bb == 100 and ui.depth_picker.selected == 1, "closing table setup discards count/depth draft")
