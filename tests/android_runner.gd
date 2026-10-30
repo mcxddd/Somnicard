@@ -116,12 +116,12 @@ func _ready() -> void:
 	await shot("settings-opponents")
 	ui.settings.cancel()
 	# The host mock is exposed only through adb reverse; credentials are dummy strings.
-	ui.ai_service = ui.AIConfig.service({"endpoint": "http://127.0.0.1:18948/v1", "model": "model-a", "speech": true})
-	ui.ai_profiles = Services.normalize([{ "id": "default", "service": ui.ai_service }, {"id": "second", "service": {"endpoint": "http://127.0.0.1:18948/v1", "model": "model-b"}}])
-	ui.ai_keys = {"default": "DUMMY_A", "second": "DUMMY_B"}
+	ui.ai.service = ui.AIConfig.service({"endpoint": "http://127.0.0.1:18948/v1", "model": "model-a", "speech": true})
+	ui.ai.profiles = Services.normalize([{ "id": "default", "service": ui.ai.service }, {"id": "second", "service": {"endpoint": "http://127.0.0.1:18948/v1", "model": "model-b"}}])
+	ui.ai.keys = {"default": "DUMMY_A", "second": "DUMMY_B"}
 	for i in range(5):
-		ui.ai_seats[i].enabled = true
-		ui.ai_seats[i].service_id = "second" if i % 2 else "default"
+		ui.ai.seats[i].enabled = true
+		ui.ai.seats[i].service_id = "second" if i % 2 else "default"
 	ui._start_table(6)
 	ui.bot_timer.stop()
 	var moves = 0
@@ -129,32 +129,32 @@ func _ready() -> void:
 		if ui.game.actor == 0: ui._human_action("check_call", 0, true)
 		else:
 			ui._bot_step()
-			await wait_client(ui.ai_client)
-			if ui.speech_client.busy: await wait_client(ui.speech_client)
+			await wait_client(ui.ai.client)
+			if ui.ai.speech_client.busy: await wait_client(ui.ai.speech_client)
 		ui.bot_timer.stop()
-		if not ui.ai_error.is_empty(): verify(false, "mock online decision: " + ui.ai_error); break
+		if not ui.ai.error.is_empty(): verify(false, "mock online decision: " + ui.ai.error); break
 		moves += 1
 	verify(ui.game.phase == "complete" and ui.game.chip_total() == 6000, "six-seat multi-model game completes on Android")
-	verify(not ui.ai_dialogue.is_empty(), "public table talk arrives through Android network")
+	verify(not ui.ai.dialogue.is_empty(), "public table talk arrives through Android network")
 	await shot("online-showdown")
-	verify(not ui.ai_trace.for_seat(1).is_empty(), "Android network records requests by seat")
-	verify(not JSON.stringify(ui.ai_trace.entries).contains("DUMMY_"), "Android trace contains no dummy credentials")
+	verify(not ui.ai.trace.for_seat(1).is_empty(), "Android network records requests by seat")
+	verify(not JSON.stringify(ui.ai.trace.entries).contains("DUMMY_"), "Android trace contains no dummy credentials")
 	ui._seat_details(1)
 	verify(ui.ai_inspector.visible and ui.ai_inspector.complete, "completed Android hand unlocks inspector")
 	await shot("seat-request-history")
 	ui.info_sheet.close()
 	# A deliberately truncated reasoning fixture exercises the real Android HTTP path.
-	ui.ai_profiles[0].service.model = "reasoning-fixture"
+	ui.ai.profiles[0].service.model = "reasoning-fixture"
 	ui._start_table(2)
 	ui.bot_timer.stop()
 	if ui.game.actor == 0: ui.game.act(0, "call")
-	ui._request_ai()
-	await wait_client(ui.ai_client)
+	ui.ai.request()
+	await wait_client(ui.ai.client)
 	ui.bot_timer.stop()
-	verify(ui.ai_error.is_empty(), "truncated generation recovers automatically on Android")
-	var logs = ui.ai_trace.for_seat(1)
+	verify(ui.ai.error.is_empty(), "truncated generation recovers automatically on Android")
+	var logs = ui.ai.trace.for_seat(1)
 	verify(logs.any(func(e): return e.state == "retrying" and e.finish_reason == "length") and logs.any(func(e): return e.state == "complete" and e.limit == 16384), "Android captures both attempts and larger budget")
-	ui.speech_client.cancel()
+	ui.ai.speech_client.cancel()
 	ui._seat_details(1)
 	ui.ai_inspector._detail(logs.back())
 	verify(not ui.ai_inspector.complete, "live Android hand keeps messages locked")
@@ -164,11 +164,11 @@ func _ready() -> void:
 		ui._start_table(count)
 		ui.bot_timer.stop()
 		await settle()
-		ui.ai_dialogue = [{"seat": 1, "event": ui.game.events.size(), "text": "这一下够狠啊，想把我赶走可没那么容易。"}]
+		ui.ai.dialogue = [{"seat": 1, "event": ui.game.events.size(), "text": "这一下够狠啊，想把我赶走可没那么容易。"}]
 		ui._refresh()
 		ui.bot_timer.stop()
 		verify(ui.table_view.speech_bubble.visible, "seat bubble visible on Android %d players" % count)
-		verify(not ui.ai_bar.visible, "speech does not add bottom text box")
+		verify(not ui.ai.bar.visible, "speech does not add bottom text box")
 		await shot("speech-%d" % count)
 	ui._open_settings()
 	ui.settings._select_page(6)

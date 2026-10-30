@@ -77,9 +77,9 @@ func _capture() -> void:
 				for frame in range(8): await process_frame
 				instance.settings.scroll.reset_scroll(9999)
 	if "--ai-demo" in OS.get_cmdline_user_args():
-		for i in range(8): instance.ai_seats[i].enabled = true
-		instance._apply_ai_names()
-		instance.ai_dialogue = [{"seat": 1, "name": "小夏", "text": "这注我跟了，别急着收筹码。", "event": instance.game.events.size()}]
+		for i in range(8): instance.ai.seats[i].enabled = true
+		instance.ai.apply_names()
+		instance.ai.dialogue = [{"seat": 1, "name": "小夏", "text": "这注我跟了，别急着收筹码。", "event": instance.game.events.size()}]
 		instance._refresh()
 		if "--ai-settings" in OS.get_cmdline_user_args():
 			instance._open_settings()
@@ -99,7 +99,7 @@ func _capture() -> void:
 		instance.settings.ai_page._models_received(catalog)
 		print("LIVE_CATALOG: ", catalog.models.size(), " selectable; ", catalog.skipped, " excluded")
 	if "--ai-name-demo" in OS.get_cmdline_user_args():
-		instance.ai_seats[0].enabled = true
+		instance.ai.seats[0].enabled = true
 		instance._open_settings()
 		instance.settings._select_page(4)
 		var editor = instance.settings.opponent_editor
@@ -224,7 +224,7 @@ func _capture() -> void:
 		instance.settings.scroll.reset_scroll(roundi(ai_page.model_picker.global_position.y - instance.settings.scroll.get_child(0).global_position.y - 36))
 		for frame in range(8): await process_frame
 	if "--ai-coach" in OS.get_cmdline_user_args():
-		instance.ai_live_coach = true
+		instance.ai.live_coach = true
 		instance.review.ai_coach.configure(instance._settings_values())
 		instance._open_advice()
 		while instance.review.job != null: await process_frame
@@ -258,7 +258,7 @@ func _capture() -> void:
 		for frame in range(12): await process_frame
 	if "--request-inspector" in OS.get_cmdline_user_args():
 		var entry = {"id": "capture", "context": {"seat": 1, "hand": instance.game.hand_number, "phase": "flop", "event": 10, "purpose": "decision"}, "model": "demonstration-model", "url": "https://example.invalid/v1/chat/completions", "attempt": 2, "limit": 16384, "state": "complete", "finish_reason": "stop", "elapsed_ms": 1680, "http_status": 200, "usage": {"input_tokens": 1260, "output_tokens": 156, "reasoning_tokens": 128}, "request": {"model": "demonstration-model", "messages": [{"role": "user", "content": "演示请求记录，非真实服务调用"}]}, "response": '{"action":"call","amount":0}'}
-		instance.ai_trace.append(entry)
+		instance.ai.trace.append(entry)
 		instance._seat_details(1)
 		if "--request-detail" in OS.get_cmdline_user_args(): instance.ai_inspector._detail(entry)
 		for frame in range(12): await process_frame

@@ -109,8 +109,8 @@ func run() -> void:
 	verify(not JSON.stringify(trace.entries).contains("KEY_SENTINEL") and not JSON.stringify(trace.entries).contains("PRIVATE_REASONING_SENTINEL"), "trace scrubs credentials and hidden reasoning")
 	trace.append(entry)
 	verify(trace.entries.size() == 1, "attempt updates replace pending record without duplication")
-	ui.ai_trace = trace
-	ui.ai_seats[0].enabled = true
+	ui.ai.trace = trace
+	ui.ai.seats[0].enabled = true
 	ui._seat_details(1)
 	ui.ai_inspector._detail(trace.entries[0])
 	verify(not text_in(ui.ai_inspector).contains("PRIVATE_HOLE_SENTINEL") and not text_in(ui.ai_inspector).contains("PRIVATE_REPLY_SENTINEL"), "live inspector blocks prompts and replies with private cards")
@@ -120,13 +120,13 @@ func run() -> void:
 	ui._seat_details(1)
 	ui.ai_inspector._detail(trace.entries[0])
 	verify(text_in(ui.ai_inspector).contains("PRIVATE_HOLE_SENTINEL") and text_in(ui.ai_inspector).contains("PRIVATE_REPLY_SENTINEL"), "completed hand unlocks full sent messages and visible response")
-	verify(not JSON.stringify(ui._ai_session_state()).contains("PRIVATE_HOLE_SENTINEL"), "traces do not enter saved table or backups")
+	verify(not JSON.stringify(ui.ai.session_state()).contains("PRIVATE_HOLE_SENTINEL"), "traces do not enter saved table or backups")
 	ui.info_sheet.close()
 	for i in range(210): trace.append({"id": str(i), "context": {"seat": i % 2 + 1, "hand": 1}, "request": {}, "response": "x".repeat(32768)})
 	verify(trace.entries.size() <= 160 and JSON.stringify(trace.entries).to_utf8_buffer().size() <= Trace.MAX_BYTES, "retention bounded by count and bytes")
 	verify(trace.for_seat(1).all(func(e): return e.context.seat == 1), "seat history never mixes opponents")
 	ui._start_table(2)
-	verify(ui.ai_trace.entries.is_empty() and not ui.table_view.speech_bubble.visible, "new table clears traces and old speech")
+	verify(ui.ai.trace.entries.is_empty() and not ui.table_view.speech_bubble.visible, "new table clears traces and old speech")
 	ui.queue_free()
 	await process_frame
 	print("VERSION113_TESTS: %d checks, %d failures" % [checks, failures])

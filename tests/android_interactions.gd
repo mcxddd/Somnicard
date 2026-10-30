@@ -58,14 +58,14 @@ func reveal(scroll: ScrollContainer, control: Control) -> void:
 
 func wait_client() -> void:
 	var deadline = Time.get_ticks_msec() + 15000
-	while ui.ai_client.busy and Time.get_ticks_msec() < deadline: await get_tree().process_frame
-	verify(not ui.ai_client.busy, "request settled")
+	while ui.ai.client.busy and Time.get_ticks_msec() < deadline: await get_tree().process_frame
+	verify(not ui.ai.client.busy, "request settled")
 
 func online_fixture(model: String) -> void:
-	ui.ai_profiles = Services.normalize([{"id": "default", "service": {"endpoint": "http://127.0.0.1:18948/v1", "model": model, "speech": false}}])
-	ui.ai_keys = {"default": "DUMMY_A"}
-	ui.ai_seats[0].enabled = true
-	ui.ai_seats[0].service_id = "default"
+	ui.ai.profiles = Services.normalize([{"id": "default", "service": {"endpoint": "http://127.0.0.1:18948/v1", "model": model, "speech": false}}])
+	ui.ai.keys = {"default": "DUMMY_A"}
+	ui.ai.seats[0].enabled = true
+	ui.ai.seats[0].service_id = "default"
 	ui._start_table(2)
 	if ui.game.actor == 0: ui.game.act(0, "call")
 	ui._refresh()
@@ -269,28 +269,28 @@ func _ready() -> void:
 	await tap(ui.settings.cancel_button, "cancel AI draft")
 	# HTTP failure recovery is also driven by the visible recovery controls.
 	online_fixture("rate-limit-fixture")
-	ui._request_ai()
+	ui.ai.request()
 	await wait_client()
-	verify(not ui.ai_error.is_empty() and ui.ai_recovery.visible, "429 exposes recovery controls")
-	var attempts = ui.ai_trace.entries.size()
-	await tap(ui.ai_recovery.get_child(0), "retry rate-limited request")
+	verify(not ui.ai.error.is_empty() and ui.ai.recovery.visible, "429 exposes recovery controls")
+	var attempts = ui.ai.trace.entries.size()
+	await tap(ui.ai.recovery.get_child(0), "retry rate-limited request")
 	await wait_client()
-	verify(ui.ai_trace.entries.size() == attempts + 1 and not ui.ai_error.is_empty(), "one retry makes exactly one new 429 request")
-	await tap(ui.ai_recovery.get_child(1), "local takeover after HTTP error")
-	verify(ui.ai_error.is_empty() and ui.ai_local_hand.has(1) and not ui.ai_recovery.visible, "takeover clears error and routes opponent locally")
+	verify(ui.ai.trace.entries.size() == attempts + 1 and not ui.ai.error.is_empty(), "one retry makes exactly one new 429 request")
+	await tap(ui.ai.recovery.get_child(1), "local takeover after HTTP error")
+	verify(ui.ai.error.is_empty() and ui.ai.local_hand.has(1) and not ui.ai.recovery.visible, "takeover clears error and routes opponent locally")
 	online_fixture("slow-fixture")
 	before_events = ui.game.events.size()
-	ui._request_ai()
+	ui.ai.request()
 	await tap(ui.pause_button, "pause while awaiting reply")
 	await get_tree().create_timer(3).timeout
-	verify(ui.paused and not ui.ai_client.busy and ui.game.events.size() == before_events, "late cancelled reply cannot advance game")
+	verify(ui.paused and not ui.ai.client.busy and ui.game.events.size() == before_events, "late cancelled reply cannot advance game")
 	await tap(ui.pause_button, "resume after cancelled reply")
-	ui._request_ai()
+	ui.ai.request()
 	await wait_client()
 	# The final preflop check also emits a street event for dealing the flop.
 	var resumed_actions = ui.game.events.slice(before_events).filter(func(event): return event.kind == "action")
-	verify(resumed_actions.size() == 1 and resumed_actions[0].seat == 1 and ui.game.phase == "flop" and ui.game.chip_total() == 2000 and ui.ai_error.is_empty(), "fresh reply after resume executes one opponent action")
-	ui._cancel_ai()
+	verify(resumed_actions.size() == 1 and resumed_actions[0].seat == 1 and ui.game.phase == "flop" and ui.game.chip_total() == 2000 and ui.ai.error.is_empty(), "fresh reply after resume executes one opponent action")
+	ui.ai.cancel()
 	await settle()
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("user://interactions-final.png")

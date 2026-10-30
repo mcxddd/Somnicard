@@ -1,39 +1,11 @@
 extends Control
+const TableAI = preload("res://scripts/ai/table_ai.gd")
+var ai = TableAI.new()
 const AIConfig = preload("res://scripts/ai/config.gd")
-const AIProtocol = preload("res://scripts/ai/protocol.gd")
-const AIClient = preload("res://scripts/ai/client.gd")
-const AIMemory = preload("res://scripts/ai/memory.gd")
 const AIServices = preload("res://scripts/ai/services.gd")
 const AIVault = preload("res://scripts/ai/vault.gd")
-const AITrace = preload("res://scripts/ai/trace_log.gd")
-var ai_trace = AITrace.new()
 var ai_inspector
 var last_system_back_ms: int = -1000
-var ai_profiles: Array = []
-var ai_keys: Dictionary = {}
-var ai_live_coach = false
-var ai_review_coach = false
-var coach_service_id = "default"
-var ai_service: Dictionary = AIConfig.service({})
-var ai_seats: Array = AIConfig.seats([])
-var ai_key: String = ""
-var ai_memories: Dictionary = {}
-var ai_store
-var ai_client
-var speech_client
-var ai_stamp: String = ""
-var ai_actor: int = -1
-var ai_error: String = ""
-var ai_hand_recorded: String = ""
-var ai_local_hand: Dictionary = {}
-var ai_dialogue: Array = []
-var ai_spoken: Dictionary = {}
-var speech_stamp: String = ""
-var speech_actor: int = -1
-var speech_phase: String = ""
-var speech_event: int = 0
-var ai_bar: Button
-var ai_recovery: HBoxContainer
 const Table = preload("res://scripts/poker/table.gd")
 const Eval = preload("res://scripts/poker/evaluator.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
@@ -175,6 +147,8 @@ var haptics_enabled = false
 var performance_mode = 0
 
 func _ready() -> void:
+	ai.host = self
+	add_child(ai)
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version", "1.4.1")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_update_scale()
@@ -191,315 +165,6 @@ func _ready() -> void:
 	get_tree().quit_on_go_back = false
 	_open_home()
 	if "--smoke-test" in OS.get_cmdline_user_args(): call_deferred("_smoke_test")
-
-func _build_ai() -> void:
-	ai_store = AIMemory.new("user://ai/test-unused.json" if smoke_mode or "--capture-test" in OS.get_cmdline_user_args() else "user://ai/companions.json")
-	ai_client = AIClient.new()
-	add_child(ai_client)
-	ai_client.finished.connect(_ai_received)
-	ai_client.exchange.connect(_ai_exchange)
-	speech_client = AIClient.new()
-	add_child(speech_client)
-	speech_client.finished.connect(_speech_received)
-	speech_client.exchange.connect(_ai_exchange)
-	ai_bar = UI.button("", _open_ai_dialogue, Color("213d45"), 46)
-	ai_bar.clip_text = true
-	ai_bar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ai_bar.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	ai_bar.add_theme_font_size_override("font_size", 17)
-	controls.add_child(ai_bar)
-	controls.move_child(ai_bar, 1)
-	ai_bar.hide()
-	ai_recovery = HBoxContainer.new()
-	controls.add_child(ai_recovery)
-	controls.move_child(ai_recovery, 2)
-	for pair in [["重试", _retry_ai], ["本手本地接管", _take_over_ai], ["配置服务", _open_ai_settings]]:
-		var button = UI.button(pair[0], pair[1], UI.GREEN, 48)
-		button.add_theme_font_size_override("font_size", 17)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		ai_recovery.add_child(button)
-	ai_recovery.hide()
-	settings.ai_page.library_action.connect(_ai_library_action)
-
-func _cancel_ai() -> void:
-	if ai_client != null: ai_client.cancel()
-	if speech_client != null: speech_client.cancel()
-	ai_stamp = ""
-	speech_stamp = ""
-
-func _reset_ai_memory() -> void:
-	ai_hand_recorded = ""
-	ai_memories.clear()
-	for id in range(1, 9):
-		var companion = ai_store.companions.get(ai_seats[id - 1].companion_id, {})
-		ai_memories[str(id)] = AIMemory.normalize(companion.get("memory", {}))
-
-func _apply_ai_names() -> void:
-	if game == null: return
-	for id in range(1, game.seats.size()):
-		game.seats[id].name = ai_seats[id - 1].name
-		game.seats[id]["style"] = "在线 AI · " + Profiles.label(Profiles.resolve(opponent_profiles, id, difficulty)) if ai_seats[id - 1].enabled else bots[id].style_name()
-
-func _request_ai() -> void:
-	if ai_client.busy or not ai_error.is_empty(): return
-	ai_stamp = _action_stamp()
-	ai_actor = game.actor
-	var seat = ai_seats[ai_actor - 1]
-	var messages = AIProtocol.messages(game.view_for(ai_actor), ai_actor, seat, Profiles.resolve(opponent_profiles, ai_actor, difficulty), AIMemory.normalize(ai_memories.get(str(ai_actor), {})))
-	var service = _seat_service(ai_actor)
-	ai_client.send(service, _seat_key(ai_actor), messages, 4, _ai_context(ai_actor, "decision"))
-	_refresh()
-
-func _ai_context(actor: int, purpose: String) -> Dictionary:
-	return {"seat": actor, "hand": game.hand_number, "phase": game.phase, "event": game.events.size(), "purpose": purpose}
-
-func _ai_exchange(entry: Dictionary) -> void:
-	if entry.get("context", {}).is_empty(): return
-	ai_trace.append(entry, ai_keys.values() + [ai_key])
-	if entry.get("state") == "retrying" and entry.context.get("purpose") == "decision" and game != null:
-		turn_label.text = game.seats[int(entry.context.seat)].name + (" · 回复未完成，扩大额度重试中…" if entry.get("finish_reason") in ["length", "max_tokens"] else " · 正在调整接口兼容格式…")
-
-func _ai_received(result: Dictionary) -> void:
-	if ai_stamp != _action_stamp() or game == null or paused or _modal_open() or game.actor != ai_actor: return
-	ai_stamp = ""
-	var decision = result if result.has("error") else AIProtocol.decision(result.content, game.legal_actions(ai_actor))
-	if decision.has("error"):
-		ai_trace.resolve(str(result.get("trace_id", "")), "未执行：" + decision.error)
-		ai_error = decision.error
-		_refresh()
-		return
-	var actor = ai_actor
-	var err = game.act(actor, decision.action, decision.amount)
-	ai_trace.resolve(str(result.get("trace_id", "")), "执行：" + {"check": "过牌", "fold": "弃牌", "call": "跟注", "raise": "加注到 %d 筹码" % decision.amount, "all_in": "全押"}.get(decision.action, decision.action) if err.is_empty() else "未执行：" + err)
-	if err != "":
-		ai_error = "规则校验未通过，请重试或本地接管"
-		_refresh()
-		return
-	_refresh()
-	# Speech uses a new public-only prompt, never the private decision response.
-	if _seat_service(actor).speech and not ai_spoken.has(actor) and not speech_client.busy and game.phase != "complete":
-		ai_spoken[actor] = true
-		speech_actor = actor
-		speech_phase = game.phase
-		speech_event = game.events.size()
-		speech_stamp = "%s:%d" % [session_id, game.hand_number]
-		speech_client.send(_seat_service(actor), _seat_key(actor), AIProtocol.messages(game.view_for(actor), actor, ai_seats[actor - 1], Profiles.resolve(opponent_profiles, actor, difficulty), AIMemory.normalize(ai_memories.get(str(actor), {})), true, ai_dialogue), 4, _ai_context(actor, "speech"))
-	_schedule_bot()
-
-func _speech_received(result: Dictionary) -> void:
-	if game == null or speech_stamp != "%s:%d" % [session_id, game.hand_number] or result.has("error"): return
-	if not AIProtocol.speech_current(game.view_for(speech_actor), speech_actor, speech_event, speech_phase):
-		ai_trace.resolve(str(result.get("trace_id", "")), "未展示：牌局已推进，原发言对应的动作已过时")
-		return
-	var parsed = AIProtocol.table_talk(result.content, ai_dialogue.map(func(item): return item.text))
-	if parsed.has("error"):
-		ai_trace.resolve(str(result.get("trace_id", "")), "未展示：" + parsed.error)
-		return
-	var line: String = parsed.text
-	if line.is_empty():
-		ai_trace.resolve(str(result.get("trace_id", "")), "本次保持沉默")
-		return
-	ai_trace.resolve(str(result.get("trace_id", "")), "已展示桌边发言")
-	ai_dialogue.append({"seat": speech_actor, "name": game.seats[speech_actor].name, "text": line, "event": speech_event})
-	if ai_dialogue.size() > 8: ai_dialogue.pop_front()
-	session_stamp = ""
-	table_view.sync_speech(ai_dialogue)
-	_update_ai_bar()
-	_save_session()
-
-func _update_ai_bar() -> void:
-	if ai_bar == null: return
-	ai_bar.visible = not ai_error.is_empty() or not ai_local_hand.is_empty()
-	ai_recovery.visible = not ai_error.is_empty()
-	if not ai_error.is_empty(): ai_bar.text = "连接暂停 · " + ai_error
-	else: ai_bar.text = "本手部分 AI 已由本地电脑接管 · 点击查看"
-	for button in ai_recovery.get_children(): button.disabled = paused or _modal_open()
-
-func _open_ai_dialogue() -> void:
-	var lines: Array = []
-	if ai_error != "": lines.append(ai_error + "\n返回牌桌后重试、接管或配置服务。")
-	for id in ai_local_hand: lines.append(game.seats[id].name + "：本手由本地电脑接管，下手恢复在线。")
-	for line in ai_dialogue: lines.append("%s：%s" % [line.name, line.text])
-	_open_info("本手 AI 发言与状态", "\n\n".join(lines))
-
-func _retry_ai() -> void:
-	if paused or _modal_open(): return
-	ai_error = ""
-	_request_ai()
-
-func _take_over_ai() -> void:
-	if game == null or game.actor <= 0 or paused or _modal_open(): return
-	ai_local_hand[game.actor] = true
-	ai_error = ""
-	_cancel_ai()
-	_bot_step()
-
-func _open_ai_settings() -> void:
-	_open_settings()
-	settings._select_page(6)
-
-func _finish_ai_hand() -> void:
-	if game == null or game.phase != "complete": return
-	# Stop late speech from modifying a history record already saved.
-	if speech_client != null: speech_client.cancel()
-	var identity = "%s:%d" % [session_id, game.hand_number]
-	if ai_hand_recorded == identity: return
-	ai_hand_recorded = identity
-	var changed = false
-	for id in range(1, game.seats.size()):
-		if not ai_seats[id - 1].enabled: continue
-		var previous = AIMemory.normalize(ai_memories.get(str(id), {}))
-		var updated = AIMemory.observe(previous, game.view_for(id), id, identity)
-		ai_memories[str(id)] = updated
-		var companion_id = ai_seats[id - 1].companion_id
-		if ai_store.companions.has(companion_id) and updated != previous:
-			ai_store.companions[companion_id].memory = updated
-			changed = true
-	if changed and ai_store.save() != OK: settings_status = "陪练记忆保存失败，请检查存储空间"
-
-func _ai_session_state() -> Dictionary:
-	return {"seats": AIConfig.seats(ai_seats), "memories": ai_memories.duplicate(true), "dialogue": ai_dialogue.duplicate(true), "local_hand": ai_local_hand.keys(), "recorded": ai_hand_recorded, "spoken": ai_spoken.keys()}
-
-func _restore_ai_state(raw: Variant) -> void:
-	_cancel_ai()
-	var state: Dictionary = raw if raw is Dictionary else {}
-	ai_seats = AIConfig.seats(state.get("seats", []))
-	_reset_ai_memory()
-	if state.get("memories") is Dictionary:
-		for id in range(1, 9):
-			if ai_seats[id - 1].companion_id == "": ai_memories[str(id)] = AIMemory.normalize(state.memories.get(str(id), ai_memories[str(id)]))
-	for i in range(8):
-		var companion_id = ai_seats[i].companion_id
-		if companion_id == "": continue
-		if ai_store.companions.has(companion_id):
-			ai_seats[i].name = ai_store.companions[companion_id].name
-			ai_seats[i].persona = ai_store.companions[companion_id].persona
-		else:
-			# A deleted companion must not be resurrected by an older saved table.
-			ai_seats[i].companion_id = ""
-			ai_memories[str(i + 1)] = AIMemory.normalize({})
-	ai_hand_recorded = AIConfig.clean(state.get("recorded", ""), 100)
-	ai_dialogue = []
-	ai_spoken.clear()
-	if state.get("spoken") is Array:
-		for id in state.spoken:
-			if History._integer(id, 1, game.seats.size() - 1): ai_spoken[int(id)] = true
-	if state.get("dialogue") is Array:
-		for line in state.dialogue.slice(0, 8):
-			if line is Dictionary and History._integer(line.get("seat"), 1, game.seats.size() - 1) and History._integer(line.get("event"), 0, game.events.size()):
-				ai_dialogue.append({"seat": int(line.seat), "event": int(line.event), "name": AIConfig.clean(line.get("name", ""), 12), "text": AIConfig.clean(line.get("text", ""), 48)})
-				ai_spoken[int(line.seat)] = true
-	ai_local_hand.clear()
-	if state.get("local_hand") is Array:
-		for id in state.local_hand:
-			if History._integer(id, 1, game.seats.size() - 1): ai_local_hand[int(id)] = true
-	ai_error = ""
-
-func _apply_ai_settings(values: Dictionary) -> bool:
-	var seats = AIConfig.seats(values.get("ai_seats", ai_seats))
-	var service = AIConfig.service(values.get("ai_service", ai_service))
-	var profiles = AIServices.normalize(values.get("ai_profiles", []), service)
-	var keys: Dictionary = values.get("ai_keys", {"default": values.get("ai_key", ai_key)}).duplicate()
-	for seat in seats:
-		if seat.enabled and AIConfig.validate(AIServices.resolve(profiles, seat.service_id)) != "":
-			settings.summary.text = seat.name + "：请在 AI 服务中配置所选模型档案。"
-			return false
-	if (values.get("ai_live_coach", false) or values.get("ai_review_coach", false)) and AIConfig.validate(AIServices.resolve(profiles, str(values.get("coach_service_id", "default")))) != "":
-		settings.summary.text = "请先选择可用的教练模型档案。"
-		return false
-	var used: Array = []
-	var pending = 0
-	for seat in seats:
-		if seat.companion_id.begins_with("new:"): pending += 1
-		elif seat.enabled and seat.companion_id != "":
-			if seat.companion_id in used:
-				settings.summary.text = "同一陪练只能占一个座位，请选择不同身份。"
-				return false
-			used.append(seat.companion_id)
-	if ai_store.companions.size() + pending > 32:
-		settings.summary.text = "最多保存 32 位陪练，请先删除不用的档案。"
-		return false
-	var old_library = ai_store.companions.duplicate(true)
-	for i in range(8):
-		var seat = seats[i]
-		var old = ai_seats[i]
-		if seat.companion_id.begins_with("new:"):
-			seat.companion_id = ai_store.create(seat, Profiles.resolve(values.get("opponents", opponent_profiles), i + 1, int(values.get("difficulty", difficulty))), ai_memories.get(str(i + 1), {}))
-			if seat.companion_id == "":
-				ai_store.companions = old_library
-				ai_store.save()
-				settings.summary.text = "陪练档案保存失败，请检查存储空间。"
-				return false
-		elif seat.companion_id != old.companion_id:
-			ai_memories[str(i + 1)] = AIMemory.normalize(ai_store.companions.get(seat.companion_id, {}).get("memory", {}))
-		if ai_store.companions.has(seat.companion_id):
-			var saved = ai_store.companions[seat.companion_id]
-			saved.name = seat.name
-			saved.persona = seat.persona
-			saved.service_id = seat.service_id
-			var profile = Profiles.resolve(values.get("opponents", opponent_profiles), i + 1, int(values.get("difficulty", difficulty)))
-			saved.difficulty = profile.difficulty
-			saved.aggression = profile.aggression
-	if ai_store.companions != old_library and ai_store.save() != OK:
-		ai_store.companions = old_library
-		settings.summary.text = "陪练档案保存失败，请检查存储空间。"
-		return false
-	var vault_error = AIVault.save(profiles, keys) if not smoke_mode and "--capture-test" not in OS.get_cmdline_user_args() else ""
-	if vault_error != "":
-		ai_store.companions = old_library
-		ai_store.save()
-		settings.summary.text = vault_error
-		return false
-	ai_profiles = profiles
-	ai_keys = keys
-	ai_live_coach = values.get("ai_live_coach", false)
-	ai_review_coach = values.get("ai_review_coach", false)
-	coach_service_id = str(values.get("coach_service_id", "default"))
-	ai_seats = seats
-	ai_service = AIConfig.service(values.get("ai_service", ai_service))
-	ai_key = str(keys.get("default", "")).strip_edges()
-	ai_error = ""
-	_cancel_ai()
-	_apply_ai_names()
-	session_stamp = ""
-	return true
-
-func _ai_library_action(action: String, id: String, name: String) -> void:
-	if not ai_store.companions.has(id): return
-	if action in ["clear", "delete"]:
-		_request_confirmation("清空陪练记忆？" if action == "clear" else "删除这位陪练？", "会立即更新档案和当前牌桌；此操作不可撤销。已保存的历史牌局仍然保留。", "确认", _edit_ai_library.bind(action, id, name))
-	else: _edit_ai_library(action, id, name)
-
-func _edit_ai_library(action: String, id: String, name: String) -> void:
-	if not ai_store.companions.has(id): return
-	var old = ai_store.companions.duplicate(true)
-	if action == "delete": ai_store.companions.erase(id)
-	elif action == "clear": ai_store.companions[id].memory = AIMemory.normalize({})
-	elif action == "rename":
-		name = AIConfig.clean(name, 12)
-		if name == "": return
-		ai_store.companions[id].name = name
-	if ai_store.save() != OK:
-		ai_store.companions = old
-		settings.ai_page.status.text = "档案操作保存失败，请检查存储空间。"
-		return
-	for i in range(8):
-		if ai_seats[i].companion_id == id:
-			if action == "delete": ai_seats[i].companion_id = ""
-			elif action == "rename": ai_seats[i].name = name
-			if action in ["clear", "delete"]: ai_memories[str(i + 1)] = AIMemory.normalize({})
-		var draft = settings.opponent_editor.ai_seats[i]
-		if draft.companion_id == id:
-			if action == "delete": draft.companion_id = ""
-			elif action == "rename": draft.name = name
-	settings.ai_library = ai_store.companions
-	settings.ai_page.fill_library(ai_store.companions)
-	settings.opponent_editor.companions = ai_store.companions.duplicate(true)
-	settings.opponent_editor._render()
-	_apply_ai_names()
-	_save_preferences()
-	session_stamp = ""
-	_save_session()
 
 func _build_ui() -> void:
 	theme = UI.make_theme(mobile_layout)
@@ -678,7 +343,7 @@ func _build_ui() -> void:
 	confirmation.accepted.connect(_accept_confirmation)
 	confirmation.cancelled.connect(_cancel_confirmation)
 	_build_sheets()
-	_build_ai()
+	ai.build()
 	_build_product()
 
 func _build_product() -> void:
@@ -712,7 +377,7 @@ func _apply_feedback_preferences() -> void:
 
 func _open_product(name: String) -> void:
 	bot_timer.stop()
-	_cancel_ai()
+	ai.cancel()
 	amount_input.apply()
 	coach.collapse()
 	_restore_background_focus()
@@ -901,7 +566,7 @@ func _apply_new_table(count: int, depth: int) -> void:
 	_save_preferences()
 
 func _start_table(count: int) -> void:
-	_cancel_ai()
+	ai.cancel()
 	bot_timer.stop()
 	_restore_background_focus()
 	player_count = clampi(count, 2, 9)
@@ -911,7 +576,7 @@ func _start_table(count: int) -> void:
 	lobby.hide()
 	home.hide()
 	session_id = "%d-%d" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
-	ai_trace.clear()
+	ai.trace.clear()
 	session_stamp = ""
 	var stacks = []
 	stacks.resize(player_count)
@@ -924,8 +589,8 @@ func _start_table(count: int) -> void:
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
 		bots[id] = LocalBot.new(-1, p.aggression, p.difficulty)
 		game.seats[id]["style"] = bots[id].style_name()
-	_reset_ai_memory()
-	_apply_ai_names()
+	ai.reset_memory()
+	ai.apply_names()
 	saved_hand = -1
 	decision_key = ""
 	_next_hand()
@@ -935,11 +600,11 @@ func _next_hand() -> void:
 	if game.phase == "complete" and (game.seats[0].stack == 0 or game.seats.filter(func(s): return s.stack > 0).size() < 2):
 		_request_confirmation("补码重开本桌？", "所有座位将恢复为 %d BB，重新开始 %d 人练习桌。已完成的历史牌局会保留。" % [starting_bb, player_count], "补码并重开", _apply_new_table.bind(player_count, starting_bb))
 		return
-	_cancel_ai()
-	ai_dialogue.clear()
-	ai_spoken.clear()
-	ai_local_hand.clear()
-	ai_error = ""
+	ai.cancel()
+	ai.dialogue.clear()
+	ai.spoken.clear()
+	ai.local_hand.clear()
+	ai.error = ""
 	var err = game.start_hand()
 	if not err.is_empty():
 		turn_label.text = err
@@ -981,13 +646,13 @@ func _submit_raise() -> void:
 
 func _schedule_bot() -> void:
 	bot_timer.stop()
-	if not smoke_mode and game != null and game.actor > 0 and not paused and not _modal_open() and not ai_client.busy and ai_error.is_empty():
+	if not smoke_mode and game != null and game.actor > 0 and not paused and not _modal_open() and not ai.client.busy and ai.error.is_empty():
 		bot_timer.start(0.08 if game.seats[0].folded and fast_fold.button_pressed else SPEEDS[speed_index])
 
 func _bot_step() -> void:
 	if game == null or game.actor <= 0 or paused or _modal_open(): return
-	if ai_seats[game.actor - 1].enabled and not ai_local_hand.has(game.actor):
-		_request_ai()
+	if ai.seats[game.actor - 1].enabled and not ai.local_hand.has(game.actor):
+		ai.request()
 		return
 	var decision = bots.get(game.actor, bot).choose(game.view_for(game.actor))
 	var err = game.act(game.actor, decision.action, decision.get("amount", 0))
@@ -1000,7 +665,7 @@ func _bot_step() -> void:
 func _toggle_pause() -> void:
 	if _modal_open(): return
 	paused = not paused
-	if paused: _cancel_ai()
+	if paused: ai.cancel()
 	bot_timer.stop()
 	_refresh()
 	_schedule_bot()
@@ -1098,7 +763,7 @@ func _sync_amount() -> void:
 
 func _refresh() -> void:
 	if game == null: return
-	if paused or _modal_open(): _cancel_ai()
+	if paused or _modal_open(): ai.cancel()
 	var view = game.view_for(0)
 	var done = view.phase == "complete"
 	if feedback_player != null: feedback_player.sync(game, session_id, paused or _modal_open() or smoke_mode)
@@ -1106,7 +771,7 @@ func _refresh() -> void:
 	header.tooltip_text = "ID " + History.hand_id(game.record_state())
 	pause_button.text = "继续" if paused else "暂停"
 	table_view.update_table(view, use_bb, paused or _modal_open())
-	table_view.sync_speech(ai_dialogue)
+	table_view.sync_speech(ai.dialogue)
 	if done:
 		_save_record()
 		turn_label.text = "你 · " + table_view.Outcome.net_text(view, 0, use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
@@ -1114,8 +779,8 @@ func _refresh() -> void:
 	elif paused or _modal_open(): turn_label.text = "牌局已暂停"
 	elif view.seats[0].folded: turn_label.text = "你已弃牌 · 正在观看其余玩家" + ("（快进）" if fast_fold.button_pressed else "")
 	else: turn_label.text = "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
-	_update_ai_bar()
-	if ai_client != null and ai_client.busy: turn_label.text = game.seats[game.actor].name + " · 在线思考中…"
+	ai.update_bar()
+	if ai.client != null and ai.client.busy: turn_label.text = game.seats[game.actor].name + " · 在线思考中…"
 	_update_controls(view)
 	coach.sync(view, use_bb, live_teaching and (not coach_after or done), not paused and not _modal_open())
 	_update_explanation(view)
@@ -1197,7 +862,7 @@ func _update_log(view: Dictionary) -> void:
 	log_view.text = "\n\n".join(lines)
 
 func _save_record() -> void:
-	_finish_ai_hand()
+	ai.finish_hand()
 	if saved_hand == game.hand_number: return
 	if smoke_mode:
 		save_status = "测试模式"
@@ -1205,8 +870,8 @@ func _save_record() -> void:
 		return
 	var record = game.completed_record()
 	record["seat_names"] = game.seats.map(func(s): return s.name)
-	record["ai_dialogue"] = ai_dialogue.duplicate(true)
-	record["online_seats"] = ai_seats.slice(0, player_count - 1).map(func(p): return p.enabled)
+	record["ai_dialogue"] = ai.dialogue.duplicate(true)
+	record["online_seats"] = ai.seats.slice(0, player_count - 1).map(func(p): return p.enabled)
 	record["id"] = History.hand_id(record)
 	record["difficulty"] = difficulty
 	record["bot_version"] = LocalBot.VERSION
@@ -1279,14 +944,14 @@ func _load_preferences() -> void:
 	review_teaching = prefs.review_teaching
 	difficulty = prefs.difficulty
 	opponent_profiles = prefs.opponents
-	ai_profiles = prefs.ai_profiles
-	ai_keys = AIVault.load_keys(ai_profiles)
-	ai_key = str(ai_keys.get("default", ""))
-	ai_live_coach = prefs.ai_live_coach
-	ai_review_coach = prefs.ai_review_coach
-	coach_service_id = prefs.coach_service_id
-	ai_service = prefs.ai_service
-	ai_seats = prefs.ai_seats
+	ai.profiles = prefs.ai_profiles
+	ai.keys = AIVault.load_keys(ai.profiles)
+	ai.key = str(ai.keys.get("default", ""))
+	ai.live_coach = prefs.ai_live_coach
+	ai.review_coach = prefs.ai_review_coach
+	ai.coach_service_id = prefs.coach_service_id
+	ai.service = prefs.ai_service
+	ai.seats = prefs.ai_seats
 	coach_after = prefs.coach_after
 	coach_auto = prefs.coach_auto
 	coach_detail = prefs.coach_detail
@@ -1370,7 +1035,7 @@ func _review_current_hand() -> void:
 	if game == null or game.phase != "complete": return
 	var current_record = game.completed_record()
 	current_record["seat_names"] = game.seats.map(func(s): return s.name)
-	current_record["ai_dialogue"] = ai_dialogue.duplicate(true)
+	current_record["ai_dialogue"] = ai.dialogue.duplicate(true)
 	var rebuilt = History.replay(current_record)
 	if rebuilt.has("error"):
 		turn_label.text = rebuilt.error
@@ -1402,7 +1067,7 @@ func _save_session() -> void:
 	if not _session_enabled() or game == null or game.phase == "idle": return
 	var stamp = "%s:%d:%d:%d" % [session_id, game.hand_number, game.events.size(), saved_hand]
 	if stamp == session_stamp: return
-	session_save_error = Session.save(game, session_id, starting_bb, saved_hand, "user://", Profiles.snapshot(opponent_profiles, player_count, difficulty), opponent_changes, opponent_profiles, difficulty, _ai_session_state()) != OK
+	session_save_error = Session.save(game, session_id, starting_bb, saved_hand, "user://", Profiles.snapshot(opponent_profiles, player_count, difficulty), opponent_changes, opponent_profiles, difficulty, ai.session_state()) != OK
 	if not session_save_error: session_stamp = stamp
 
 func _resume_session() -> void:
@@ -1435,8 +1100,8 @@ func _resume_session() -> void:
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
 		bots[id] = LocalBot.new(-1, p.aggression, p.difficulty)
 		game.seats[id]["style"] = bots[id].style_name()
-	_restore_ai_state(rebuilt.record.get("ai_state", {}))
-	_apply_ai_names()
+	ai.restore_state(rebuilt.record.get("ai_state", {}))
+	ai.apply_names()
 	paused = true
 	lobby.hide()
 	home.hide()
@@ -1446,7 +1111,7 @@ func _resume_session() -> void:
 func _notification(what: int) -> void:
 	if not is_node_ready(): return
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		_cancel_ai()
+		ai.cancel()
 		if review != null: review.ai_coach.stop()
 		if training != null: training.ai_coach.stop()
 		if settings != null:
@@ -1511,23 +1176,23 @@ func _settings_values() -> Dictionary:
 		"felt": felt_theme, "four_color": four_color, "motion": motion, "confirm_all_in": confirm_all_in,
 		"live_teaching": live_teaching, "review_teaching": review_teaching, "difficulty": difficulty, "opponents": opponent_profiles.duplicate(true),
 		"coach_after": coach_after, "coach_auto": coach_auto, "coach_detail": coach_detail, "coach_side": coach_side,
-		"ai_service": ai_service.duplicate(true), "ai_seats": ai_seats.duplicate(true), "ai_key": ai_key,
-		"ai_profiles": AIServices.normalize(ai_profiles, ai_service), "ai_keys": ai_keys.duplicate(), "coach_service_id": coach_service_id,
-		"ai_live_coach": ai_live_coach, "ai_review_coach": ai_review_coach}
+		"ai_service": ai.service.duplicate(true), "ai_seats": ai.seats.duplicate(true), "ai_key": ai.key,
+		"ai_profiles": AIServices.normalize(ai.profiles, ai.service), "ai_keys": ai.keys.duplicate(), "coach_service_id": ai.coach_service_id,
+		"ai_live_coach": ai.live_coach, "ai_review_coach": ai.review_coach}
 
 func _open_settings() -> void:
 	bot_timer.stop()
 	amount_input.apply()
 	_restore_background_focus()
 	settings.player_count = selected_count if lobby.visible or game == null else player_count
-	settings.ai_library = ai_store.companions
+	settings.ai_library = ai.store.companions
 	settings.open(_settings_values())
 	settings.context.text = "当前牌桌暂停中 · 保存后返回原来的位置" if game != null else "应用于本机的所有练习桌"
 	_sync_modal_focus()
 	_refresh()
 
 func _apply_settings(values: Dictionary) -> void:
-	if not _apply_ai_settings(values): return
+	if not ai.apply_settings(values): return
 	sound_level = int(values.get("sound", 1))
 	haptics_enabled = bool(values.get("haptics", false))
 	performance_mode = int(values.get("performance", 0))
@@ -1555,7 +1220,7 @@ func _apply_settings(values: Dictionary) -> void:
 		bots[id].difficulty = p.difficulty
 		bots[id].style = p.aggression
 		game.seats[id]["style"] = bots[id].style_name()
-	_apply_ai_names()
+	ai.apply_names()
 	if game != null:
 		var current_profiles = Profiles.snapshot(opponent_profiles, player_count, difficulty)
 		if game.phase != "complete" and (opponent_changes.is_empty() or opponent_changes.back().get("profiles") != current_profiles):
@@ -1749,7 +1414,7 @@ func _build_sheets() -> void:
 	info_opponent_button.hide()
 	ai_inspector = preload("res://scripts/ui/ai_inspector.gd").new()
 	info_sheet.content.add_child(ai_inspector)
-	ai_inspector.clear_requested.connect(func(): ai_trace.clear())
+	ai_inspector.clear_requested.connect(func(): ai.trace.clear())
 	ai_inspector.navigated.connect(func(detail):
 		info_text.visible = not detail
 		info_opponent_button.visible = not detail and info_opponent_id > 0
@@ -1791,12 +1456,12 @@ func _seat_details(id: int) -> void:
 	if game == null or _modal_open() or id < 0 or id >= game.seats.size(): return
 	var seat = game.view_for(0).seats[id]
 	var model_note = ""
-	if id > 0 and ai_seats[id - 1].enabled:
-		var service = _seat_service(id)
+	if id > 0 and ai.seats[id - 1].enabled:
+		var service = ai.seat_service(id)
 		model_note = "\nAI 模型：" + service.model
 	_open_info(seat.name + " · 座位详情", table_view.seat_nodes[id].panel.tooltip_text + model_note + "\n\n" + table_view.seat_nodes[id].status.text + "\n底牌：" + (_cards_text(seat.hole) if not seat.hole.is_empty() else "未公开"), id)
-	if id > 0 and (ai_seats[id - 1].enabled or not ai_trace.for_seat(id).is_empty()):
-		ai_inspector.open(ai_trace.for_seat(id), ai_dialogue, game.hand_number, game.phase == "complete", id)
+	if id > 0 and (ai.seats[id - 1].enabled or not ai.trace.for_seat(id).is_empty()):
+		ai_inspector.open(ai.trace.for_seat(id), ai.dialogue, game.hand_number, game.phase == "complete", id)
 		info_sheet.preferred_height = 880
 		info_sheet._layout()
 	else:
@@ -1870,10 +1535,3 @@ func _open_opponents(seat: int = 1) -> void:
 	_open_settings()
 	settings._select_page(4)
 	settings.opponent_editor.select(seat)
-
-func _seat_service(id: int) -> Dictionary:
-	return AIServices.resolve(ai_profiles, ai_seats[id - 1].service_id, ai_service)
-
-func _seat_key(id: int) -> String:
-	var key_id = ai_seats[id - 1].service_id
-	return str(ai_keys.get(key_id, ai_key if key_id == "default" else ""))

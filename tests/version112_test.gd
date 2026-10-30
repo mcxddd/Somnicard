@@ -63,23 +63,23 @@ func run() -> void:
 	editor.name_edit.text = "阿北"
 	editor.name_edit.text_changed.emit("阿北")
 	ui._apply_settings(ui.settings.values())
-	verify(ui.game.seats[1].name == "阿北" and not ui.ai_seats[0].enabled, "saving rename updates local table without enabling network")
+	verify(ui.game.seats[1].name == "阿北" and not ui.ai.seats[0].enabled, "saving rename updates local table without enabling network")
 	ui.settings.cancel()
 	while ui.game.phase != "complete": ui.game.act(ui.game.actor, "check" if ui.game.legal_actions(ui.game.actor).check else "call")
 	var replay = History.replay(ui.game.completed_record())
 	verify(not replay.has("error") and replay.game.seats[1].name == "阿北", "replay preserves renamed local identity")
 	ui._next_hand()
-	ui.speech_actor = 1
-	ui.speech_event = ui.game.events.size()
-	ui.speech_stamp = "%s:%d" % [ui.session_id, ui.game.hand_number]
-	ui.speech_phase = "river" if ui.game.phase != "river" else "flop"
-	ui._speech_received({"content": '{"text":"这注我跟了。"}'})
-	verify(ui.ai_dialogue.is_empty(), "late speech from another street is discarded")
-	ui.speech_phase = ui.game.phase
-	ui._speech_received({"content": '{"text":"这注我跟了。"}'})
-	verify(ui.ai_dialogue.size() == 1 and ui.ai_dialogue[0].event == ui.speech_event, "speech preserves original event anchor")
-	ui._speech_received({"content": '{"text":"你好，祝你好运。"}'})
-	verify(ui.ai_dialogue.size() == 1, "greeting is not displayed")
+	ui.ai.speech_actor = 1
+	ui.ai.speech_event = ui.game.events.size()
+	ui.ai.speech_stamp = "%s:%d" % [ui.session_id, ui.game.hand_number]
+	ui.ai.speech_phase = "river" if ui.game.phase != "river" else "flop"
+	ui.ai._on_speech_received({"content": '{"text":"这注我跟了。"}'})
+	verify(ui.ai.dialogue.is_empty(), "late speech from another street is discarded")
+	ui.ai.speech_phase = ui.game.phase
+	ui.ai._on_speech_received({"content": '{"text":"这注我跟了。"}'})
+	verify(ui.ai.dialogue.size() == 1 and ui.ai.dialogue[0].event == ui.ai.speech_event, "speech preserves original event anchor")
+	ui.ai._on_speech_received({"content": '{"text":"你好，祝你好运。"}'})
+	verify(ui.ai.dialogue.size() == 1, "greeting is not displayed")
 	ui.queue_free()
 	await process_frame
 	print("VERSION112_TESTS: %d checks, %d failures" % [checks, failures])

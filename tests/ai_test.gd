@@ -238,42 +238,42 @@ func run() -> void:
 	var ui = load("res://scenes/main.tscn").instantiate()
 	root.add_child(ui)
 	ui.smoke_mode = true
-	ui.ai_store = Memory.new("user://ai-test-companions.json")
-	ui.ai_store.companions.clear()
-	ui.ai_store.save()
-	ui.ai_service = Config.service({"endpoint": base, "model": "mock", "speech": true})
-	ui.ai_seats[0].enabled = true
-	ui.ai_seats[0].name = "测试陪练"
+	ui.ai.store = Memory.new("user://ai-test-companions.json")
+	ui.ai.store.companions.clear()
+	ui.ai.store.save()
+	ui.ai.service = Config.service({"endpoint": base, "model": "mock", "speech": true})
+	ui.ai.seats[0].enabled = true
+	ui.ai.seats[0].name = "测试陪练"
 	ui._start_table(2)
 	verify(ui.game.seats[1].name == "测试陪练", "table uses AI identity")
 	if ui.game.actor == 0: ui._human_action("call", 0, true)
 	var events = ui.game.events.size()
 	ui._bot_step()
 	await settle()
-	verify(ui.ai_client.busy, "online seat waits asynchronously")
+	verify(ui.ai.client.busy, "online seat waits asynchronously")
 	ui._open_settings()
-	verify(not ui.ai_client.busy and ui.game.events.size() == events, "settings cancels pending action")
+	verify(not ui.ai.client.busy and ui.game.events.size() == events, "settings cancels pending action")
 	ui.settings.cancel()
 	response_mode = "illegal"
 	ui._bot_step()
-	await wait_reply(ui.ai_client)
-	verify(ui.game.events.size() == events and ui.ai_error != "" and ui.ai_recovery.visible, "illegal model action pauses and offers recovery")
-	ui._take_over_ai()
-	verify(ui.game.events.size() > events and ui.ai_local_hand.has(1), "explicit local takeover advances legally")
+	await wait_reply(ui.ai.client)
+	verify(ui.game.events.size() == events and ui.ai.error != "" and ui.ai.recovery.visible, "illegal model action pauses and offers recovery")
+	ui.ai.take_over()
+	verify(ui.game.events.size() > events and ui.ai.local_hand.has(1), "explicit local takeover advances legally")
 	response_mode = "decision"
 	ui._start_table(6)
-	for i in range(5): ui.ai_seats[i].enabled = true
-	ui._apply_ai_names()
+	for i in range(5): ui.ai.seats[i].enabled = true
+	ui.ai.apply_names()
 	var steps = 0
 	while ui.game.phase != "complete" and steps < 100:
 		if ui.game.actor == 0: ui._human_action("check_call", 0, true)
 		else:
 			ui._bot_step()
-			await wait_reply(ui.ai_client)
-			if ui.speech_client.busy: await wait_reply(ui.speech_client)
+			await wait_reply(ui.ai.client)
+			if ui.ai.speech_client.busy: await wait_reply(ui.ai.speech_client)
 		steps += 1
 	verify(ui.game.phase == "complete" and ui.game.result.showdown and ui.game.chip_total() == 6000, "six-seat AI table completes all streets and conserves chips")
-	verify(ui.ai_dialogue.size() > 0 and ui.ai_dialogue.size() <= 5, "public AI speech displayed and bounded")
+	verify(ui.ai.dialogue.size() > 0 and ui.ai.dialogue.size() <= 5, "public AI speech displayed and bounded")
 	for request in requests:
 		if not request.body is Dictionary or not request.body.get("messages") is Array or request.body.messages.size() < 2: continue
 		var data = JSON.parse_string(request.body.messages[1].content)
@@ -281,23 +281,23 @@ func run() -> void:
 		var private_count = 0
 		for seat in data.observation.seats: private_count += int(seat.has("your_hole"))
 		verify(private_count == (1 if data.observation.has("legal") else 0), "every network request obeys card privacy boundary")
-	verify(ui.ai_memories["1"].hands == 1, "completed game updates isolated memory once")
+	verify(ui.ai.memories["1"].hands == 1, "completed game updates isolated memory once")
 	ui._next_hand()
-	verify(ui.ai_memories["1"].hands == 1 and ui.ai_dialogue.is_empty(), "next hand keeps session memory and resets speech")
-	var id = ui.ai_store.create(ui.ai_seats[0], {"difficulty": 2, "aggression": 2}, ui.ai_memories["1"])
+	verify(ui.ai.memories["1"].hands == 1 and ui.ai.dialogue.is_empty(), "next hand keeps session memory and resets speech")
+	var id = ui.ai.store.create(ui.ai.seats[0], {"difficulty": 2, "aggression": 2}, ui.ai.memories["1"])
 	verify(id != "", "save long term companion")
-	ui.ai_seats[0].companion_id = id
+	ui.ai.seats[0].companion_id = id
 	ui._start_table(2)
-	verify(ui.ai_memories["1"].hands == 1 and ui.ai_memories["2"].hands == 0, "new table keeps saved companion but resets temporary seats")
+	verify(ui.ai.memories["1"].hands == 1 and ui.ai.memories["2"].hands == 0, "new table keeps saved companion but resets temporary seats")
 	ui._open_settings()
 	ui.settings.opponent_editor.ai_seats[0].name = "未保存名字"
 	ui.settings.ai_page.key.text = "DRAFT_SECRET"
 	ui.settings.cancel()
-	verify(ui.game.seats[1].name == "测试陪练" and ui.ai_key == "" and ui.settings.ai_page.key.text == "", "cancel discards identity and staged key")
-	var state = ui._ai_session_state()
-	ui.ai_memories["2"] = Memory.normalize({"hands": 99})
-	ui._restore_ai_state(state)
-	verify(ui.ai_memories["2"].hands == 0 and ui.ai_memories["1"].hands == 1, "resume restores session isolation")
+	verify(ui.game.seats[1].name == "测试陪练" and ui.ai.key == "" and ui.settings.ai_page.key.text == "", "cancel discards identity and staged key")
+	var state = ui.ai.session_state()
+	ui.ai.memories["2"] = Memory.normalize({"hands": 99})
+	ui.ai.restore_state(state)
+	verify(ui.ai.memories["2"].hands == 0 and ui.ai.memories["1"].hands == 1, "resume restores session isolation")
 	ui._open_settings()
 	ui.settings._select_page(6)
 	await settle()
@@ -305,33 +305,33 @@ func run() -> void:
 	var draft = ui._settings_values()
 	draft.ai_seats[1].companion_id = id
 	draft.ai_seats[1].enabled = true
-	verify(not ui._apply_ai_settings(draft), "same saved companion cannot occupy two seats")
-	ui._edit_ai_library("clear", id, "")
-	verify(ui.ai_memories["1"].hands == 0 and ui.ai_store.companions[id].memory.hands == 0, "clear immediately updates active and stored memory")
-	ui._edit_ai_library("rename", id, "新名字")
+	verify(not ui.ai.apply_settings(draft), "same saved companion cannot occupy two seats")
+	ui.ai.edit_library("clear", id, "")
+	verify(ui.ai.memories["1"].hands == 0 and ui.ai.store.companions[id].memory.hands == 0, "clear immediately updates active and stored memory")
+	ui.ai.edit_library("rename", id, "新名字")
 	verify(ui.game.seats[1].name == "新名字", "rename updates active identity")
-	var stale_state = ui._ai_session_state()
+	var stale_state = ui.ai.session_state()
 	stale_state.memories["1"] = Memory.normalize({"hands": 88})
-	ui._edit_ai_library("delete", id, "")
-	verify(not ui.ai_store.companions.has(id) and ui.ai_seats[0].companion_id == "", "delete detaches active companion")
-	ui._restore_ai_state(stale_state)
-	verify(ui.ai_seats[0].companion_id == "" and ui.ai_memories["1"].hands == 0, "old session cannot resurrect deleted companion memory")
+	ui.ai.edit_library("delete", id, "")
+	verify(not ui.ai.store.companions.has(id) and ui.ai.seats[0].companion_id == "", "delete detaches active companion")
+	ui.ai.restore_state(stale_state)
+	verify(ui.ai.seats[0].companion_id == "" and ui.ai.memories["1"].hands == 0, "old session cannot resurrect deleted companion memory")
 	ui.settings.cancel()
 	response_mode = "decision"
 	ui._start_table(9)
-	ui.ai_service.api = "messages"
-	for i in range(8): ui.ai_seats[i].enabled = true
-	ui.ai_service.speech = false
-	ui._apply_ai_names()
+	ui.ai.service.api = "messages"
+	for i in range(8): ui.ai.seats[i].enabled = true
+	ui.ai.service.speech = false
+	ui.ai.apply_names()
 	steps = 0
 	while ui.game.phase != "complete" and steps < 100:
 		if ui.game.actor == 0: ui._human_action("check_call", 0, true)
 		else:
 			ui._bot_step()
-			await wait_reply(ui.ai_client)
+			await wait_reply(ui.ai.client)
 		steps += 1
 	verify(ui.game.phase == "complete" and ui.game.result.showdown and ui.game.chip_total() == 9000, "nine-seat online table completes and conserves chips")
-	verify(ui.ai_dialogue.is_empty(), "speech toggle prevents extra speech requests")
+	verify(ui.ai.dialogue.is_empty(), "speech toggle prevents extra speech requests")
 	var record = ui.game.completed_record()
 	record.seat_names = ui.game.seats.map(func(s): return s.name)
 	record.ai_dialogue = [{"name": "小夏", "text": "测试发言", "event": ui.game.events.size(), "seat": 1}]
@@ -341,18 +341,18 @@ func run() -> void:
 	ui.settings.opponent_editor.ai_seats[0].companion_id = "new:1"
 	ui.settings.opponent_editor.ai_seats[0].name = "保存测试"
 	ui._apply_settings(ui.settings.values())
-	verify(not ui.settings.visible and ui.ai_store.companions.has(ui.ai_seats[0].companion_id), "save settings creates companion from draft")
+	verify(not ui.settings.visible and ui.ai.store.companions.has(ui.ai.seats[0].companion_id), "save settings creates companion from draft")
 	var reloaded = Memory.new("user://ai-test-companions.json")
 	verify(reloaded.companions.size() == 1 and reloaded.companions.values()[0].name == "保存测试", "companion survives disk reload")
 	response_mode = "wait"
 	ui._start_table(2)
 	if ui.game.actor == 0: ui._human_action("call", 0, true)
 	ui._bot_step()
-	var old_serial = ui.ai_client.serial
+	var old_serial = ui.ai.client.serial
 	ui._start_table(2)
 	events = ui.game.events.size()
-	ui.ai_client._completed(old_serial, 0, 200, '{"choices":[{"message":{"content":"{\"action\":\"fold\",\"amount\":0}"}}]}'.to_utf8_buffer())
-	verify(ui.game.events.size() == events and not ui.ai_client.busy, "late response cannot act on replacement table")
+	ui.ai.client._completed(old_serial, 0, 200, '{"choices":[{"message":{"content":"{\"action\":\"fold\",\"amount\":0}"}}]}'.to_utf8_buffer())
+	verify(ui.game.events.size() == events and not ui.ai.client.busy, "late response cannot act on replacement table")
 	var before_requests = requests.size()
 	ui._open_settings()
 	ui.settings._select_page(6)
@@ -381,9 +381,9 @@ func run() -> void:
 	var name_request = JSON.parse_string(requests.back().body.messages[1].content)
 	verify(name_request.model == "deepseek-flash" and not name_request.has("observation") and not name_request.has("key") and not name_request.has("memory"), "name generation sends model/personality only, no hand or credentials in prompt")
 	editor.name_choices.get_child(0).pressed.emit()
-	verify(editor.ai_seats[0].name == "深寻澜" and ui.ai_seats[0].name != "深寻澜", "candidate selection changes draft only")
+	verify(editor.ai_seats[0].name == "深寻澜" and ui.ai.seats[0].name != "深寻澜", "candidate selection changes draft only")
 	ui.settings.cancel()
-	verify(ui.ai_seats[0].name != "深寻澜", "cancel discards generated name")
+	verify(ui.ai.seats[0].name != "深寻澜", "cancel discards generated name")
 	ui._open_settings()
 	page.fill(Config.service({"endpoint": base, "model": "deepseek-flash"}), "")
 	ui.settings._select_page(4)
@@ -435,7 +435,7 @@ func run() -> void:
 	verify(page.status.text.contains("连接成功"), "selected native model passes in-app connection test")
 	page._choose_model(0)
 	verify(page.model.text == "model-a" and page.values().api == "chat", "model selection changes draft and route together")
-	verify(ui.ai_service.model != "model-a", "discovery and model selection do not apply settings early")
+	verify(ui.ai.service.model != "model-a", "discovery and model selection do not apply settings early")
 	var many: Array = []
 	for i in range(20): many.append({"id": "model-%02d" % i, "name": "模型 %d" % i, "api": "chat"})
 	page._models_received({"models": many, "skipped": 0})
@@ -470,21 +470,21 @@ func run() -> void:
 	invalid_draft.ai_service.model = ""
 	for p in invalid_draft.ai_profiles:
 		if p.id == "default": p.service.model = ""
-	verify(not ui._apply_ai_settings(invalid_draft), "online seats cannot save without a selected model")
+	verify(not ui.ai.apply_settings(invalid_draft), "online seats cannot save without a selected model")
 	root.size = Vector2i(360, 640)
 	await settle()
 	verify(page.model_picker.get_global_rect().end.x <= ui.settings.scroll.get_global_rect().end.x + 1, "model picker fits small portrait despite long IDs")
 	ui.settings.cancel()
 	# A single table routes alternating seats to independent models and credentials.
-	ui.ai_profiles = preload("res://scripts/ai/services.gd").normalize([
+	ui.ai.profiles = preload("res://scripts/ai/services.gd").normalize([
 		{"id": "default", "label": "A", "service": Config.service({"endpoint": base, "model": "model-a"})},
 		{"id": "second", "label": "B", "service": Config.service({"endpoint": base, "model": "model-b", "api": "messages"})}])
-	ui.ai_keys = {"default": "KEY_A_TEST", "second": "KEY_B_TEST"}
-	ui.ai_service = ui.ai_profiles[0].service
-	ui.ai_key = "KEY_A_TEST"
+	ui.ai.keys = {"default": "KEY_A_TEST", "second": "KEY_B_TEST"}
+	ui.ai.service = ui.ai.profiles[0].service
+	ui.ai.key = "KEY_A_TEST"
 	for i in range(8):
-		ui.ai_seats[i].enabled = true
-		ui.ai_seats[i].service_id = "second" if i % 2 == 0 else "default"
+		ui.ai.seats[i].enabled = true
+		ui.ai.seats[i].service_id = "second" if i % 2 == 0 else "default"
 	response_mode = "decision"
 	ui._start_table(6)
 	ui.paused = false
@@ -494,9 +494,9 @@ func run() -> void:
 		if ui.game.actor == 0:
 			ui.game.act(0, "check" if ui.game.legal_actions(0).check else "call")
 		else:
-			ui._request_ai()
-			await wait_reply(ui.ai_client)
-			verify(ui.ai_error.is_empty(), "mixed-model table action completes")
+			ui.ai.request()
+			await wait_reply(ui.ai.client)
+			verify(ui.ai.error.is_empty(), "mixed-model table action completes")
 		move_count += 1
 	verify(ui.game.phase == "complete" and ui.game.chip_total() == 6000, "mixed models complete same six-seat hand with conserved chips")
 	var both = {}
@@ -508,7 +508,7 @@ func run() -> void:
 	# Coach responds through the same client but receives no opponent memories.
 	ui._start_table(2)
 	if ui.game.actor != 0: ui.game.act(ui.game.actor, "call")
-	ui.ai_live_coach = true
+	ui.ai.live_coach = true
 	ui.review.ai_coach.configure(ui._settings_values())
 	ui._open_advice()
 	while ui.review.job != null: await process_frame
@@ -525,7 +525,7 @@ func run() -> void:
 	var arena = preload("res://scripts/ai/arena.gd").new()
 	arena.path = "user://arena-111-test.json"
 	root.add_child(arena)
-	arena.start({"online": true, "blocks": 2, "counts": [2], "depths": [50]}, ui.ai_service, "ARENA_TEST_KEY", 1)
+	arena.start({"online": true, "blocks": 2, "counts": [2], "depths": [50]}, ui.ai.service, "ARENA_TEST_KEY", 1)
 	var deadline = Time.get_ticks_msec() + 6000
 	while arena.running and Time.get_ticks_msec() < deadline: await process_frame
 	verify(not arena.running and arena.data.requests == 1, "arena respects request budget without local fallback")
@@ -537,13 +537,13 @@ func run() -> void:
 	var restored_arena = resumed.load_saved()
 	verify(restored_arena and resumed.data.cursor == saved_cursor and not resumed.running, "arena restores paused checkpoint")
 	if restored_arena:
-		resumed.resume(ui.ai_service, "ARENA_TEST_KEY", 100)
+		resumed.resume(ui.ai.service, "ARENA_TEST_KEY", 100)
 		deadline = Time.get_ticks_msec() + 10000
 		while resumed.running and Time.get_ticks_msec() < deadline: await process_frame
 		verify(resumed.report().completed and resumed.data.valid_decisions > 1, "resumed online arena finishes the remaining seat rotations")
 	# Compatibility retries must consume the same hard request budget.
 	response_mode = "reject_optional"
-	var capped_service = ui.ai_service.duplicate(true)
+	var capped_service = ui.ai.service.duplicate(true)
 	capped_service.model = "fresh-cap-test"
 	var cap_start = requests.size()
 	arena.start({"online": true, "blocks": 2, "counts": [2], "depths": [50]}, capped_service, "ARENA_TEST_KEY", 1)

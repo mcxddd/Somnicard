@@ -14,12 +14,12 @@ func run() -> void:
 	var ui = load("res://scenes/main.tscn").instantiate()
 	root.add_child(ui)
 	ui.smoke_mode = true
-	ui.ai_profiles = Services.normalize([
+	ui.ai.profiles = Services.normalize([
 		{"id": "default", "label": "记住的模型", "service": {"endpoint": "https://a.invalid/v1", "model": "model-a"}, "remember": true},
 		{"id": "second", "label": "临时模型", "service": {"endpoint": "https://b.invalid/v1", "model": "model-b"}, "remember": false}])
-	ui.ai_service = ui.ai_profiles[0].service
-	ui.ai_keys = {"default": "AUDIT_KEY_A", "second": "AUDIT_KEY_B"}
-	ui.ai_key = "AUDIT_KEY_A"
+	ui.ai.service = ui.ai.profiles[0].service
+	ui.ai.keys = {"default": "AUDIT_KEY_A", "second": "AUDIT_KEY_B"}
+	ui.ai.key = "AUDIT_KEY_A"
 	ui._open_settings()
 	var page = ui.settings.ai_page
 	verify(page.remember.button_pressed and page.profile_values()[0].remember, "opening settings retains remembered profile option")
@@ -32,7 +32,7 @@ func run() -> void:
 	page.key.text = "CHANGED_DRAFT"
 	page.key.text_changed.emit(page.key.text)
 	ui.settings.cancel()
-	verify(ui.ai_keys.second == "AUDIT_KEY_B" and ui.ai_profiles[0].remember and not ui.ai_profiles[1].remember, "cancel does not alter live credentials or profile flags")
+	verify(ui.ai.keys.second == "AUDIT_KEY_B" and ui.ai.profiles[0].remember and not ui.ai.profiles[1].remember, "cancel does not alter live credentials or profile flags")
 	verify(page.secrets.is_empty() and page.key.text.is_empty(), "cancel clears credential drafts")
 	ui._open_settings()
 	var public_values = ui.settings.values()

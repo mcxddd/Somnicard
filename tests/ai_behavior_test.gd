@@ -61,24 +61,24 @@ func run() -> void:
 	ui.game = Table.new([1000,1000,1000,1000,1000,1000],5,10,5)
 	ui.game.start_hand(4)
 	ui.game.act(1,"raise",30)
-	ui.speech_actor = 1
-	ui.speech_phase = "preflop"
-	ui.speech_event = ui.game.events.size()
-	ui.speech_stamp = "%s:%d" % [ui.session_id,ui.game.hand_number]
-	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.speech_event,"preflop"),"new speech is accepted for original action")
+	ui.ai.speech_actor = 1
+	ui.ai.speech_phase = "preflop"
+	ui.ai.speech_event = ui.game.events.size()
+	ui.ai.speech_stamp = "%s:%d" % [ui.session_id,ui.game.hand_number]
+	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.ai.speech_event,"preflop"),"new speech is accepted for original action")
 	ui.game.act(2,"call")
 	ui.game.act(3,"raise",90)
 	ui.game.act(4,"call")
 	ui.game.act(5,"call")
 	ui.game.act(0,"call")
-	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.speech_event,"preflop"),"others acting does not automatically discard relevant speech")
+	verify(Protocol.speech_current(ui.game.view_for(1),1,ui.ai.speech_event,"preflop"),"others acting does not automatically discard relevant speech")
 	ui.game.act(1,"call")
 	verify(ui.game.phase == "preflop" and ui.game.actor == 2,"reproducer stays on same street after speaker's second action")
-	ui._speech_received({"content":'{"text":"这注我先抬起来。"}'})
-	verify(ui.ai_dialogue.is_empty(),"controller rejects delayed contradictory speech from earlier action")
-	ui.speech_event = ui.game.events.size()
-	ui._speech_received({"content":'{"text":"这注我跟了。"}'})
-	verify(ui.ai_dialogue.size() == 1,"controller accepts fresh reply for the current action")
+	ui.ai._on_speech_received({"content":'{"text":"这注我先抬起来。"}'})
+	verify(ui.ai.dialogue.is_empty(),"controller rejects delayed contradictory speech from earlier action")
+	ui.ai.speech_event = ui.game.events.size()
+	ui.ai._on_speech_received({"content":'{"text":"这注我跟了。"}'})
+	verify(ui.ai.dialogue.size() == 1,"controller accepts fresh reply for the current action")
 	ui.game.act(2,"call")
 	ui._refresh()
 	verify(ui.game.phase == "flop" and not ui.table_view.speech_bubble.visible,"previous-street bubble disappears when betting progresses")
