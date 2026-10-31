@@ -14,9 +14,9 @@ config/name="Somnicard"
 config/version="2.0.1"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://assets/icon.svg"
+config/icon="res://assets/icon.png"
 boot_splash/image="res://assets/boot.png"
-boot_splash/bg_color=Color(0.039, 0.09, 0.106, 1)
+boot_splash/bg_color=Color(0.027, 0.067, 0.106, 1)
 boot_splash/stretch_mode=0
 boot_splash/minimum_display_time=0
 

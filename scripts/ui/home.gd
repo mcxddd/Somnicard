@@ -25,9 +25,22 @@ func _ready() -> void:
 	margin.add_child(column)
 	var head = HBoxContainer.new()
 	column.add_child(head)
-	var brand = UI.label("S O M N I C A R D", 25, UI.GOLD)
+	var brand = HBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.add_theme_constant_override("separation", 10)
 	head.add_child(brand)
+	var mark = TextureRect.new()
+	mark.texture = load("res://assets/logo-mark.svg")
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.custom_minimum_size = Vector2(34 * mark.texture.get_width() / float(mark.texture.get_height()), 34)
+	brand.add_child(mark)
+	var wordmark = TextureRect.new()
+	wordmark.texture = load("res://assets/wordmark.svg")
+	wordmark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wordmark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	wordmark.custom_minimum_size = Vector2(22 * wordmark.texture.get_width() / float(wordmark.texture.get_height()), 22)
+	brand.add_child(wordmark)
 	head.add_child(UI.label("私人练习室", 16, UI.MUTED))
 	scroll = Scroll.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

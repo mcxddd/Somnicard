@@ -4,7 +4,6 @@ const UI = preload("res://scripts/ui/style.gd")
 const UnitSwitch = preload("res://scripts/ui/unit_switch.gd")
 const TableView = preload("res://scripts/ui/table_view.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
-const Badge = preload("res://scripts/ui/seat_badge.gd")
 const Sheet = preload("res://scripts/ui/sheet.gd")
 var table_view
 var header: Label
@@ -77,11 +76,19 @@ func build_table() -> void:
 	margin.add_child(layout)
 	top = row(12)
 	layout.add_child(top)
-	mark = Badge.new()
+	mark = TextureRect.new()
+	mark.texture = load("res://assets/logo-mark.svg")
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	mark.custom_minimum_size = Vector2(42, 42)
 	top.add_child(mark)
 	brand = VBoxContainer.new()
-	brand.add_child(UI.label("SOMNICARD", 23, UI.GOLD))
+	var wordmark = TextureRect.new()
+	wordmark.texture = load("res://assets/wordmark.svg")
+	wordmark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wordmark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	wordmark.custom_minimum_size = Vector2(20 * wordmark.texture.get_width() / float(wordmark.texture.get_height()), 20)
+	brand.add_child(wordmark)
 	brand.add_child(UI.label("专注每一手决策", 13, UI.MUTED))
 	top.add_child(brand)
 	header = UI.label("德州扑克练习室", 20, UI.TEXT)

@@ -1,0 +1,171 @@
+{
+  "status": "PASS",
+  "pngs": {
+    "icon-1024.png": {
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_bbox": [
+        0,
+        0,
+        1024,
+        1024
+      ],
+      "sha256": "18b24dfef78aa6326d71e6ebae79cfa6f40f03a3d04dad6fe7622e336ad0e598"
+    },
+    "adaptive-foreground.png": {
+      "size": [
+        432,
+        432
+      ],
+      "mode": "RGBA",
+      "alpha_bbox": [
+        114,
+        95,
+        318,
+        336
+      ],
+      "sha256": "9c025fe5932c6f47a8d01e509e02e7a0e32594ac451e8c03086eadebc515a531",
+      "max_nontransparent_pixel_center_radius": 130.52394416351353,
+      "max_nontransparent_pixel_corner_radius": 131.18307817702708
+    },
+    "adaptive-background.png": {
+      "size": [
+        432,
+        432
+      ],
+      "mode": "RGBA",
+      "alpha_bbox": [
+        0,
+        0,
+        432,
+        432
+      ],
+      "sha256": "45dce7c7834377c3da7c476ba3ead717ea86774091635560220d083fbc46fda1"
+    },
+    "adaptive-monochrome.png": {
+      "size": [
+        432,
+        432
+      ],
+      "mode": "RGBA",
+      "alpha_bbox": [
+        114,
+        95,
+        318,
+        336
+      ],
+      "sha256": "9617a4b4c5a5ff66852e282c6b2f86242966b17843770cad038f08bf540cef75",
+      "max_nontransparent_pixel_center_radius": 130.52394416351353,
+      "max_nontransparent_pixel_corner_radius": 131.18307817702708
+    },
+    "splash.png": {
+      "size": [
+        512,
+        512
+      ],
+      "mode": "RGBA",
+      "alpha_bbox": [
+        67,
+        32,
+        445,
+        480
+      ],
+      "sha256": "68e5b35bea2fa9dc5bfb57d4920cb9db37e03ce1ee7304a3440154128522488a"
+    }
+  },
+  "svgs": {
+    "favicon.svg": {
+      "size": [
+        32,
+        32
+      ],
+      "fills": [
+        "#07111B",
+        "#227865",
+        "#F5EEDF"
+      ],
+      "paths_only_no_fonts_or_rasters": true
+    },
+    "logo-mark.svg": {
+      "size": [
+        512,
+        512
+      ],
+      "fills": [
+        "#07111B",
+        "#227865",
+        "#F5EEDF"
+      ],
+      "paths_only_no_fonts_or_rasters": true
+    },
+    "wordmark.svg": {
+      "size": [
+        650,
+        74
+      ],
+      "fills": [
+        "#227865",
+        "#F5EEDF"
+      ],
+      "paths_only_no_fonts_or_rasters": true
+    }
+  },
+  "checks": {
+    "monochrome_holes": [
+      {
+        "pixels": 453,
+        "bbox": [
+          133,
+          139,
+          158,
+          169
+        ]
+      },
+      {
+        "pixels": 559,
+        "bbox": [
+          225,
+          185,
+          278,
+          214
+        ]
+      },
+      {
+        "pixels": 502,
+        "bbox": [
+          150,
+          207,
+          204,
+          233
+        ]
+      }
+    ],
+    "cutout_foreground_colors": {
+      "#07111B": 1061,
+      "#227865": 453
+    },
+    "background_exact_rgba": [
+      34,
+      120,
+      101,
+      255
+    ],
+    "icon_round_corners_transparent": true,
+    "specified_colors_present": true,
+    "favicon_32px_rendered": true,
+    "favicon_dark_coverage_pixels": 23,
+    "eight_requested_deliverables": [
+      "logo-mark.svg",
+      "wordmark.svg",
+      "favicon.svg",
+      "icon-1024.png",
+      "adaptive-foreground.png",
+      "adaptive-background.png",
+      "adaptive-monochrome.png",
+      "splash.png"
+    ]
+  }
+}
