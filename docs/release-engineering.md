@@ -1,5 +1,7 @@
 # 官网直装发布工程
 
+> **2026-10-31 服务器迁移：** 发版和上传以 `C:\Users\macxd\Documents\kimchiserver\SERVER-USAGE.md` 为准；下载地址格式为 `https://somnicard.nightricecake.com/download/<文件名>`。
+
 ## 身份与升级
 
 Android 原位更新必须保持包名和签名证书。当前 1.13 测试版使用 `com.somnicard.practice`，旧证书 SHA-256 为 `d12eb9b861ec51fd4ecef190bc003b2234b3be05babccb8f6df7019360d56c76`。
@@ -22,8 +24,8 @@ DPAPI 文件与 Windows 身份绑定，不等同于跨机器备份。发布密�
 
 运行完整 `tools/check.ps1`。新功能 Android 测试使用隔离 `com.somnicard.audit`，不得清空生产包。实际 Release 包需单独安装运行并核对签名、迁移、输入、文件选择、后台切换和恢复；模拟器不替代物理手机的 GPU、音量、震动与系统安装器测试。
 
-服务器只使用已有 `/downloads/somnicard/` 路由。仅允许上传审核过的页面、截图、版本元数据、APK 与校验文件，不上传源代码、用户记录、API Key 或签名文件。
+服务器上传、配置和回滚步骤以顶部服务器使用说明为准。`site/somnicard-downloads.conf` 中的旧路由、服务器路径及原 1Panel/OpenResty 配置参考已过时，不再作为部署依据。
 
-配置参考 `site/somnicard-downloads.conf`。修改前按服务器 AGENTS 备份到 `/var/backups`，不把 `.bak` 放进 1Panel 扫描的 proxy 目录；`nginx -t` 通过才 reload。保留旧版 APK。上传新文件后校验服务器 SHA，再核对 HTTPS 文件大小、全量 SHA、尾部 Range 206、HTML/CSS/图片 MIME。最后切换 index 与 release.json。
+仅上传审核过的页面、截图、版本元数据、APK 与校验文件，不上传源代码、用户记录、API Key 或签名文件。上传后核对文件大小、完整 SHA-256 与尾部 Range 下载；具体操作遵循服务器使用说明。
 
-回滚只恢复 Somnicard 配置 / 页面，保留版本化 APK；不重启 Gitea、隧道或其他项目，不更改 DNS。游戏没有自动下载或自更新后台程序，用户通过官网选择安装更新。
+游戏没有自动下载或自更新后台程序，用户通过官网选择安装更新。
