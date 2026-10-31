@@ -40,6 +40,10 @@ static func import_file(path: String, store, directory: String) -> Dictionary:
 		var previous_answer: Dictionary = merged.academy.get(key, {})
 		if previous_answer.is_empty(): merged.academy[key] = incoming_answer.duplicate()
 		else:
+			# Resolve review state before merging retry counts, including legacy inference.
+			var latest = incoming_answer if incoming_answer.date > previous_answer.date else previous_answer
+			previous_answer["missed"] = latest.get("missed", int(latest.tries) > 1)
+			previous_answer.date = latest.date
 			previous_answer.correct = previous_answer.correct or incoming_answer.correct
 			previous_answer.tries = maxi(int(previous_answer.tries), int(incoming_answer.tries))
 	for key in payload.profile.marks:

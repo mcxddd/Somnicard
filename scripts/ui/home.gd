@@ -122,6 +122,9 @@ func update_session(active: bool, saved: bool, detail: String) -> void:
 	status.text = "当前牌桌已保留，回到牌桌后继续。" if active else "虚拟筹码 · 记录保存在本机"
 
 func update_learning(data: Dictionary) -> void:
-	var p = preload("res://scripts/product/academy.gd").progress(data)
-	learning.text = "学习路线 · %d/8 课  ›\n%s" % [p.lessons, "基础路线已完成，随时温习" if p.lessons == 8 else "接着学：" + preload("res://scripts/product/academy.gd").LESSONS[p.next].title]
+	var academy = preload("res://scripts/product/academy.gd")
+	var p = academy.progress(data)
+	var pending = academy.missed(data)
+	var detail = "有 %d 道错题待复习" % pending.size() if not pending.is_empty() else "基础路线已完成，随时温习" if p.lessons == academy.LESSONS.size() else "接着学：" + academy.LESSONS[p.next].title
+	learning.text = "学习路线 · %d/%d 课  ›\n%s" % [p.lessons, academy.LESSONS.size(), detail]
 	learning_note.text = "今日主题练习 %d/3 · %s" % [mini(p.today, 3), "今日目标已完成，休息一下也很好。" if p.today >= 3 else "先作答，再看教练。按自己的节奏来。"]
