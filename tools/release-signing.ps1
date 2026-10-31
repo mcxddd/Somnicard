@@ -33,7 +33,7 @@ if ($Action -eq 'Create') {
     exit
 }
 if (-not (Test-Path -LiteralPath $keyFile) -or -not (Test-Path -LiteralPath $passwordFile)) { throw 'Dedicated signing material has not been created.' }
-$protectedPassword = Get-Content -LiteralPath $passwordFile -Raw | ConvertTo-SecureString
+$protectedPassword = (Get-Content -LiteralPath $passwordFile -Raw).Trim() | ConvertTo-SecureString
 $env:GODOT_ANDROID_KEYSTORE_RELEASE_PATH = $keyFile
 $env:GODOT_ANDROID_KEYSTORE_RELEASE_USER = 'somnicard'
 $env:GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD = [System.Net.NetworkCredential]::new('', $protectedPassword).Password
