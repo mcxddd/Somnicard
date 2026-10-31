@@ -33,7 +33,7 @@ def main():
         raise SystemExit('Signing keystore must exist outside the project')
     (ROOT / '.local').mkdir(exist_ok=True)
     target = Path(tempfile.mkdtemp(prefix='release-project-', dir=ROOT / '.local'))
-    for name in ['scripts', 'scenes', 'assets', 'native']:
+    for name in ['scripts', 'scenes', 'assets', 'data', 'native']:
         shutil.copytree(ROOT / name, target / name, dirs_exist_ok=True)
     (target / 'tools').mkdir(exist_ok=True)
     shutil.copyfile(ROOT / 'tools/prepare-android.py', target / 'tools/prepare-android.py')
