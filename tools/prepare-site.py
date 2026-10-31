@@ -23,7 +23,7 @@ def main():
     assert receipt['sha256'] == hashlib.sha256(apk.read_bytes()).hexdigest()
     assert receipt['bytes'] == apk.stat().st_size and receipt['debuggable'] is False
     independent = receipt['package'] == 'com.somnicard.game'
-    migration = ('正式版与早期测试版独立安装，旧版不会被删除。在旧版导出备份后，在正式版导入，可迁移牌局、收藏、备注、训练与课程进度。AI 服务、密钥和长期陪练需重新设置。'
+    migration = ('正式版与早期测试版独立安装，旧版不会被删除。在旧版导出备份后，在正式版导入，可迁移牌局、收藏、备注、训练与课程进度。设备设置需重新设置。'
         if independent else '本版可覆盖同签名的早期测试版，保留本机记录。更新前仍建议导出备份；不要卸载旧版。')
     meta = {**receipt, 'published': True, 'file': apk.name,
         'date': datetime.date.today().isoformat(), 'migration': migration, 'validation': args.validation}

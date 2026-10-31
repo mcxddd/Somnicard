@@ -1,40 +1,22 @@
 extends Node
-## Independent evaluation arena. No ordinary hand history, companion memory or human rating.
+## Independent evaluation arena. No ordinary hand history or human rating.
 signal changed
 const Table = preload("res://scripts/poker/table.gd")
 const History = preload("res://scripts/poker/history.gd")
 const Bot = preload("res://scripts/poker/local_bot.gd")
-const Config = preload("res://scripts/ai/config.gd")
-const Protocol = preload("res://scripts/ai/protocol.gd")
-const Client = preload("res://scripts/ai/client.gd")
 const VERSION = "arena-1.11-v1"
 var path = "user://ai/arena.json"
 var data: Dictionary = {}
-var service: Dictionary = {}
-var secret = ""
-var client
 var game
 var bots: Array = []
 var running = false
 var status = "尚未评测"
-var request_limit = 0
-var expected_stamp = ""
 var subject = 0
 var voluntary = false
 var raised = false
 var post_bets = 0
 var post_calls = 0
 var plan: Array = []
-
-func _ready() -> void:
-	client = Client.new()
-	add_child(client)
-	client.finished.connect(_received)
-	client.request_issued.connect(func():
-		if data.is_empty(): return
-		data.requests += 1
-		_save()
-		if not running: client.cancel())
 
 static func schedule(blocks: int, counts: Array = [2, 6, 9], depths: Array = [50, 100, 200]) -> Array:
 	var out: Array = []
@@ -44,36 +26,24 @@ static func schedule(blocks: int, counts: Array = [2, 6, 9], depths: Array = [50
 				for rotation in range(count): out.append({"block": block, "depth": depth, "count": count, "rotation": rotation, "group": "%d人/%dBB" % [count, depth]})
 	return out
 
-func start(params: Dictionary, model_service: Dictionary = {}, key: String = "", budget: int = 100) -> void:
+func start(params: Dictionary) -> void:
 	pause()
-	service = Config.service(model_service)
-	secret = key
-	var clean = {"online": params.get("online", false), "level": clampi(int(params.get("level", 1)), 0, 2), "style": clampi(int(params.get("style", 0)), 0, 2), "blocks": clampi(int(params.get("blocks", 16)), 2, 1024), "seed": int(params.get("seed", 11102601)), "counts": params.get("counts", [2, 6, 9]), "depths": params.get("depths", [50, 100, 200]), "model": service.model, "endpoint": service.endpoint}
+	var clean = {"level": clampi(int(params.get("level", 1)), 0, 2), "style": clampi(int(params.get("style", 0)), 0, 2), "blocks": clampi(int(params.get("blocks", 16)), 2, 1024), "seed": int(params.get("seed", 11102601)), "counts": params.get("counts", [2, 6, 9]), "depths": params.get("depths", [50, 100, 200])}
 	if not clean.counts is Array or not clean.depths is Array or not clean.counts.all(func(n): return n in [2, 6, 9]) or not clean.depths.all(func(n): return n in [50, 100, 200]):
 		status = "评测配置无效"; changed.emit(); return
-	data = {"schema": VERSION, "params": clean, "cursor": 0, "results": {}, "behavior": {}, "requests": 0, "errors": 0, "tokens": 0, "usage_reports": 0, "latencies": [], "decisions": 0, "valid_decisions": 0}
+	data = {"schema": VERSION, "params": clean, "cursor": 0, "results": {}, "behavior": {}, "latencies": [], "decisions": 0, "valid_decisions": 0}
 	plan = schedule(clean.blocks, clean.counts, clean.depths)
 	game = null
-	resume(model_service, key, budget)
+	resume()
 
-func resume(model_service: Dictionary = {}, key: String = "", budget: int = 100) -> void:
+func resume() -> void:
 	if data.is_empty(): return
-	if data.params.online:
-		if Config.service(model_service).model != data.params.model or Config.service(model_service).endpoint != data.params.endpoint:
-			status = "模型或地址已变化，请选择原档案继续，或开始新评测。"; changed.emit(); return
-		if Config.validate(model_service) != "": status = Config.validate(model_service); changed.emit(); return
-	service = Config.service(model_service)
-	secret = key
-	request_limit = int(data.requests) + clampi(budget, 1, 10000)
 	running = true
 	status = "评测进行中"
 	changed.emit()
 
 func pause() -> void:
 	running = false
-	expected_stamp = ""
-	if client != null: client.cancel()
-	secret = ""
 	if not data.is_empty():
 		status = "已暂停 · 可继续"
 		_save()
@@ -97,23 +67,23 @@ func load_saved() -> bool:
 	var saved: Dictionary = parser.data
 	if saved.get("schema") != VERSION or not saved.get("params") is Dictionary: return false
 	var p: Dictionary = saved.params
+	if p.get("online", false) != false: return false
 	if not History._integer(p.get("blocks"), 2, 1024) or not p.get("counts") is Array or not p.get("depths") is Array: return false
 	if not p.counts.all(func(n): return History._integer(n, 2, 9) and int(n) in [2, 6, 9]) or not p.depths.all(func(n): return History._integer(n, 50, 200) and int(n) in [50, 100, 200]): return false
 	if p.counts.is_empty() or p.counts.size() > 3 or p.depths.is_empty() or p.depths.size() > 3: return false
 	if p.counts.any(func(n): return p.counts.count(n) != 1) or p.depths.any(func(n): return p.depths.count(n) != 1): return false
 	p.counts = p.counts.map(func(n): return int(n))
 	p.depths = p.depths.map(func(n): return int(n))
-	if not p.get("online") is bool or not History._integer(p.get("level"), 0, 2) or not History._integer(p.get("style"), 0, 2) or not History._integer(p.get("seed"), 0, 1000000000): return false
-	if not p.get("model") is String or not p.get("endpoint") is String: return false
+	if not History._integer(p.get("level"), 0, 2) or not History._integer(p.get("style"), 0, 2) or not History._integer(p.get("seed"), 0, 1000000000): return false
 	if not saved.get("results") is Dictionary or not saved.get("behavior") is Dictionary or not saved.get("latencies") is Array: return false
 	plan = schedule(int(p.blocks), p.counts, p.depths)
 	if not History._integer(saved.get("cursor"), 0, plan.size()): return false
-	for field in ["requests", "errors", "tokens", "usage_reports", "decisions", "valid_decisions"]:
+	for field in ["decisions", "valid_decisions"]:
 		if not History._integer(saved.get(field), 0, 1000000000): return false
 		saved[field] = int(saved[field])
 	saved.cursor = int(saved.cursor)
 	if saved.latencies.size() > 2000000 or not saved.latencies.all(func(n): return History._integer(n, 0, 3600000)): return false
-	if saved.valid_decisions > saved.decisions or saved.errors > saved.decisions: return false
+	if saved.valid_decisions > saved.decisions: return false
 	var complete_hands = 0
 	for group in saved.results:
 		if not group is String or not saved.results[group] is Dictionary or not saved.behavior.get(group) is Dictionary: return false
@@ -136,6 +106,8 @@ func load_saved() -> bool:
 		if behavior.hands != group_hands or behavior.pfr > behavior.vpip or behavior.vpip > group_hands: return false
 		complete_hands += group_hands
 	if complete_hands != saved.cursor or saved.behavior.size() != saved.results.size(): return false
+	for field in ["online", "model", "endpoint"]: p.erase(field)
+	for field in ["requests", "errors", "tokens", "usage_reports"]: saved.erase(field)
 	data = saved
 	game = null
 	if data.has("hand"):
@@ -171,45 +143,20 @@ func _build_game() -> void:
 	voluntary = false; raised = false; post_bets = 0; post_calls = 0
 
 func _process(_delta: float) -> void:
-	if running and not client.busy: tick()
+	if running: tick()
 
 func tick() -> void:
-	if not running or client.busy: return
+	if not running: return
 	if data.cursor >= plan.size():
-		running = false; secret = ""; status = "本组评测已完成"; _save(); changed.emit(); return
+		running = false; status = "本组评测已完成"; _save(); changed.emit(); return
 	if game == null: _build_game()
 	if game.phase == "complete": _finish_hand(); return
 	if game.events.size() > 500: pause(); status = "行动数异常，评测暂停"; changed.emit(); return
-	if game.actor == subject and data.params.online:
-		if data.requests >= request_limit:
-			pause(); status = "达到本批请求上限 · 结果已保存，继续需主动点击"; changed.emit(); return
-		expected_stamp = str(data.cursor) + ":" + str(game.events.size())
-		var seat = Config.seats([])[0]
-		seat.name = "评测对手"
-		client.send(service, secret, Protocol.messages(game.view_for(subject), subject, seat, {"difficulty": int(data.params.level), "aggression": int(data.params.style)}, {}), mini(4, request_limit - int(data.requests)))
-	else:
-		var start_ms = Time.get_ticks_msec()
-		var move = bots[game.actor].choose(game.view_for(game.actor))
-		if game.actor == subject:
-			data.decisions += 1; data.valid_decisions += 1
-			data.latencies.append(Time.get_ticks_msec() - start_ms)
-		_apply(move)
-
-func _received(result: Dictionary) -> void:
-	if not running or game == null or expected_stamp != str(data.cursor) + ":" + str(game.events.size()): return
-	expected_stamp = ""
-	data.decisions += 1
-	data.latencies.append(int(result.get("elapsed_ms", 0)))
-	if result.get("usage", {}).has("total_tokens"):
-		data.tokens += int(result.usage.total_tokens); data.usage_reports += 1
-	var move = result if result.has("error") else Protocol.decision(result.content, game.legal_actions(subject))
-	if move.has("error"):
-		data.errors += 1
-		pause()
-		status = move.error + " · 未替换策略，继续会重试当前决定"
-		changed.emit()
-		return
-	data.valid_decisions += 1
+	var start_ms = Time.get_ticks_msec()
+	var move = bots[game.actor].choose(game.view_for(game.actor))
+	if game.actor == subject:
+		data.decisions += 1; data.valid_decisions += 1
+		data.latencies.append(Time.get_ticks_msec() - start_ms)
 	_apply(move)
 
 func _apply(move: Dictionary) -> void:
@@ -261,7 +208,7 @@ func report() -> Dictionary:
 		var critical = 12.706 if n == 2 else 4.303 if n < 4 else 3.182 if n < 8 else 2.365 if n < 16 else 2.131 if n < 32 else 2.04 if n < 64 else 2.0
 		var half = critical * sqrt(variance / maxi(1, n))
 		out.groups[group] = {"blocks": n, "bb100": mean, "interval_available": n >= 2, "low": mean - half, "high": mean + half, "behavior": data.behavior[group].duplicate(true)}
-	for key in ["requests", "errors", "tokens", "usage_reports", "decisions", "valid_decisions"]: out[key] = data[key]
+	for key in ["decisions", "valid_decisions"]: out[key] = data[key]
 	var times: Array = data.latencies.duplicate(); times.sort()
 	out["latency_p50_ms"] = times[int(times.size() * 0.5)] if not times.is_empty() else 0
 	out["latency_p95_ms"] = times[mini(times.size() - 1, int(times.size() * 0.95))] if not times.is_empty() else 0

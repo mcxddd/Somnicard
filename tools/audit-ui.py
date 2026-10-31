@@ -1,4 +1,4 @@
-"""Render the actual game in portrait for acceptance review, without user data or AI calls."""
+"""Render the actual game in portrait for acceptance review, without user data."""
 from pathlib import Path
 import os, shutil, subprocess, time
 import sys
@@ -11,12 +11,6 @@ cases=[
     ('academy-question','360x640',['--home','--academy','--academy-question']),
     ('academy-answer','390x844',['--home','--academy','--academy-question','--academy-answer']),
     ('product-help','360x640',['--home','--product-help']),
-    ('model-selector','360x640',['--model-selector']),
-    ('speech-six','360x640',['--players=6','--ai-demo']),
-    ('speech-nine','390x844',['--players=9','--ai-demo']),
-    ('request-inspector','360x640',['--players=6','--request-inspector']),
-    ('request-locked','360x640',['--players=6','--request-inspector','--request-detail']),
-    ('request-detail','390x844',['--players=6','--capture-state=complete','--request-inspector','--request-detail']),
     ('home','360x640',['--home']),
     ('six-seats','360x640',['--players=6']),
     ('nine-seats','360x640',['--players=9','--capture-state=flop']),
@@ -25,9 +19,7 @@ cases=[
     ('history','360x640',['--history-demo']),
     ('review','390x844',['--players=6','--review','--analysis','--detail']),
     ('ranges','360x640',['--players=6','--teach','--ranges','--range-selected']),
-    ('ai-coach','360x640',['--ai-coach','--coach-answer-demo']),
-    ('models','360x640',['--model-bank']),
-    ('opponents','390x844',['--players=9','--ai-demo','--ai-opponents']),
+    ('opponents','390x844',['--players=9','--settings','--opponents']),
     ('arena','360x640',['--arena','--arena-evidence']),
     ('training','390x844',['--players=9','--training','--lesson','--answer']),
     ('training-seven-flop','360x640',['--players=7','--training','--lesson','--lesson-flop','--all-wagers']),

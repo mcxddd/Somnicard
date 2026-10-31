@@ -24,8 +24,6 @@ Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/opp
 Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/range_touch_test.gd') '0 failures'
 Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/navigation_test.gd') '0 failures'
 Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/river_extension_test.gd') '0 failures'
-Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/ai_test.gd') '0 failures'
-Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/ai_behavior_test.gd') '0 failures'
 Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/version111_test.gd') '0 failures'
 Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/version112_test.gd') '0 failures'
 Invoke-GodotCheck @('--headless', '--path', $ProjectRoot, '--script', 'tests/version113_test.gd') '0 failures'

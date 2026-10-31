@@ -8,7 +8,6 @@ const Advisor = preload("res://scripts/poker/advisor.gd")
 const Avatar = preload("res://scripts/ui/coach_avatar.gd")
 const Card = preload("res://scripts/ui/card_view.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
-var ai_entry: Button
 var hole_cards: Array = []
 var avatar: Button
 var panel: PanelContainer
@@ -78,13 +77,9 @@ func _ready() -> void:
 	reason = UI.label("", 17, UI.MUTED)
 	reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(reason)
-	ai_entry = UI.button("AI 讲解 / 提问 ›", func(): details_requested.emit(), UI.GREEN, 44)
-	content.add_child(ai_entry)
-	ai_entry.hide()
 	panel.hide()
 
 func configure(values: Dictionary) -> void:
-	ai_entry.visible = values.get("ai_live_coach", false)
 	detailed = values.get("coach_detail", 0) == 1
 	left_side = values.get("coach_side", 1) == 0
 	automatic = values.get("coach_auto", false)

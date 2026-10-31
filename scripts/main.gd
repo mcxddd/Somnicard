@@ -1,6 +1,4 @@
 extends Control
-const TableAI = preload("res://scripts/ai/table_ai.gd")
-var ai = TableAI.new()
 const UserPrefs = preload("res://scripts/app/user_prefs.gd")
 var prefs = UserPrefs.new()
 const ModalStack = preload("res://scripts/app/modal_stack.gd")
@@ -9,11 +7,9 @@ const TableScreen = preload("res://scripts/ui/table_screen.gd")
 var screen = TableScreen.new()
 const TableStorage = preload("res://scripts/app/table_storage.gd")
 var storage = TableStorage.new()
-const AIConfig = preload("res://scripts/ai/config.gd")
-const AIServices = preload("res://scripts/ai/services.gd")
-const AIVault = preload("res://scripts/ai/vault.gd")
 const Table = preload("res://scripts/poker/table.gd")
 const Eval = preload("res://scripts/poker/evaluator.gd")
+const Names = preload("res://scripts/poker/player_names.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
 const LocalBot = preload("res://scripts/poker/local_bot.gd")
 const UI = preload("res://scripts/ui/style.gd")
@@ -57,6 +53,7 @@ var confirmation_action: Callable
 var coach
 var difficulty: int = 1
 var opponent_profiles: Array = Profiles.normalize([])
+var seat_names: Array = Names.normalize([])
 var opponent_changes: Array = []
 var last_table_count: int = 2
 var settings_status: String = ""
@@ -68,8 +65,6 @@ var support_center
 var feedback_player
 
 func _ready() -> void:
-	ai.host = self
-	add_child(ai)
 	add_child(modals)
 	add_child(screen)
 	screen.host = self
@@ -77,13 +72,12 @@ func _ready() -> void:
 	add_child(storage)
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version", "1.4.1")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
+	_clear_retired_data()
 	_update_scale()
 	prefs.show_sidebar = not mobile_layout
 	_load_preferences()
 	_build_ui()
 	modals.setup(self)
-	review.ai_coach.configure(_settings_values())
-	training.ai_coach.configure(_settings_values())
 	layout_ready = true
 	get_window().size_changed.connect(_resize_ui)
 	resized.connect(_resize_ui)
@@ -122,8 +116,6 @@ func _build_ui() -> void:
 	review.units_changed.connect(_review_units_changed)
 	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
-	review.ai_coach.configure(_settings_values())
-	training.ai_coach.configure(_settings_values())
 	review.teaching_changed.connect(_teaching_changed)
 	settings = Settings.new()
 	screen.safe_root.add_child(settings)
@@ -135,7 +127,6 @@ func _build_ui() -> void:
 	confirmation.accepted.connect(_accept_confirmation)
 	confirmation.cancelled.connect(_cancel_confirmation)
 	screen.build_sheets()
-	ai.build()
 	_build_product()
 
 func _build_product() -> void:
@@ -160,7 +151,7 @@ func _build_product() -> void:
 		if name == "academy": _open_product("academy")
 		else:
 			_open_settings()
-			settings._select_page(6 if name == "ai" else 5))
+			settings._select_page(5))
 	confirmation.z_index = 30
 
 func _apply_feedback_preferences() -> void:
@@ -169,7 +160,6 @@ func _apply_feedback_preferences() -> void:
 
 func _open_product(name: String) -> void:
 	bot_timer.stop()
-	ai.cancel()
 	screen.amount_input.apply()
 	coach.collapse()
 	modals.restore_background()
@@ -283,7 +273,6 @@ func _apply_new_table(count: int, depth: int) -> void:
 	_save_preferences()
 
 func _start_table(count: int) -> void:
-	ai.cancel()
 	bot_timer.stop()
 	modals.restore_background()
 	player_count = clampi(count, 2, 9)
@@ -293,7 +282,6 @@ func _start_table(count: int) -> void:
 	screen.lobby.hide()
 	home.hide()
 	storage.session_id = "%d-%d" % [int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
-	ai.trace.clear()
 	storage.session_stamp = ""
 	var stacks = []
 	stacks.resize(player_count)
@@ -306,8 +294,7 @@ func _start_table(count: int) -> void:
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
 		bots[id] = LocalBot.new(-1, p.aggression, p.difficulty)
 		game.seats[id]["style"] = bots[id].style_name()
-	ai.reset_memory()
-	ai.apply_names()
+	_apply_names()
 	storage.saved_hand = -1
 	decision_key = ""
 	_next_hand()
@@ -317,11 +304,6 @@ func _next_hand() -> void:
 	if game.phase == "complete" and (game.seats[0].stack == 0 or game.seats.filter(func(s): return s.stack > 0).size() < 2):
 		_request_confirmation("补码重开本桌？", "所有座位将恢复为 %d BB，重新开始 %d 人练习桌。已完成的历史牌局会保留。" % [starting_bb, player_count], "补码并重开", _apply_new_table.bind(player_count, starting_bb))
 		return
-	ai.cancel()
-	ai.dialogue.clear()
-	ai.spoken.clear()
-	ai.local_hand.clear()
-	ai.error = ""
 	var err = game.start_hand()
 	if not err.is_empty():
 		screen.turn_label.text = err
@@ -363,14 +345,11 @@ func _submit_raise() -> void:
 
 func _schedule_bot() -> void:
 	bot_timer.stop()
-	if not smoke_mode and game != null and game.actor > 0 and not paused and not modals.is_open() and not ai.client.busy and ai.error.is_empty():
+	if not smoke_mode and game != null and game.actor > 0 and not paused and not modals.is_open():
 		bot_timer.start(0.08 if game.seats[0].folded and screen.fast_fold.button_pressed else SPEEDS[prefs.speed_index])
 
 func _bot_step() -> void:
 	if game == null or game.actor <= 0 or paused or modals.is_open(): return
-	if ai.seats[game.actor - 1].enabled and not ai.local_hand.has(game.actor):
-		ai.request()
-		return
 	var decision = bots.get(game.actor, bot).choose(game.view_for(game.actor))
 	var err = game.act(game.actor, decision.action, decision.get("amount", 0))
 	if not err.is_empty():
@@ -382,7 +361,6 @@ func _bot_step() -> void:
 func _toggle_pause() -> void:
 	if modals.is_open(): return
 	paused = not paused
-	if paused: ai.cancel()
 	bot_timer.stop()
 	_refresh()
 	_schedule_bot()
@@ -466,7 +444,6 @@ func _sync_amount() -> void:
 
 func _refresh() -> void:
 	if game == null: return
-	if paused or modals.is_open(): ai.cancel()
 	var view = game.view_for(0)
 	var done = view.phase == "complete"
 	if feedback_player != null: feedback_player.sync(game, storage.session_id, paused or modals.is_open() or smoke_mode)
@@ -474,7 +451,6 @@ func _refresh() -> void:
 	screen.header.tooltip_text = "ID " + History.hand_id(game.record_state())
 	screen.pause_button.text = "继续" if paused else "暂停"
 	screen.table_view.update_table(view, prefs.use_bb, paused or modals.is_open())
-	screen.table_view.sync_speech(ai.dialogue)
 	if done:
 		storage.save_record()
 		screen.turn_label.text = "你 · " + screen.table_view.Outcome.net_text(view, 0, prefs.use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
@@ -482,8 +458,6 @@ func _refresh() -> void:
 	elif paused or modals.is_open(): screen.turn_label.text = "牌局已暂停"
 	elif view.seats[0].folded: screen.turn_label.text = "你已弃牌 · 正在观看其余玩家" + ("（快进）" if screen.fast_fold.button_pressed else "")
 	else: screen.turn_label.text = "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
-	ai.update_bar()
-	if ai.client != null and ai.client.busy: screen.turn_label.text = game.seats[game.actor].name + " · 在线思考中…"
 	_update_controls(view)
 	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not modals.is_open())
 	_update_explanation(view)
@@ -597,14 +571,7 @@ func _load_preferences() -> void:
 	starting_bb = saved.depth
 	difficulty = saved.difficulty
 	opponent_profiles = saved.opponents
-	ai.profiles = saved.ai_profiles
-	ai.keys = AIVault.load_keys(ai.profiles)
-	ai.key = str(ai.keys.get("default", ""))
-	ai.live_coach = saved.ai_live_coach
-	ai.review_coach = saved.ai_review_coach
-	ai.coach_service_id = saved.coach_service_id
-	ai.service = saved.ai_service
-	ai.seats = saved.ai_seats
+	seat_names = saved.seat_names
 
 func _save_preferences() -> void:
 	if smoke_mode or "--capture-test" in OS.get_cmdline_user_args(): return
@@ -676,7 +643,6 @@ func _review_current_hand() -> void:
 	if game == null or game.phase != "complete": return
 	var current_record = game.completed_record()
 	current_record["seat_names"] = game.seats.map(func(s): return s.name)
-	current_record["ai_dialogue"] = ai.dialogue.duplicate(true)
 	var rebuilt = History.replay(current_record)
 	if rebuilt.has("error"):
 		screen.turn_label.text = rebuilt.error
@@ -709,6 +675,7 @@ func _resume_session() -> void:
 	bot_timer.stop()
 	modals.restore_background()
 	game = rebuilt.game
+	for id in range(1, game.seats.size()): seat_names[id - 1] = game.seats[id].name
 	if rebuilt.record.get("opponent_settings") is Dictionary:
 		opponent_profiles = rebuilt.record.opponent_settings.profiles
 		difficulty = rebuilt.record.opponent_settings.difficulty
@@ -731,8 +698,7 @@ func _resume_session() -> void:
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
 		bots[id] = LocalBot.new(-1, p.aggression, p.difficulty)
 		game.seats[id]["style"] = bots[id].style_name()
-	ai.restore_state(rebuilt.record.get("ai_state", {}))
-	ai.apply_names()
+	_apply_names()
 	paused = true
 	screen.lobby.hide()
 	home.hide()
@@ -742,12 +708,7 @@ func _resume_session() -> void:
 func _notification(what: int) -> void:
 	if not is_node_ready(): return
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		ai.cancel()
-		if review != null: review.ai_coach.stop()
-		if training != null: training.ai_coach.stop()
 		if settings != null:
-			settings.ai_page.stop(false)
-			settings._cancel_names()
 			settings.arena_page.arena.pause()
 		if training != null and training.visible and not smoke_mode: training.suspend()
 		if review != null and review.visible: review._stop_play()
@@ -765,10 +726,7 @@ func _notification(what: int) -> void:
 
 func _settings_values() -> Dictionary:
 	var values = prefs.values()
-	values.merge({"difficulty": difficulty, "opponents": opponent_profiles.duplicate(true),
-		"ai_service": ai.service.duplicate(true), "ai_seats": ai.seats.duplicate(true), "ai_key": ai.key,
-		"ai_profiles": AIServices.normalize(ai.profiles, ai.service), "ai_keys": ai.keys.duplicate(), "coach_service_id": ai.coach_service_id,
-		"ai_live_coach": ai.live_coach, "ai_review_coach": ai.review_coach})
+	values.merge({"difficulty": difficulty, "opponents": opponent_profiles.duplicate(true), "seat_names": seat_names.duplicate()})
 	return values
 
 func _open_settings() -> void:
@@ -776,26 +734,25 @@ func _open_settings() -> void:
 	screen.amount_input.apply()
 	modals.restore_background()
 	settings.player_count = selected_count if screen.lobby.visible or game == null else player_count
-	settings.ai_library = ai.store.companions
 	settings.open(_settings_values())
 	settings.context.text = "当前牌桌暂停中 · 保存后返回原来的位置" if game != null else "应用于本机的所有练习桌"
 	modals.sync_focus()
 	_refresh()
 
 func _apply_settings(values: Dictionary) -> void:
-	if not ai.apply_settings(values): return
 	# Commit typed text in its original unit, then update presentation atomically.
 	screen.amount_input.apply()
 	prefs.assign(values)
 	_apply_feedback_preferences()
 	difficulty = values.get("difficulty", 1)
 	opponent_profiles = Profiles.normalize(values.get("opponents", opponent_profiles))
+	seat_names = Names.normalize(values.get("seat_names", seat_names))
 	for id in bots:
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
 		bots[id].difficulty = p.difficulty
 		bots[id].style = p.aggression
 		game.seats[id]["style"] = bots[id].style_name()
-	ai.apply_names()
+	_apply_names()
 	if game != null:
 		var current_profiles = Profiles.snapshot(opponent_profiles, player_count, difficulty)
 		if game.phase != "complete" and (opponent_changes.is_empty() or opponent_changes.back().get("profiles") != current_profiles):
@@ -806,8 +763,6 @@ func _apply_settings(values: Dictionary) -> void:
 		storage.save_session()
 	coach.configure(_settings_values())
 	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
-	review.ai_coach.configure(_settings_values())
-	training.ai_coach.configure(_settings_values())
 	screen.unit_picker.select(1 if prefs.use_bb else 0)
 	screen.speed_picker.select(prefs.speed_index)
 	screen.fast_fold.button_pressed = prefs.fast_fold_enabled
@@ -816,12 +771,6 @@ func _apply_settings(values: Dictionary) -> void:
 	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	review.set_units(prefs.use_bb)
 	_save_preferences()
-	settings.ai_page.stop()
-	settings.ai_page.key.text = ""
-	settings.initial.erase("ai_key")
-	settings.initial.erase("ai_keys")
-	settings.ai_page.secrets.clear()
-	settings.arena_page.secrets.clear()
 	settings.arena_page.arena.pause()
 	settings.hide()
 	_close_settings()
@@ -968,7 +917,6 @@ func _open_info(heading: String, message: String, opponent_id: int = -1) -> void
 	bot_timer.stop()
 	screen.info_text.text = message
 	screen.info_text.show()
-	screen.ai_inspector.hide()
 	info_opponent_id = opponent_id
 	screen.info_opponent_button.visible = game != null and opponent_id > 0 and opponent_id < game.seats.size()
 	screen.info_sheet.open(heading)
@@ -978,18 +926,9 @@ func _open_info(heading: String, message: String, opponent_id: int = -1) -> void
 func _seat_details(id: int) -> void:
 	if game == null or modals.is_open() or id < 0 or id >= game.seats.size(): return
 	var seat = game.view_for(0).seats[id]
-	var model_note = ""
-	if id > 0 and ai.seats[id - 1].enabled:
-		var service = ai.seat_service(id)
-		model_note = "\nAI 模型：" + service.model
-	_open_info(seat.name + " · 座位详情", screen.table_view.seat_nodes[id].panel.tooltip_text + model_note + "\n\n" + screen.table_view.seat_nodes[id].status.text + "\n底牌：" + (_cards_text(seat.hole) if not seat.hole.is_empty() else "未公开"), id)
-	if id > 0 and (ai.seats[id - 1].enabled or not ai.trace.for_seat(id).is_empty()):
-		screen.ai_inspector.open(ai.trace.for_seat(id), ai.dialogue, game.hand_number, game.phase == "complete", id)
-		screen.info_sheet.preferred_height = 880
-		screen.info_sheet._layout()
-	else:
-		screen.info_sheet.preferred_height = 610
-		screen.info_sheet._layout()
+	_open_info(seat.name + " · 座位详情", screen.table_view.seat_nodes[id].panel.tooltip_text + "\n\n" + screen.table_view.seat_nodes[id].status.text + "\n底牌：" + (_cards_text(seat.hole) if not seat.hole.is_empty() else "未公开"), id)
+	screen.info_sheet.preferred_height = 610
+	screen.info_sheet._layout()
 
 func _close_sheet() -> void:
 	if game != null and game.actor == 0: screen.amount_input.apply()
@@ -1058,3 +997,14 @@ func _open_opponents(seat: int = 1) -> void:
 	_open_settings()
 	settings._select_page(4)
 	settings.opponent_editor.select(seat)
+
+func _apply_names() -> void:
+	if game == null: return
+	for id in range(1, game.seats.size()):
+		game.seats[id].name = seat_names[id - 1]
+		game.seats[id]["style"] = bots[id].style_name()
+
+func _clear_retired_data() -> void:
+	if smoke_mode or "--capture-test" in OS.get_cmdline_user_args(): return
+	for path in ["user://ai/companions.json", "user://ai/credentials.bin"]:
+		if FileAccess.file_exists(path): DirAccess.remove_absolute(path)

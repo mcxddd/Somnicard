@@ -2,10 +2,9 @@ extends RefCounted
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
 const History = preload("res://scripts/poker/history.gd")
 
-static func save(game, session_id: String, depth: int, saved_hand: int, directory: String = "user://", opponents: Array = [], changes: Array = [], configured: Array = [], default_level: int = 1, ai_state: Dictionary = {}) -> Error:
+static func save(game, session_id: String, depth: int, saved_hand: int, directory: String = "user://", opponents: Array = [], changes: Array = [], configured: Array = [], default_level: int = 1) -> Error:
 	var record = game.record_state()
 	record["seat_names"] = game.seats.map(func(s): return s.name)
-	record["ai_state"] = ai_state.duplicate(true)
 	if not configured.is_empty(): record["opponent_settings"] = {"profiles": Profiles.normalize(configured), "difficulty": clampi(default_level, 0, 2)}
 	record["opponents"] = opponents.duplicate(true)
 	record["opponent_changes"] = changes.duplicate(true)

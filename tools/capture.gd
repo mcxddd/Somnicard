@@ -76,37 +76,6 @@ func _capture() -> void:
 				editor.get_child(editor.get_child_count() - 1).show()
 				for frame in range(8): await process_frame
 				instance.settings.scroll.reset_scroll(9999)
-	if "--ai-demo" in OS.get_cmdline_user_args():
-		for i in range(8): instance.ai.seats[i].enabled = true
-		instance.ai.apply_names()
-		instance.ai.dialogue = [{"seat": 1, "name": "小夏", "text": "这注我跟了，别急着收筹码。", "event": instance.game.events.size()}]
-		instance._refresh()
-		if "--ai-settings" in OS.get_cmdline_user_args():
-			instance._open_settings()
-			instance.settings._select_page(6)
-		if "--ai-opponents" in OS.get_cmdline_user_args():
-			instance._open_settings()
-			instance.settings._select_page(4)
-	if "--ai-presets" in OS.get_cmdline_user_args():
-		instance._open_settings()
-		instance.settings._select_page(6)
-		instance.settings.ai_page._preset(1)
-	if "--ai-catalog" in OS.get_cmdline_user_args():
-		instance._open_settings()
-		instance.settings._select_page(6)
-		instance.settings.ai_page._preset(5)
-		var catalog = preload("res://scripts/ai/catalog.gd").parse(JSON.parse_string(FileAccess.get_file_as_string("res://.local/commandcode-models.json")))
-		instance.settings.ai_page._models_received(catalog)
-		print("LIVE_CATALOG: ", catalog.models.size(), " selectable; ", catalog.skipped, " excluded")
-	if "--ai-name-demo" in OS.get_cmdline_user_args():
-		instance.ai.seats[0].enabled = true
-		instance._open_settings()
-		instance.settings._select_page(4)
-		var editor = instance.settings.opponent_editor
-		editor.offer_names(["深寻澜", "深海舟", "寻光者"], 1)
-		editor.name_status.text = "选择一个昵称，或继续手动填写。保存设置后生效。"
-		for frame in range(8): await process_frame
-		instance.settings.scroll.reset_scroll(roundi(editor.name_edit.global_position.y - instance.settings.scroll.get_child(0).global_position.y - 30))
 	if "--gto-facing" in OS.get_cmdline_user_args():
 		instance._start_table(2)
 		while instance.game.phase != "river":
@@ -219,53 +188,11 @@ func _capture() -> void:
 		for frame in range(8): await process_frame
 	if "--training-stats" in OS.get_cmdline_user_args(): instance.training._select_hub_page(2)
 	if "--data-settings" in OS.get_cmdline_user_args(): instance.settings._select_page(5)
-	if "--ai-options" in OS.get_cmdline_user_args():
-		var ai_page = instance.settings.ai_page
-		instance.settings.scroll.reset_scroll(roundi(ai_page.model_picker.global_position.y - instance.settings.scroll.get_child(0).global_position.y - 36))
-		for frame in range(8): await process_frame
-	if "--ai-coach" in OS.get_cmdline_user_args():
-		instance.ai.live_coach = true
-		instance.review.ai_coach.configure(instance._settings_values())
-		instance._open_advice()
-		while instance.review.job != null: await process_frame
-		if "--coach-answer-demo" in OS.get_cmdline_user_args() and "--capture-test" in OS.get_cmdline_user_args():
-			var widget = instance.review.ai_coach
-			widget.current_question = "为什么推荐这个操作？"
-			widget.request_fingerprint = widget.fingerprint
-			widget._received({"content": JSON.stringify({"action": widget.data.local_analysis.action, "reason": "对手当前的下注价格需要结合你的手牌和公开行动来判断。跟注保留了对手较弱的继续范围，贸然加注则可能只留下更强的牌。", "alternative": "如果后续出现明显更强的进攻，先重新评估跟注价格；不要因为已经投入筹码就一直跟到底。", "next": "观察对手后续下注的大小和公共牌变化，再重新判断。"})})
-			widget.status.text = "测试用演示回复 · 未调用模型"
-		for frame in range(8): await process_frame
-		instance.review.analysis_scroll.reset_scroll(roundi(instance.review.ai_coach.global_position.y - instance.review.analysis_scroll.get_child(0).global_position.y - 6))
-		for frame in range(8): await process_frame
 	if "--arena" in OS.get_cmdline_user_args():
 		instance._open_settings()
-		instance.settings._select_page(7)
+		instance.settings._select_page(6)
 		if "--arena-evidence" in OS.get_cmdline_user_args(): instance.settings.arena_page.published.show()
 		for frame in range(8): await process_frame
-	if "--model-bank" in OS.get_cmdline_user_args():
-		instance._open_settings()
-		instance.settings._select_page(6)
-		instance.settings.ai_page._preset(5)
-		for frame in range(8): await process_frame
-	if "--model-selector" in OS.get_cmdline_user_args():
-		instance._open_settings()
-		instance.settings._select_page(6)
-		var page = instance.settings.ai_page
-		page.models = []
-		for i in range(90): page.models.append({"id": "provider/model-%03d-extended-context" % i, "name": "对话模型 %03d" % i, "api": "chat"})
-		page._render_models()
-		page._open_models()
-		for frame in range(12): await process_frame
-	if "--request-inspector" in OS.get_cmdline_user_args():
-		var entry = {"id": "capture", "context": {"seat": 1, "hand": instance.game.hand_number, "phase": "flop", "event": 10, "purpose": "decision"}, "model": "demonstration-model", "url": "https://example.invalid/v1/chat/completions", "attempt": 2, "limit": 16384, "state": "complete", "finish_reason": "stop", "elapsed_ms": 1680, "http_status": 200, "usage": {"input_tokens": 1260, "output_tokens": 156, "reasoning_tokens": 128}, "request": {"model": "demonstration-model", "messages": [{"role": "user", "content": "演示请求记录，非真实服务调用"}]}, "response": '{"action":"call","amount":0}'}
-		instance.ai.trace.append(entry)
-		instance._seat_details(1)
-		if "--request-detail" in OS.get_cmdline_user_args(): instance.screen.ai_inspector._detail(entry)
-		for frame in range(12): await process_frame
-	if "--layout-metrics" in OS.get_cmdline_user_args():
-		var ai_page = instance.settings.ai_page
-		for pair in [["scroll", instance.settings.scroll], ["page", ai_page], ["hint", ai_page.provider_hint], ["models", ai_page.model_picker]]:
-			print("LAYOUT ", pair[0], " ", pair[1].get_global_rect(), " min=", pair[1].get_combined_minimum_size())
 	if target == "complete": await create_timer(0.8).timeout
 	await RenderingServer.frame_post_draw
 	DirAccess.make_dir_recursive_absolute("res://.local")
@@ -277,7 +204,7 @@ func _capture() -> void:
 	if "--settings" in OS.get_cmdline_user_args(): file_name = "settings"
 	if "--confirm" in OS.get_cmdline_user_args(): file_name = "confirm"
 	if "--midnight" in OS.get_cmdline_user_args(): file_name += "-midnight"
-	for flag in ["ai-coach", "arena", "model-bank", "gto-facing", "gto-rows", "ai-presets", "ai-catalog", "ai-options", "ai-name-demo", "ai-demo", "ai-settings", "ai-opponents", "home", "home-active", "settings-index", "data-settings", "training-stats", "bet", "menu", "seat", "seat-repeat", "analysis", "detail", "detail-body", "chips", "teach", "ranges", "range-selected", "teaching-settings", "opponents", "opponents-demo", "ratings", "coach", "training", "lesson", "answer", "branch"]:
+	for flag in ["arena", "gto-facing", "gto-rows", "home", "home-active", "settings-index", "data-settings", "training-stats", "bet", "menu", "seat", "seat-repeat", "analysis", "detail", "detail-body", "chips", "teach", "ranges", "range-selected", "teaching-settings", "opponents", "opponents-demo", "ratings", "coach", "training", "lesson", "answer", "branch"]:
 		if "--" + flag in OS.get_cmdline_user_args(): file_name += "-" + flag
 	if instance.portrait: file_name += "-portrait"
 	var error := root.get_texture().get_image().save_png("res://.local/" + file_name + "-preview.png")

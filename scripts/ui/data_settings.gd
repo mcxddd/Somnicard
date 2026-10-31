@@ -15,7 +15,7 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 14)
 	var note = UI.label("把牌局和学习记录带走", 24, UI.GOLD)
 	add_child(note)
-	var description = UI.label("备份包含完整牌局（含隐藏底牌）、收藏、备注、课程进度、训练记录和重打分支。\n\n导入会合并，已有同名牌局优先保留。设备设置、AI 服务与密钥、陪练配置和当前普通牌桌进度不包含在这个备份中。", 19, UI.MUTED)
+	var description = UI.label("备份包含完整牌局（含隐藏底牌）、收藏、备注、课程进度、训练记录和重打分支。\n\n导入会合并，已有同名牌局优先保留。设备设置和当前普通牌桌进度不包含在这个备份中。", 19, UI.MUTED)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(description)
 	export_button = UI.button("导出备份文件", open_file.bind(true), UI.GREEN, 58)

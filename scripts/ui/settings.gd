@@ -6,18 +6,8 @@ const UI = preload("res://scripts/ui/style.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const OpponentEditor = preload("res://scripts/ui/opponent_editor.gd")
 const DataPage = preload("res://scripts/ui/data_settings.gd")
-const NameGenerator = preload("res://scripts/ai/names.gd")
-const Services = preload("res://scripts/ai/services.gd")
-var coach_service_picker: OptionButton
-var coach_service_id = "default"
-var name_client
-var name_stamp: String = ""
-var name_seat: int = -1
-const AIPage = preload("res://scripts/ui/ai_settings.gd")
-var ai_page
 var arena_page
-var ai_library: Dictionary = {}
-const CATEGORIES = ["对局节奏", "外观与显示", "操作保护", "教练与教学", "电脑对手", "数据与备份", "AI 服务与陪练", "牌力评测", "声音与性能"]
+const CATEGORIES = ["对局节奏", "外观与显示", "操作保护", "教练与教学", "电脑对手", "数据与备份", "牌力评测", "声音与性能"]
 var index_page: VBoxContainer
 var heading: Label
 var context: Label
@@ -70,7 +60,7 @@ func _ready() -> void:
 	index_page = VBoxContainer.new()
 	index_page.add_theme_constant_override("separation", 12)
 	body.add_child(index_page)
-	var descriptions = ["行动间隔、弃牌快进", "BB / 筹码、牌桌配色、花色与动画", "全押确认与返回规则", "悬浮教练、提示时机、复盘教学", "默认难度、每位对手、激进程度", "导入和导出牌局与学习记录", "连接模型、管理长期陪练", "独立测试本地电脑与在线模型", "提示音、震动与省电模式"]
+	var descriptions = ["行动间隔、弃牌快进", "BB / 筹码、牌桌配色、花色与动画", "全押确认与返回规则", "悬浮教练、提示时机、复盘教学", "默认难度、每位对手、激进程度", "导入和导出牌局与学习记录", "独立测试本地电脑", "提示音、震动与省电模式"]
 	for i in range(CATEGORIES.size()):
 		var tab = UI.button(CATEGORIES[i] + "  ›\n" + descriptions[i], func():
 			if scroll.can_activate(): _select_page(i), Color("1b3039"), 82)
@@ -95,9 +85,9 @@ func _ready() -> void:
 	_add_option(1, "bb", "筹码显示单位", "1 BB = 10 筹码；输入与复盘同步切换。", ["筹码金额", "大盲 BB"])
 	_add_toggle(1, "four_color", "四色花色", "黑桃黑、红桃红、方块蓝、梅花绿。")
 	_add_toggle(1, "motion", "牌局动效", "发牌与输赢提示动画；关闭后立即显示结果。")
-	_add_option(8, "sound", "牌桌提示音", "发牌、筹码、轮到你和结算使用短提示音；不播放背景音乐。", ["静音", "轻声", "标准"])
-	_add_toggle(8, "haptics", "轮到我时轻震", "仅支持震动的手机生效；后台和暂停时不提示。")
-	_add_option(8, "performance", "画面帧率", "省电模式限制为 30 帧；标准模式最多 60 帧。不会改变规则或电脑难度。", ["标准 · 60 帧", "省电 · 30 帧"])
+	_add_option(7, "sound", "牌桌提示音", "发牌、筹码、轮到你和结算使用短提示音；不播放背景音乐。", ["静音", "轻声", "标准"])
+	_add_toggle(7, "haptics", "轮到我时轻震", "仅支持震动的手机生效；后台和暂停时不提示。")
+	_add_option(7, "performance", "画面帧率", "省电模式限制为 30 帧；标准模式最多 60 帧。不会改变规则或电脑难度。", ["标准 · 60 帧", "省电 · 30 帧"])
 	_add_toggle(2, "confirm_all_in", "全押前确认", "全押按钮、跟注全押与加注到全部筹码都适用。")
 	var note = UI.label("重开牌桌始终需要确认。\n取消换桌不会改变筹码和初始人数；历史记录持续保留。\n\nEsc / 安卓返回键：返回上一层。\n切到后台：暂停牌局，回来后手动继续。", 19, UI.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -108,17 +98,7 @@ func _ready() -> void:
 	_add_option(3, "coach_detail", "提示内容", "简洁模式先给操作与关键理由，详细模式显示完整原因。", ["简洁", "详细"])
 	_add_option(3, "coach_side", "悬浮头像位置", "放在牌桌左下或右下，避开你的手牌和下注按钮。", ["左侧", "右侧"])
 	_add_toggle(3, "review_teaching", "复盘中的教学", "在自己的历史决策点显示分析入口。关闭后仍可回放、查看行动和结算。")
-	_add_toggle(3, "ai_live_coach", "对局 AI 讲解与问答", "本地建议立即显示，主动点击讲解或提问才请求模型。")
-	_add_toggle(3, "ai_review_coach", "复盘 AI 讲解与问答", "只根据回放到的步骤解释，不读取未来底牌。")
-	pages[3].add_child(UI.label("教练使用的模型档案", 18, UI.MUTED))
-	coach_service_picker = OptionButton.new()
-	coach_service_picker.fit_to_longest_item = false
-	coach_service_picker.custom_minimum_size.y = 52
-	coach_service_picker.item_selected.connect(func(index):
-		var bank = ai_page.profile_values()
-		if index < bank.size(): coach_service_id = bank[index].id; _changed())
-	pages[3].add_child(coach_service_picker)
-	var scope_note = UI.label("两个开关独立保存。教学页也可以即时开关。\n\n数值分析在本地完成，AI 讲解可选。2–9 人支持范围推断；CFR 仅覆盖限定的双人河牌抽象，不代表完整 GTO。\n\n先思考自己的选择，再揭示讲解，有助于区分决策质量与最后输赢。", 18, UI.MUTED)
+	var scope_note = UI.label("两个开关独立保存。教学页也可以即时开关。\n\n数值分析在本地完成。2–9 人支持范围推断；CFR 仅覆盖限定的双人河牌抽象，不代表完整 GTO。\n\n先思考自己的选择，再揭示讲解，有助于区分决策质量与最后输赢。", 18, UI.MUTED)
 	scope_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pages[3].add_child(scope_note)
 	opponent_editor = OpponentEditor.new()
@@ -127,21 +107,8 @@ func _ready() -> void:
 	controls.difficulty.item_selected.connect(func(index): opponent_editor.default_level = index; opponent_editor._render())
 	data_page = DataPage.new()
 	pages[5].add_child(data_page)
-	ai_page = AIPage.new()
-	pages[6].add_child(ai_page)
-	ai_page.changed.connect(_changed)
-	ai_page.picker_opened.connect(func(opened):
-		scroll.reset_scroll(scroll.scroll_vertical)
-		scroll.set_process_input(not opened))
 	arena_page = preload("res://scripts/ui/arena_settings.gd").new()
-	pages[7].add_child(arena_page)
-	name_client = preload("res://scripts/ai/client.gd").new()
-	add_child(name_client)
-	name_client.finished.connect(_names_received)
-	opponent_editor.name_requested.connect(_generate_names)
-	opponent_editor.selection_changed.connect(_cancel_names)
-	visibility_changed.connect(func():
-		if not visible: _cancel_names())
+	pages[6].add_child(arena_page)
 	summary = UI.label("", 16, UI.GOLD)
 	column.add_child(summary)
 	var footer = HBoxContainer.new()
@@ -202,9 +169,7 @@ func _style_toggle(toggle: Button) -> void:
 	toggle.add_theme_stylebox_override("pressed", UI.surface(UI.GREEN.darkened(0.2), 8, 12))
 
 func _select_page(index: int) -> void:
-	if index != 4: _cancel_names()
-	if index != 6 and ai_page != null: ai_page.stop()
-	if index != 7 and arena_page != null: arena_page.arena.pause()
+	if index != 6 and arena_page != null: arena_page.arena.pause()
 	current_page = index
 	if scroll != null: scroll.reset_scroll()
 	index_page.visible = index < 0
@@ -214,9 +179,7 @@ func _select_page(index: int) -> void:
 	if is_visible_in_tree(): back_button.grab_focus()
 
 func back_action() -> void:
-	if ai_page.model_sheet.visible:
-		ai_page.model_sheet.close()
-	elif arena_page.export_dialog.visible:
+	if arena_page.export_dialog.visible:
 		arena_page.export_dialog.hide()
 	elif data_page.dialog.visible:
 		data_page.dialog.hide()
@@ -234,12 +197,7 @@ func open(current: Dictionary) -> void:
 	cancel_button.grab_focus()
 
 func _fill(data: Dictionary) -> void:
-	_cancel_names()
-	opponent_editor.clear_names()
-	ai_page.fill_bank(data.get("ai_profiles", []), data.get("ai_keys", {}), data.get("ai_service", {}), str(data.get("ai_key", "")))
-	coach_service_id = str(data.get("coach_service_id", "default"))
-	ai_page.fill_library(ai_library)
-	opponent_editor.fill_ai(data.get("ai_seats", []), ai_library)
+	opponent_editor.seat_names = preload("res://scripts/poker/player_names.gd").normalize(data.get("seat_names", []))
 	opponent_editor.fill(data.get("opponents", []), player_count, int(data.get("difficulty", 1)))
 	for key in controls:
 		var control = controls[key]
@@ -254,42 +212,18 @@ func values() -> Dictionary:
 		var control = controls[key]
 		out[key] = control.selected if control is OptionButton else control.button_pressed
 	out["opponents"] = opponent_editor.profiles.duplicate(true)
-	out["ai_seats"] = opponent_editor.ai_seats.duplicate(true)
-	out["ai_profiles"] = ai_page.profile_values()
-	out["ai_keys"] = ai_page.key_values()
-	out["ai_service"] = Services.resolve(out.ai_profiles, "default")
-	out["ai_key"] = out.ai_keys.get("default", "")
-	out["coach_service_id"] = coach_service_id
+	out["seat_names"] = opponent_editor.seat_names.duplicate()
 	out.bb = bool(out.bb)
 	return out
 
 func _changed() -> void:
 	if apply_button == null: return
-	if name_client != null and name_client.busy and name_stamp != _name_fingerprint(): _cancel_names()
-	var bank = ai_page.profile_values()
-	opponent_editor.set_services(bank)
-	arena_page.configure(bank, ai_page.key_values())
-	coach_service_picker.clear()
-	var selected = -1
-	for p in bank:
-		coach_service_picker.add_item(p.label + " · " + p.service.model)
-		if p.id == coach_service_id: selected = coach_service_picker.item_count - 1
-	if selected < 0:
-		coach_service_picker.add_item("请选择教练模型")
-		selected = coach_service_picker.item_count - 1
-	coach_service_picker.select(selected)
 	var dirty = values() != initial
 	summary.text = "有未保存的修改 · 取消会放弃本次修改" if dirty else "没有待保存的修改"
 	apply_button.disabled = not dirty
 	cancel_button.text = "取消修改" if dirty else "返回"
 
 func cancel() -> void:
-	ai_page.stop()
-	ai_page.key.text = ""
-	initial.erase("ai_key")
-	initial.erase("ai_keys")
-	ai_page.secrets.clear()
-	arena_page.secrets.clear()
 	arena_page.arena.pause()
 	hide()
 	cancelled.emit()
@@ -326,49 +260,3 @@ func _process(_delta: float) -> void:
 		if changed_height or focused != keyboard_focus: _reveal_editor.call_deferred(focused)
 		keyboard_focus = focused
 	else: keyboard_focus = null
-
-func _name_fingerprint() -> String:
-	return JSON.stringify([ai_page.profile_values(), ai_page.key_values().hash(), opponent_editor.selected, opponent_editor.ai_seats])
-
-func _cancel_names() -> void:
-	var was_busy = name_client != null and name_client.busy
-	if name_client != null: name_client.cancel()
-	name_stamp = ""
-	if opponent_editor != null and opponent_editor.generate_name != null: opponent_editor.generate_name.text = "AI 生成昵称 · 一次请求"
-	if was_busy and opponent_editor != null: opponent_editor.name_status.text = "已取消生成，已填写的名字会保留。"
-
-func _generate_names(seat: int) -> void:
-	if name_client.busy:
-		_cancel_names()
-		opponent_editor.name_status.text = "已取消生成，可以继续手动填写。"
-		return
-	opponent_editor.clear_names()
-	name_seat = seat
-	name_stamp = _name_fingerprint()
-	var taken: Array = []
-	for i in range(8):
-		if i != seat - 1: taken.append(opponent_editor.ai_seats[i].name)
-	opponent_editor.generate_name.text = "取消生成"
-	opponent_editor.name_status.text = "正在生成与 %s 有关联的昵称…" % ai_page.model.text
-	var id = opponent_editor.ai_seats[seat - 1].service_id
-	var service = Services.resolve(ai_page.profile_values(), id)
-	opponent_editor.name_status.text = "正在生成与 %s 有关联的昵称…" % service.model
-	name_client.send(service, str(ai_page.key_values().get(id, "")), NameGenerator.messages(service, opponent_editor.ai_seats[seat - 1], taken))
-
-func _names_received(result: Dictionary) -> void:
-	if not visible or current_page != 4 or name_stamp != _name_fingerprint():
-		_cancel_names()
-		return
-	_cancel_names()
-	if result.has("error"):
-		opponent_editor.name_status.text = result.error
-		return
-	var taken: Array = []
-	for i in range(8):
-		if i != name_seat - 1: taken.append(opponent_editor.ai_seats[i].name)
-	var parsed = NameGenerator.parse(result.content, taken)
-	if parsed.has("error"):
-		opponent_editor.name_status.text = parsed.error
-		return
-	opponent_editor.name_status.text = "选择一个昵称，或继续手动填写。保存设置后生效。"
-	opponent_editor.offer_names(parsed.names, name_seat)

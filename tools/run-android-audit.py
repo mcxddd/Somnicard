@@ -30,54 +30,24 @@ def report(stage,timeout=150):
     raise RuntimeError(serial+' timed out awaiting '+stage)
 call('install','-r',str(root/'.local/android-audit/audit.apk'))
 call('shell','pm','clear',package)
-call('reverse','tcp:18948','tcp:18948')
 call('logcat','-c')
 launch()
-def marker(name):
-    call('shell','run-as',package,'touch','files/'+name)
-up=report('awaiting_model_up')['swipe']
-call('shell','input','swipe',*map(str,up),'500')
-time.sleep(.5)
-marker('model-up')
-down=report('awaiting_model_down')['swipe']
-call('shell','input','swipe',*map(str,down),'500')
-time.sleep(.5)
-marker('model-down')
-tap=report('awaiting_model_tap')['tap']
-call('shell','input','tap',*map(str,tap))
-marker('model-tap')
-report('awaiting_model_back')
+report('awaiting_export_back')
 call('shell','input','keyevent','4')
 time.sleep(.6)
-(folder/'native-after-model-back.png').write_bytes(call('exec-out','screencap','-p').stdout)
-marker('model-back')
+call('shell','run-as',package,'touch','files/export-back')
 report('awaiting_category_back')
 call('shell','input','keyevent','4')
 time.sleep(.6)
-marker('category-back')
-data=report('awaiting_relaunch')
-encrypted=call('exec-out','run-as',package,'cat','no_backup/ai-credentials.v1').stdout
-assert len(encrypted)>=28 and b'ANDROID_EMULATOR_DUMMY_ONLY' not in encrypted
-launch()
-report('awaiting_tamper',timeout=60)
-call('shell','am','force-stop',package)
-damaged=bytearray(encrypted);damaged[-1]^=1
-temp=folder/'tampered-ciphertext.bin';temp.write_bytes(damaged)
-remote='/data/local/tmp/somnicard-audit-'+serial.split('-')[1]+'.bin'
-call('push',str(temp),remote)
-call('shell','chmod','644',remote)
-call('shell','run-as',package,'cp',remote,'no_backup/ai-credentials.v1')
-call('shell','rm',remote)
-launch()
-data=report('complete',timeout=60)
-assert call('shell','run-as',package,'ls','no_backup/ai-credentials.v1',check=False).returncode!=0
+call('shell','run-as',package,'touch','files/category-back')
+data=report('complete')
 for shot in data['screenshots']:
     name=shot.removeprefix('user://')
     (folder/name).write_bytes(call('exec-out','run-as',package,'cat','files/'+name).stdout)
 logs=call('logcat','-d','-s','godot','AndroidRuntime').stdout.decode('utf-8',errors='replace')
 (folder/'logcat.txt').write_text(logs,encoding='utf-8')
 assert 'SCRIPT ERROR:' not in logs and 'ANDROID_AUDIT_FAIL:' not in logs and 'FATAL EXCEPTION' not in logs
-data.update(ciphertext_checked=True,external_tamper_checked=True,deleted_file_checked=True,scripted_test_app=True)
+data.update(scripted_test_app=True)
 (folder/'report.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
 call('shell','am','force-stop',package)
 print('ANDROID_ACCEPTANCE_OK',serial,flush=True)

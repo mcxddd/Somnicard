@@ -18,7 +18,6 @@ def call(*args,check=True):
 call('wait-for-device')
 call('install','-r',str(root/'.local/android-interactions/audit.apk'))
 call('shell','pm','clear',package)
-call('reverse','tcp:18948','tcp:18948')
 call('logcat','-c')
 call('shell','am','start','-W','-n',package+'/com.godot.game.GodotAppLauncher')
 seen=0
@@ -58,7 +57,7 @@ while time.monotonic()<deadline:
             call('shell','am','start','-W','-n',package+'/com.godot.game.GodotAppLauncher')
         else:raise ValueError(kind)
     time.sleep(.45)
-    if any(word in data['steps'][-1] for word in ['all-in','details upward','range grid','searched history','rate-limited','selected model']):
+    if any(word in data['steps'][-1] for word in ['all-in','details upward','range grid','searched history']):
         (out/f'step-{seen:03d}.png').write_bytes(call('exec-out','screencap','-p').stdout)
     call('shell','run-as',package,'touch',f'files/interaction-{seen}')
 else:

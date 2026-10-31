@@ -1,7 +1,5 @@
 extends SceneTree
-## Cross-feature acceptance checks; test credentials are never sent to a service.
-const Preferences = preload("res://scripts/ui/preferences.gd")
-const Services = preload("res://scripts/ai/services.gd")
+## Cross-feature acceptance checks.
 var checks = 0
 var failures = 0
 func _initialize() -> void: call_deferred("run")
@@ -14,34 +12,7 @@ func run() -> void:
 	var ui = load("res://scenes/main.tscn").instantiate()
 	root.add_child(ui)
 	ui.smoke_mode = true
-	ui.ai.profiles = Services.normalize([
-		{"id": "default", "label": "记住的模型", "service": {"endpoint": "https://a.invalid/v1", "model": "model-a"}, "remember": true},
-		{"id": "second", "label": "临时模型", "service": {"endpoint": "https://b.invalid/v1", "model": "model-b"}, "remember": false}])
-	ui.ai.service = ui.ai.profiles[0].service
-	ui.ai.keys = {"default": "AUDIT_KEY_A", "second": "AUDIT_KEY_B"}
-	ui.ai.key = "AUDIT_KEY_A"
 	ui._open_settings()
-	var page = ui.settings.ai_page
-	verify(page.remember.button_pressed and page.profile_values()[0].remember, "opening settings retains remembered profile option")
-	for i in range(3):
-		page._switch_profile(1)
-		verify(not page.remember.button_pressed and page.key.text == "AUDIT_KEY_B" and page.model.text == "model-b", "switch to temporary profile preserves its key/model/remember flag")
-		page._switch_profile(0)
-		verify(page.remember.button_pressed and page.key.text == "AUDIT_KEY_A" and page.model.text == "model-a", "switch back preserves the remembered profile independently")
-	page._switch_profile(1)
-	page.key.text = "CHANGED_DRAFT"
-	page.key.text_changed.emit(page.key.text)
-	ui.settings.cancel()
-	verify(ui.ai.keys.second == "AUDIT_KEY_B" and ui.ai.profiles[0].remember and not ui.ai.profiles[1].remember, "cancel does not alter live credentials or profile flags")
-	verify(page.secrets.is_empty() and page.key.text.is_empty(), "cancel clears credential drafts")
-	ui._open_settings()
-	var public_values = ui.settings.values()
-	var path = "user://system-audit-prefs.cfg"
-	verify(Preferences.save_values(public_values, path) == OK, "multi-profile settings serialize")
-	var saved = Preferences.load_values(path)
-	verify(saved.ai_profiles[0].remember and not saved.ai_profiles[1].remember, "remember flags survive settings roundtrip")
-	verify(not FileAccess.get_file_as_string(path).contains("AUDIT_KEY"), "settings persistence excludes all profile credentials")
-	DirAccess.remove_absolute(path)
 	for dimensions in [Vector2i(360, 640), Vector2i(390, 844), Vector2i(1280, 800)]:
 		root.size = dimensions
 		await settle()

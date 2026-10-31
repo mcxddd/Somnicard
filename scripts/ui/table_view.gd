@@ -32,11 +32,6 @@ var motion: bool = true
 var display_bb: bool = true
 var display_paused: bool = false
 var portrait: bool = false
-var speech_bubble
-var speech_seat: int = -1
-var speech_key = ""
-var speech_hand = -1
-var speech_until = 0
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(850, 490)
@@ -60,16 +55,9 @@ func _ready() -> void:
 	result_label.custom_minimum_size.y = 24
 	center.add_child(result_label)
 	resized.connect(_layout)
-	speech_bubble = preload("res://scripts/ui/speech_bubble.gd").new()
-	add_child(speech_bubble)
-	speech_bubble.z_index = 4
-	speech_bubble.tapped.connect(func(): seat_selected.emit(speech_seat))
 
 func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> void:
 	view = new_view
-	if speech_hand != int(view.hand):
-		clear_speech()
-		speech_hand = int(view.hand)
 	display_bb = use_bb
 	display_paused = paused
 	while seat_nodes.size() < view.seats.size():
@@ -158,82 +146,6 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		result_label.modulate.a = 1.0
 		for entry in seat_nodes: entry.status.modulate.a = 1.0
 	_layout()
-	_layout_speech()
-	call_deferred("_layout_speech")
-
-func clear_speech() -> void:
-	speech_key = ""
-	speech_seat = -1
-	if speech_bubble != null: speech_bubble.hide()
-
-func sync_speech(lines: Array, pinned: bool = false) -> void:
-	if view.is_empty() or speech_bubble == null: return
-	var eligible = lines.filter(func(line): return line is Dictionary and preload("res://scripts/poker/history.gd")._integer(line.get("seat"), 1, seat_nodes.size() - 1) and preload("res://scripts/poker/history.gd")._integer(line.get("event"), 0, view.events.size()) and line.get("text") is String)
-	if not pinned:
-		eligible = eligible.filter(func(line): return view.phase != "complete" and not view.events.slice(int(line.event)).any(func(event): return event.get("kind") == "street" or (event.get("kind") == "action" and event.get("seat") == line.seat)))
-	if eligible.is_empty():
-		clear_speech()
-		return
-	var line = eligible.back()
-	var key = "%s:%s:%s:%s" % [view.hand, line.seat, line.event, line.text]
-	if key == speech_key: return
-	speech_key = key
-	speech_seat = int(line.seat)
-	speech_until = 0 if pinned else Time.get_ticks_msec() + 6500
-	speech_bubble.set_text(str(line.text), minf(196, size.x * 0.48))
-	speech_bubble.show()
-	_layout_speech()
-	call_deferred("_layout_speech")
-
-func _process(_delta: float) -> void:
-	if speech_bubble != null and speech_bubble.visible and speech_until > 0 and Time.get_ticks_msec() > speech_until: speech_bubble.hide()
-
-func _layout_speech() -> void:
-	if speech_bubble == null or speech_key.is_empty() or speech_seat < 1 or speech_seat >= seat_nodes.size(): return
-	if size.x < 200 or (speech_until > 0 and Time.get_ticks_msec() > speech_until):
-		speech_bubble.hide()
-		return
-	speech_bubble.set_text(speech_bubble.label.text, minf(196, size.x * 0.48))
-	var speaker: Rect2 = seat_nodes[speech_seat].panel.get_rect()
-	var extent: Vector2 = speech_bubble.size
-	var obstacles: Array[Rect2] = []
-	for node in seat_nodes:
-		obstacles.append(node.panel.get_rect().grow(4))
-		if node.bet.visible: obstacles.append(node.bet.get_rect().grow(4))
-	var board = board_row.get_global_rect()
-	board.position -= global_position
-	obstacles.append(board.grow(5))
-	var pot = pot_label.get_content_rect()
-	pot.position += pot_label.global_position - global_position
-	obstacles.append(pot.grow(8))
-	if result_label.visible:
-		var result = result_label.get_global_rect()
-		result.position -= global_position
-		obstacles.append(result.grow(3))
-	var origin = speaker.get_center() - extent / 2
-	var xs: Array[float] = [origin.x, 6.0, size.x - extent.x - 6]
-	var ys: Array[float] = [origin.y, 6.0, size.y - extent.y - 6]
-	for obstacle in obstacles:
-		xs.append(obstacle.position.x - extent.x - 7)
-		xs.append(obstacle.end.x + 7)
-		ys.append(obstacle.position.y - extent.y - 7)
-		ys.append(obstacle.end.y + 7)
-	var candidates: Array[Vector2] = []
-	for x in xs:
-		for y in ys:
-			var rect = Rect2(Vector2(x, y), extent)
-			if Rect2(Vector2(4, 4), size - Vector2(8, 8)).encloses(rect) and not obstacles.any(func(o): return o.intersects(rect)):
-				candidates.append(rect.position)
-	if candidates.is_empty():
-		# A compact training surface may lack room. Keep the transcript accessible
-		# from the seat instead of covering cards or wagers.
-		speech_bubble.hide()
-		return
-	candidates.sort_custom(func(a, b): return a.distance_squared_to(origin) < b.distance_squared_to(origin))
-	speech_bubble.position = candidates[0]
-	speech_bubble.show()
-	var toward = speech_bubble.get_rect().get_center()
-	speech_bubble.aim(toward.clamp(speaker.position + Vector2(5, 5), speaker.end - Vector2(5, 5)))
 
 func _make_seat() -> Dictionary:
 	var panel = UI.panel(Color("10282c"), 10, 6)
@@ -318,7 +230,6 @@ func _layout() -> void:
 	pot_label.configure("pot", 32)
 	center.size = Vector2(390, 200)
 	center.position = Vector2((size.x - center.size.x) / 2, size.y * 0.45 - 95)
-	_layout_speech()
 	queue_redraw()
 
 func _layout_portrait() -> void:
@@ -374,7 +285,6 @@ func _layout_portrait() -> void:
 	center.position = Vector2((size.x - center.size.x) / 2, size.y * 0.47 - 70 if count == 2 else size.y * 0.43 - 92)
 	_layout_bets()
 	call_deferred("_layout_bets")
-	_layout_speech()
 	queue_redraw()
 
 func _layout_bets() -> void:

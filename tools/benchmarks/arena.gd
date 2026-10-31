@@ -1,5 +1,5 @@
 extends SceneTree
-const Arena = preload("res://scripts/ai/arena.gd")
+const Arena = preload("res://scripts/poker/arena.gd")
 var blocks = 128
 var output = "res://.local/arena-1.11.0.json"
 func _initialize() -> void: call_deferred("run")

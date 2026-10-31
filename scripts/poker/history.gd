@@ -68,7 +68,7 @@ static func replay(record: Dictionary, require_complete: bool = true) -> Diction
 	var game = Table.new(stacks, int(record.small_blind), int(record.big_blind))
 	if record.get("seat_names") is Array:
 		for i in range(mini(stacks.size(), record.seat_names.size())):
-			var name = preload("res://scripts/ai/config.gd").clean(record.seat_names[i], 12)
+			var name = preload("res://scripts/poker/player_names.gd").clean(record.seat_names[i], 12)
 			if name != "": game.seats[i].name = name
 	game.hand_number = int(record.hand) - 1
 	var frames: Array = []

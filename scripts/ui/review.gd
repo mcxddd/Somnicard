@@ -16,11 +16,9 @@ const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const RangeGrid = preload("res://scripts/ui/range_grid.gd")
 const Card = preload("res://scripts/ui/card_view.gd")
 const CoachAvatar = preload("res://scripts/ui/coach_avatar.gd")
-var ai_coach
 var refine_button: Button
 var refine_pending
 var refine_pending_key = ""
-var ai_context_generation = 0
 var coach_avatar: Button
 var overlay_close: Button
 var live_teaching: bool = true
@@ -70,7 +68,6 @@ var next_page: Button
 var table_view
 var slider: HSlider
 var position_label: Label
-var ai_speech_label: Label
 var event_label: Label
 var details: RichTextLabel
 var analyze_button: Button
@@ -210,7 +207,7 @@ func _ready() -> void:
 	help_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	help_text.add_theme_font_size_override("normal_font_size", 22)
 	help_text.add_theme_color_override("default_color", UI.TEXT)
-	help_text.text = "SOMNICARD 1.12 · 德州扑克练习\n\n1. 主界面点击“开始新局”，选择 2–9 人和初始筹码，再配置电脑对手。你固定坐在下方；其余都是独立电脑。每手结算后点击“下一手”继续。\n\n2. BB 是大盲单位。本桌盲注为 5 / 10，1 BB = 10 筹码；右上角切换单位不会改变实际金额。“加到”指本轮总投入，不是额外投入。\n\n3. BB、底池比例与滑条只填写金额，点击加注后才提交。半池加注按跟注后的底池计算；全押默认需要再次确认，可在设置中关闭。\n\n4. 点击牌桌悬浮教练头像，在同一界面查看建议与原因，随时收起或直接行动；设置可关闭教练、自动提示或改变头像位置。设置中的对局教学与复盘教学分别开关，教学页也可即时切换。范围来自公开行动与经验似然。限定剩两人的河牌支持多尺度与有效全押的抽象 CFR，可主动进行精细分析并分段继续计算，展示参考比例、模型净值与误差；复盘比较实际选择，未覆盖尺寸不评分。其余场景提供经验建议；不是完整 GTO。\n\n5. 完成的牌局自动保存。从主界面“牌局复盘”或牌桌菜单进入历史，点击一手牌即可打开。可逐步回放、拖动时间轴、跳转下注轮次，或跳到“我的下个决策”。回放会在你的决策点暂停。\n\n6. 分析只使用当时自己的底牌、公共牌、公开行动和筹码。平局会按分池比例计入权益；有边池时只计算你有资格争夺的部分。输赢不等于操作质量。\n\n7. 当前桌在操作后自动保存，重启后可在主界面“恢复上次牌桌”，再点“继续”。牌桌菜单中的“返回主界面”会保留当前进度。后台会自动暂停。新开桌替换当前存档，已完成历史保留；卸载应用或清除数据可能删除记录。\n\n训练室：从主界面或牌桌“更多”进入，选择主题和来源，每组最多 5 个局面。先作答再看讲解，可用所选操作继续与电脑打完；重打有保留原牌和重新采样未知牌两种模式，分支独立保存。复盘“工具”可收藏、备注、跳转决策或练习此处。训练室分为“开始练习、练习记录、表现统计”。本地备份移到“设置 → 数据与备份”，导入导出是立即执行的文件操作，不需要保存设置。\n\n手机和电脑统一竖屏。底部“加注”打开金额面板，收起不会下注；“更多”包含设置、历史、记录。多人桌点座位查看详情，摊牌之前不公开对手底牌。复盘点击悬浮教练头像，在牌桌上展开分析；下方回放控制始终保留。\n\n设置：主界面“设置”或牌桌“更多 → 牌桌设置”。先选择分类，再修改具体选项；分类间返回保留草稿，点击“保存设置”才生效，“取消修改”放弃草稿。支持对局节奏、弃牌快进、两种配色、BB 单位、四色花色、发牌动效与全押保护。\n\n桌面快捷键：F 弃牌，空格过牌 / 跟注，R 输入金额，P 暂停；Esc / 安卓返回键返回上一层；主界面再次返回会确认退出。\n\n在线 AI：设置 → AI 服务与陪练，可选择 CommandCode、DeepSeek、OpenAI、硅基流动、阿里云百炼或自定义服务。填写地址和密钥后自动获取模型，可搜索更换，再测试并保存，在“电脑对手”逐个启用。服务不提供模型列表时可手动填写。名字可手动填写，或点击“AI 生成昵称”获得与模型相关的候选，选用并保存。更换服务域名会清空旧密钥；连接参数由程序自动处理，不需要设置 JSON 或请求格式。密钥默认仅本次运行保留，可勾选“在本机安全记住密钥”，由系统加密保护；取消记住并保存可删除。可新增多个模型档案，并为每个座位独立选择，点座位查看模型。每位 AI 使用自己的底牌与公开行动，名字、档位和风格可分别配置；档位是打法目标，尚无客观实测排名。普通对手记忆保留至重开桌，保存为长期陪练后跨桌保留；档案可改名、清空记忆或删除。牌桌发言可开关，点击发言条查看本手对话。连接失败可重试或让本地电脑接管本手。本地数值分析始终可用；在“教练与教学”分别开启对局或复盘的 AI 讲解，选择教练模型后按需提问，训练先作答后看。AI 只能获取当前决策的信息；数值以本地结果为准。备份不包含 AI 档案和密钥。\n\n牌力评测：设置 → 牌力评测，查看本版 21,312 手实测，或单独测试本地电脑 / 自选模型；支持暂停、继续与导出。在线请求有分批上限，不会静默改用本地策略。结果不换算真人段位，默认不自动运行。训练室会整理待讨论决策，可回到原局或选择同主题尚未练过的局面。\n\n当前范围：虚拟筹码、本地 / 在线 AI 对战、复盘与训练；没有真人联网、账户或支付。多人连续牌局采用移动庄家的练习规则，不包含完整锦标赛死庄与盲注升级。\n\n引擎与许可\nGodot Engine — https://godotengine.org/license/\n源代码：https://github.com/godotengine/godot\n\n" + Engine.get_license_text()
+	help_text.text = "SOMNICARD 1.12 · 德州扑克练习\n\n1. 主界面点击“开始新局”，选择 2–9 人和初始筹码，再配置电脑对手。你固定坐在下方；其余都是独立电脑。每手结算后点击“下一手”继续。\n\n2. BB 是大盲单位。本桌盲注为 5 / 10，1 BB = 10 筹码；右上角切换单位不会改变实际金额。“加到”指本轮总投入，不是额外投入。\n\n3. BB、底池比例与滑条只填写金额，点击加注后才提交。半池加注按跟注后的底池计算；全押默认需要再次确认，可在设置中关闭。\n\n4. 点击牌桌悬浮教练头像，在同一界面查看建议与原因，随时收起或直接行动；设置可关闭教练、自动提示或改变头像位置。设置中的对局教学与复盘教学分别开关，教学页也可即时切换。范围来自公开行动与经验似然。限定剩两人的河牌支持多尺度与有效全押的抽象 CFR，可主动进行精细分析并分段继续计算，展示参考比例、模型净值与误差；复盘比较实际选择，未覆盖尺寸不评分。其余场景提供经验建议；不是完整 GTO。\n\n5. 完成的牌局自动保存。从主界面“牌局复盘”或牌桌菜单进入历史，点击一手牌即可打开。可逐步回放、拖动时间轴、跳转下注轮次，或跳到“我的下个决策”。回放会在你的决策点暂停。\n\n6. 分析只使用当时自己的底牌、公共牌、公开行动和筹码。平局会按分池比例计入权益；有边池时只计算你有资格争夺的部分。输赢不等于操作质量。\n\n7. 当前桌在操作后自动保存，重启后可在主界面“恢复上次牌桌”，再点“继续”。牌桌菜单中的“返回主界面”会保留当前进度。后台会自动暂停。新开桌替换当前存档，已完成历史保留；卸载应用或清除数据可能删除记录。\n\n训练室：从主界面或牌桌“更多”进入，选择主题和来源，每组最多 5 个局面。先作答再看讲解，可用所选操作继续与电脑打完；重打有保留原牌和重新采样未知牌两种模式，分支独立保存。复盘“工具”可收藏、备注、跳转决策或练习此处。训练室分为“开始练习、练习记录、表现统计”。本地备份移到“设置 → 数据与备份”，导入导出是立即执行的文件操作，不需要保存设置。\n\n手机和电脑统一竖屏。底部“加注”打开金额面板，收起不会下注；“更多”包含设置、历史、记录。多人桌点座位查看详情，摊牌之前不公开对手底牌。复盘点击悬浮教练头像，在牌桌上展开分析；下方回放控制始终保留。\n\n设置：主界面“设置”或牌桌“更多 → 牌桌设置”。先选择分类，再修改具体选项；分类间返回保留草稿，点击“保存设置”才生效，“取消修改”放弃草稿。支持对局节奏、弃牌快进、两种配色、BB 单位、四色花色、发牌动效与全押保护。\n\n桌面快捷键：F 弃牌，空格过牌 / 跟注，R 输入金额，P 暂停；Esc / 安卓返回键返回上一层；主界面再次返回会确认退出。\n\n牌力评测：设置 → 牌力评测，查看本版 21,312 手实测，或单独测试本地电脑；支持暂停、继续与导出。结果不换算真人段位，默认不自动运行。训练室会整理待讨论决策，可回到原局或选择同主题尚未练过的局面。\n\n当前范围：虚拟筹码、本地电脑对战、复盘与训练；没有账户或支付。多人连续牌局采用移动庄家的练习规则，不包含完整锦标赛死庄与盲注升级。\n\n引擎与许可\nGodot Engine — https://godotengine.org/license/\n源代码：https://github.com/godotengine/godot\n\n" + Engine.get_license_text()
 	help_page.add_child(help_text)
 	help_copy = help_text.text
 	help_page.add_child(UI.button("查看引擎第三方组件许可", func():
@@ -238,10 +235,6 @@ func _ready() -> void:
 	position_label = UI.label("", 18, UI.GOLD)
 	position_label.clip_text = true
 	left.add_child(position_label)
-	ai_speech_label = UI.label("", 16, UI.MUTED)
-	ai_speech_label.clip_text = true
-	left.add_child(ai_speech_label)
-	ai_speech_label.hide()
 	slider = HSlider.new()
 	slider.custom_minimum_size.y = 36
 	slider.step = 1
@@ -423,9 +416,6 @@ func _ready() -> void:
 	details.add_theme_color_override("default_color", UI.TEXT)
 	right.add_child(details)
 	right.move_child(details, 2)
-	ai_coach = preload("res://scripts/ui/ai_coach.gd").new()
-	right.add_child(ai_coach)
-	right.move_child(ai_coach, 3)
 	timer = Timer.new()
 	timer.wait_time = 0.9
 	timer.timeout.connect(func():
@@ -605,8 +595,6 @@ func _open_entry(entry: int) -> void:
 	open_replay(rebuilt, use_bb)
 
 func open_replay(rebuilt: Dictionary, bb: bool) -> void:
-	ai_context_generation += 1
-	ai_coach.stop()
 	comparisons = []
 	if comparison_button != null: comparison_button.hide()
 	live_mode = false
@@ -636,8 +624,6 @@ func open_replay(rebuilt: Dictionary, bb: bool) -> void:
 	seek(0)
 
 func open_live(view: Dictionary, bb: bool) -> void:
-	ai_context_generation += 1
-	ai_coach.stop()
 	if practice_tools != null:
 		practice_tools.hide()
 		practice_entry.hide()
@@ -659,7 +645,6 @@ func open_live(view: Dictionary, bb: bool) -> void:
 	close_button.grab_focus()
 
 func close() -> void:
-	ai_coach.stop()
 	_stop_play()
 	job = null
 	hide()
@@ -700,7 +685,6 @@ func set_units(bb: bool) -> void:
 		_fill_history()
 
 func seek(value: int, stop: bool = true) -> void:
-	ai_coach.stop()
 	if frames.is_empty(): return
 	if stop: _stop_play()
 	index = clampi(value, 0, frames.size() - 1)
@@ -760,15 +744,6 @@ func _render() -> void:
 	table_view.update_table(view, use_bb)
 	position_label.text = "%d / %d · %s" % [index + 1, frames.size(), _describe(frame.event, view).replace("\n", " · ")]
 	position_label.tooltip_text = position_label.text
-	ai_speech_label.text = ""
-	var speech_lines: Array = []
-	if not live_mode and current_record.get("ai_dialogue") is Array:
-		for line in current_record.ai_dialogue.slice(0, 8):
-			if line is Dictionary and History._integer(line.get("event"), 0, view.events.size()):
-				ai_speech_label.text = "%s：%s" % [preload("res://scripts/ai/config.gd").clean(line.get("name", ""), 12), preload("res://scripts/ai/config.gd").clean(line.get("text", ""), 48)]
-				speech_lines.append(line)
-	ai_speech_label.hide()
-	table_view.sync_speech(speech_lines, true)
 	slider.set_block_signals(true)
 	slider.max_value = frames.size() - 1
 	slider.value = index
@@ -818,7 +793,6 @@ func _render_details() -> void:
 	var fine_strategy: Dictionary = analysis.get("strategy", {})
 	refine_button.visible = enabled and _hero_decision() and view.phase == "river" and job == null and (fine_strategy.get("supported", false) or fine_strategy.get("preparing", false)) and (fine_strategy.get("precision", 0) == 0 or fine_strategy.get("budget_limited", false))
 	refine_button.text = "继续精细计算 · 追加最多 20 秒" if refine_pending != null and refine_pending_key == Advisor.cache_key(view) else "精细河牌分析 · 每次最多 20 秒"
-	ai_coach.sync(view, analysis if enabled and job == null else {}, live_mode, str(ai_context_generation) + ":" + str(index))
 	teaching_toggle.text = "教学" + (" · 开" if enabled else " · 关")
 	teaching_toggle.add_theme_stylebox_override("normal", UI.surface(UI.GREEN if enabled else Color("243a40"), 9, 12))
 	analysis_next.visible = not live_mode
@@ -1054,11 +1028,6 @@ func _layout_overlay() -> void:
 	var below_board = table_rect.end.y - table_view.board_row.get_global_rect().end.y - 8
 	analysis_panel.size = Vector2(size.x - 24, minf(340 if expanded_details else 270, maxf(180, below_board)))
 	analysis_panel.position = Vector2(12, table_rect.end.y - global_position.y - analysis_panel.size.y)
-	if OS.has_feature("mobile") and ai_coach.question.has_focus():
-		var keyboard = DisplayServer.virtual_keyboard_get_height() * size.y / maxf(1, get_window().size.y)
-		if keyboard > 0:
-			analysis_panel.position.y = maxf(12, minf(analysis_panel.position.y, size.y - keyboard - analysis_panel.size.y - 12))
-			analysis_scroll.ensure_control_visible(ai_coach.question)
 
 func _show_seat(id: int) -> void:
 	if frames.is_empty(): return
@@ -1190,7 +1159,6 @@ func open_comparison(versions: Array, selected: int, bb: bool) -> void:
 func _refine() -> void:
 	if not _hero_decision() or not teaching_enabled() or job != null: return
 	_stop_play()
-	ai_coach.stop()
 	job_key = Advisor.cache_key(frames[index].view) + ":fine"
 	if refine_pending != null and refine_pending_key == Advisor.cache_key(frames[index].view):
 		job = refine_pending

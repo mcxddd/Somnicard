@@ -37,7 +37,6 @@ var start_button: Button
 var resume_button: Button
 var branch_picker: OptionButton
 var recommended_list: VBoxContainer
-var ai_coach
 var recent_list: VBoxContainer
 var close_button: Button
 var table_view
@@ -215,8 +214,6 @@ func _ready() -> void:
 	detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	detail.add_theme_font_size_override("normal_font_size", 19)
 	answer_area.add_child(detail)
-	ai_coach = preload("res://scripts/ui/ai_coach.gd").new()
-	answer_area.add_child(ai_coach)
 	unclear = CheckButton.new()
 	unclear.text = "还没理解 · 加入待复习"
 	unclear.custom_minimum_size.y = 48
@@ -527,7 +524,6 @@ func _render_case() -> void:
 		feedback.text = verdict + " · 你的选择：" + {"fold": "弃牌", "call": "跟注", "check": "过牌", "raise": "加到"}.get(answer.action, answer.action) + (UI.money(int(answer.amount), game.big_blind, use_bb) if answer.action == "raise" else "")
 		summary.text = words.status + "\n" + words.summary + "\n\n" + preload("res://scripts/poker/decision_feedback.gd").compare(decision_view, analysis, answer.action, int(answer.amount), use_bb).text
 		detail.text = words.details + "\n\n不同选择值得讨论，不等于已确认的错误。"
-	ai_coach.sync(decision_view, analysis if not answer.is_empty() and not playing else {}, false, History.hand_id(current.record) + ":" + str(current.point))
 	status.text = store.error if not store.error.is_empty() else "练习分支 · 独立于原牌局" if playing else "已作答 · 可查看理由或继续重打" if not answer.is_empty() else "先选择操作，再看教练"
 
 func _process(delta: float) -> void:

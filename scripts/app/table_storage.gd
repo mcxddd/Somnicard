@@ -1,5 +1,5 @@
 extends Node
-## Depends on host: ai, game, smoke_mode, player_count, difficulty, opponent_profiles, opponent_changes, training, starting_bb.
+## Depends on host: game, smoke_mode, player_count, difficulty, opponent_profiles, opponent_changes, training, starting_bb.
 var host
 const History = preload("res://scripts/poker/history.gd")
 const LocalBot = preload("res://scripts/poker/local_bot.gd")
@@ -12,7 +12,6 @@ var session_stamp: String = ""
 var session_save_error: bool = false
 
 func save_record() -> void:
-	host.ai.finish_hand()
 	if saved_hand == host.game.hand_number: return
 	if host.smoke_mode:
 		save_status = "测试模式"
@@ -20,8 +19,6 @@ func save_record() -> void:
 		return
 	var record = host.game.completed_record()
 	record["seat_names"] = host.game.seats.map(func(s): return s.name)
-	record["ai_dialogue"] = host.ai.dialogue.duplicate(true)
-	record["online_seats"] = host.ai.seats.slice(0, host.player_count - 1).map(func(p): return p.enabled)
 	record["id"] = History.hand_id(record)
 	record["difficulty"] = host.difficulty
 	record["bot_version"] = LocalBot.VERSION
@@ -43,5 +40,5 @@ func save_session() -> void:
 	if not enabled() or host.game == null or host.game.phase == "idle": return
 	var stamp = "%s:%d:%d:%d" % [session_id, host.game.hand_number, host.game.events.size(), saved_hand]
 	if stamp == session_stamp: return
-	session_save_error = Session.save(host.game, session_id, host.starting_bb, saved_hand, "user://", Profiles.snapshot(host.opponent_profiles, host.player_count, host.difficulty), host.opponent_changes, host.opponent_profiles, host.difficulty, host.ai.session_state()) != OK
+	session_save_error = Session.save(host.game, session_id, host.starting_bb, saved_hand, "user://", Profiles.snapshot(host.opponent_profiles, host.player_count, host.difficulty), host.opponent_changes, host.opponent_profiles, host.difficulty) != OK
 	if not session_save_error: session_stamp = stamp

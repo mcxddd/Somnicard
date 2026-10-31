@@ -6,7 +6,6 @@ const TableView = preload("res://scripts/ui/table_view.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const Badge = preload("res://scripts/ui/seat_badge.gd")
 const Sheet = preload("res://scripts/ui/sheet.gd")
-var ai_inspector
 var table_view
 var header: Label
 var turn_label: Label
@@ -315,13 +314,6 @@ func build_sheets() -> void:
 			host._open_opponents(host.info_opponent_id), UI.GREEN)
 	info_sheet.content.add_child(info_opponent_button)
 	info_opponent_button.hide()
-	ai_inspector = preload("res://scripts/ui/ai_inspector.gd").new()
-	info_sheet.content.add_child(ai_inspector)
-	ai_inspector.clear_requested.connect(func(): host.ai.trace.clear())
-	ai_inspector.navigated.connect(func(detail):
-		info_text.visible = not detail
-		info_opponent_button.visible = not detail and host.info_opponent_id > 0
-		info_sheet.scroll.reset_scroll())
 	table_view.seat_selected.connect(host._seat_details)
 	# Confirmation remains above every sheet, including nested all-in prompts.
 	safe_root.move_child(host.confirmation, -1)

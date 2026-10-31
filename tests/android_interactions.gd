@@ -1,7 +1,6 @@
 extends Node
 ## Native touch-driven scenarios in the isolated audit app. Fixtures only prepare state.
 const History = preload("res://scripts/poker/history.gd")
-const Services = preload("res://scripts/ai/services.gd")
 var ui
 var checks = 0
 var failures: Array = []
@@ -55,20 +54,6 @@ func reveal(scroll: ScrollContainer, control: Control) -> void:
 	scroll.ensure_control_visible(control)
 	await settle()
 	verify(scroll.get_global_rect().intersection(control.get_global_rect()).has_area(), "target intersects scroller")
-
-func wait_client() -> void:
-	var deadline = Time.get_ticks_msec() + 15000
-	while ui.ai.client.busy and Time.get_ticks_msec() < deadline: await get_tree().process_frame
-	verify(not ui.ai.client.busy, "request settled")
-
-func online_fixture(model: String) -> void:
-	ui.ai.profiles = Services.normalize([{"id": "default", "service": {"endpoint": "http://127.0.0.1:18948/v1", "model": model, "speech": false}}])
-	ui.ai.keys = {"default": "DUMMY_A"}
-	ui.ai.seats[0].enabled = true
-	ui.ai.seats[0].service_id = "default"
-	ui._start_table(2)
-	if ui.game.actor == 0: ui.game.act(0, "call")
-	ui._refresh()
 
 func _ready() -> void:
 	await get_tree().create_timer(1).timeout
@@ -240,57 +225,14 @@ func _ready() -> void:
 	await tap(ui.review.history_cards.get_child(0), "open searched history hand")
 	verify(ui.review.replay_page.visible and not ui.review.frames.is_empty(), "selected history opens valid replay")
 	await tap(ui.review.close_button, "leave searched replay")
-	# Long model list: actual drags both ways and nested back, repeated.
 	ui._open_settings()
 	ui.settings._select_page(6)
-	var page = ui.settings.ai_page
-	page.models = []
-	for i in range(140): page.models.append({"id": "interaction-%03d" % i, "name": "测试模型 %03d" % i, "api": "chat"})
-	page._render_models()
-	await reveal(ui.settings.scroll, page.model_picker)
-	await tap(page.model_picker, "open long model list")
-	verify(page.model_sheet.visible, "model picker opens before dragging")
-	var chosen = page.model.text
-	for i in range(3): await swipe(page.model_sheet.scroll, true, "model list upward %d" % i)
-	verify(page.model.text == chosen and page.model_sheet.visible and page.model_sheet.scroll.scroll_vertical > 100, "repeated model drag never selects")
-	for i in range(3): await swipe(page.model_sheet.scroll, false, "model list downward %d" % i)
-	verify(page.model.text == chosen, "downward model drag never selects")
-	await tap(page.model_search, "focus model search")
-	await action("type model search", [{"kind": "text", "value": "097"}])
-	verify(page.model_rows.get_child_count() == 1, "typed model search narrows results")
-	await tap(page.model_rows.get_child(0), "select searched model")
-	verify(page.model.text == "interaction-097" and not page.model_sheet.visible, "native search and selection applies draft model")
-	await reveal(ui.settings.scroll, page.model_picker)
-	await tap(page.model_picker, "reopen selected model list")
-	await back("model selector back")
-	verify(not page.model_sheet.visible and ui.settings.current_page == 6, "one back only closes picker")
+	ui.settings.arena_page.export_dialog.use_native_dialog = false
+	ui.settings.arena_page.export_dialog.popup_centered_ratio(0.9)
+	await back("evaluation export back")
 	await back("settings category back")
 	verify(ui.settings.visible and ui.settings.current_page == -1, "second back returns category list")
-	await tap(ui.settings.cancel_button, "cancel AI draft")
-	# HTTP failure recovery is also driven by the visible recovery controls.
-	online_fixture("rate-limit-fixture")
-	ui.ai.request()
-	await wait_client()
-	verify(not ui.ai.error.is_empty() and ui.ai.recovery.visible, "429 exposes recovery controls")
-	var attempts = ui.ai.trace.entries.size()
-	await tap(ui.ai.recovery.get_child(0), "retry rate-limited request")
-	await wait_client()
-	verify(ui.ai.trace.entries.size() == attempts + 1 and not ui.ai.error.is_empty(), "one retry makes exactly one new 429 request")
-	await tap(ui.ai.recovery.get_child(1), "local takeover after HTTP error")
-	verify(ui.ai.error.is_empty() and ui.ai.local_hand.has(1) and not ui.ai.recovery.visible, "takeover clears error and routes opponent locally")
-	online_fixture("slow-fixture")
-	before_events = ui.game.events.size()
-	ui.ai.request()
-	await tap(ui.screen.pause_button, "pause while awaiting reply")
-	await get_tree().create_timer(3).timeout
-	verify(ui.paused and not ui.ai.client.busy and ui.game.events.size() == before_events, "late cancelled reply cannot advance game")
-	await tap(ui.screen.pause_button, "resume after cancelled reply")
-	ui.ai.request()
-	await wait_client()
-	# The final preflop check also emits a street event for dealing the flop.
-	var resumed_actions = ui.game.events.slice(before_events).filter(func(event): return event.kind == "action")
-	verify(resumed_actions.size() == 1 and resumed_actions[0].seat == 1 and ui.game.phase == "flop" and ui.game.chip_total() == 2000 and ui.ai.error.is_empty(), "fresh reply after resume executes one opponent action")
-	ui.ai.cancel()
+	await tap(ui.settings.cancel_button, "cancel settings draft")
 	await settle()
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("user://interactions-final.png")
