@@ -61,5 +61,5 @@ func run() -> void:
 	DirAccess.remove_absolute(path)
 	ui.queue_free()
 	await process_frame
-	print("VERSION112_TESTS: %d checks, %d failures" % [checks, failures])
+	print("OPPONENT_RENAME_TESTS: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

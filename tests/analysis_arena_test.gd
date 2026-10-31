@@ -67,5 +67,5 @@ func run() -> void:
 	arena.queue_free()
 	restored.queue_free()
 	await process_frame
-	print("VERSION111_TESTS: %d checks, %d failures" % [checks, failures])
+	print("ANALYSIS_ARENA_TESTS: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)

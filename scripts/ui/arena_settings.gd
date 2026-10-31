@@ -98,8 +98,11 @@ func _render() -> void:
 	result.text = "\n".join(lines)
 
 func _published_summary() -> String:
-	var evidence = preload("res://scripts/poker/evidence111.gd").DATA
-	var lines: Array = ["1.11.0 · 已完成 %s 手\n三档均衡：各桌型/深度 128 个独立牌序块；两种偏向风格：9 人 / 100 BB，各 32 块。" % evidence.hands, "\n均衡风格净收益 BB/100（括号为 95% 区间）："]
+	var path = "res://data/arena-evidence-1.11.0.json"
+	if not FileAccess.file_exists(path): return "评测数据缺失"
+	var evidence = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not evidence is Dictionary: return "评测数据缺失"
+	var lines: Array = ["1.11.0 · 已完成 %s 手\n三档均衡：各桌型/深度 128 个独立牌序块；两种偏向风格：9 人 / 100 BB，各 32 块。" % int(evidence.hands), "\n均衡风格净收益 BB/100（括号为 95% 区间）："]
 	for level_id in range(3):
 		lines.append("\n" + ["入门", "标准", "进阶"][level_id])
 		var r: Dictionary = evidence.reports["level%d-style0" % level_id]
@@ -112,6 +115,6 @@ func _published_summary() -> String:
 	for level_id in range(3):
 		for style_id in range(3):
 			var b: Dictionary = evidence.reports["level%d-style%d" % [level_id, style_id]].groups["9人/100BB"].behavior
-			lines.append("%s · %s：%.1f%% / %.1f%%" % [["入门", "标准", "进阶"][level_id], ["均衡", "偏被动", "偏激进"][style_id], 100.0 * b.vpip / b.hands, 100.0 * b.pfr / b.hands])
+			lines.append("%s · %s：%.1f%% / %.1f%%" % [["入门", "标准", "进阶"][level_id], ["均衡", "偏被动", "偏激进"][style_id], 100.0 * int(b.vpip) / int(b.hands), 100.0 * int(b.pfr) / int(b.hands)])
 	lines.append("\n进阶相对标准的配对区间在本次多数场景包含零，尚不能认定普遍更强。档位表示决策逻辑，不是已验证的真人段位。范围、牌序和标准对手都会影响结果；风格样本更少。")
 	return "\n".join(lines)

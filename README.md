@@ -27,7 +27,7 @@ CFR 分析仅覆盖双人河牌抽象范围和有限下注树，不是完整多�
 
 ## 本地开发
 
-Godot 4.7.2，Windows PowerShell。环境路径见 [开发环境](docs/environment.md)。
+Godot 4.7.2，Windows PowerShell 5.1（`powershell`）与 PowerShell 7（`pwsh`）均可；以下命令也可将 `powershell` 替换为 `pwsh`。环境路径见 [开发环境](docs/environment.md)。
 
 ```powershell
 # 运行游戏

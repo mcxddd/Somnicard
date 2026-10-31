@@ -25,5 +25,5 @@ func run() -> void:
 	verify(ui.settings.current_page == -1, "next normal back press is accepted after duplicate interval")
 	ui.queue_free()
 	await process_frame
-	print("VERSION113_TESTS: %d checks, %d failures" % [checks, failures])
+	print("BACK_DEDUPE_TESTS: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
