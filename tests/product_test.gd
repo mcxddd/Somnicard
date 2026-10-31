@@ -162,7 +162,7 @@ func _test_review_ui(ui) -> void:
 	var ids = Academy.question_ids()
 	for i in range(7): store.data.get_or_add("academy", {})[ids[i]] = {"correct": true, "tries": 2, "date": "", "missed": true}
 	ui._open_product("academy")
-	verify(ui.learning_center.body.get_children().any(func(c): return c is Button and c.text == "错题复习 · 7 题"), "overview offers review before courses")
+	verify(ui.learning_center.body.get_children().any(func(c): return c is Button and c.text.begins_with("错题复习 · 7 题")), "overview offers review before courses")
 	ui.home.update_learning(store.data)
 	verify(ui.home.learning.text.contains("有 7 道错题待复习"), "home prioritizes pending review count")
 	ui.learning_center.start_review()

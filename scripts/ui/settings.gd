@@ -62,10 +62,8 @@ func _ready() -> void:
 	body.add_child(index_page)
 	var descriptions = ["行动间隔、弃牌快进、全押确认", "配色、BB 单位、花色、动效、提示音与省电", "悬浮教练、提示时机、复盘教学", "默认难度、每位对手、本地实测", "导入和导出牌局与学习记录"]
 	for i in range(CATEGORIES.size()):
-		var tab = UI.button(CATEGORIES[i] + "  ›\n" + descriptions[i], func():
-			if scroll.can_activate(): _select_page(i), Color("1b3039"), 82)
-		tab.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		tab.add_theme_font_size_override("font_size", 19)
+		var tab = UI.entry(CATEGORIES[i], descriptions[i], func():
+			if scroll.can_activate(): _select_page(i), ["settings-table", "settings-look", "settings-coach", "settings-opponents", "settings-data"][i])
 		index_page.add_child(tab)
 		tabs.append(tab)
 	for i in range(CATEGORIES.size()):

@@ -7,6 +7,18 @@ const BACKGROUND = Color("0a111b")
 const PANEL = Color("15232d")
 const BORDER = Color("30444d")
 const BLUE = Color("70a8df")
+## Colour roles: TEXT for content, MUTED for supporting text, GOLD only for section
+## headings and the one key number on a card, GREEN for the primary action.
+const SUCCESS = Color("7cd7b7")
+const DANGER = Color("f2a3a9")
+const CARD = Color("142a32")
+const HERO = Color("163c37")
+const INSET = Color("10222a")
+## Type scale. Pages use these four sizes instead of ad-hoc ones.
+const SIZE_TITLE = 28
+const SIZE_HEADING = 21
+const SIZE_BODY = 19
+const SIZE_CAPTION = 15
 
 static func surface(color: Color, radius: int = 12, padding: int = 12, border := Color.TRANSPARENT) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -54,6 +66,50 @@ static func panel(color: Color, radius: int = 12, padding: int = 12) -> PanelCon
 	style.shadow_size = 6
 	style.shadow_offset = Vector2(0, 3)
 	node.add_theme_stylebox_override("panel", style)
+	return node
+
+## Card surfaces: "hero" for the one main card on a page, "card" for ordinary
+## groups, "inset" for content nested inside another card.
+static func card(kind: String = "card") -> PanelContainer:
+	if kind == "hero": return panel(HERO, 20, 20)
+	if kind == "inset":
+		var node := PanelContainer.new()
+		node.add_theme_stylebox_override("panel", surface(INSET, 10, 12))
+		return node
+	return panel(CARD, 14, 16)
+
+static func _wrapped(text: String, size: int, color: Color) -> Label:
+	var node = label(text, size, color)
+	node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return node
+
+static func title(text: String) -> Label: return _wrapped(text, SIZE_TITLE, TEXT)
+static func heading(text: String) -> Label: return _wrapped(text, SIZE_HEADING, GOLD)
+static func body(text: String) -> Label: return _wrapped(text, SIZE_BODY, TEXT)
+static func caption(text: String) -> Label: return _wrapped(text, SIZE_CAPTION, MUTED)
+
+## The single most important action on a screen.
+static func primary(text: String, callback: Callable, height: int = 60) -> Button:
+	var node = button(text, callback, GREEN, height)
+	node.add_theme_font_size_override("font_size", 22)
+	return node
+
+static func secondary(text: String, callback: Callable, height: int = 52) -> Button:
+	return button(text, callback, Color("1d343e"), height)
+
+## A navigation row: optional icon, title, one line of supporting text and a chevron.
+static func entry(title_text: String, subtitle: String, callback: Callable, icon_name: String = "", vertical: bool = false) -> Button:
+	var node = load("res://scripts/ui/entry_button.gd").new()
+	node.setup(title_text, subtitle, icon_name, vertical)
+	node.pressed.connect(callback)
+	return node
+
+## Icons live in res://assets/icons/<name>.png; a missing icon is simply left out.
+static func icon(name: String, size: float) -> TextureRect:
+	var path = "res://assets/icons/%s.png" % name
+	if name.is_empty() or not ResourceLoader.exists(path): return null
+	var node = art(load(path), size)
+	node.custom_minimum_size.x = size
 	return node
 
 ## A centred illustration that keeps its aspect ratio within the given height.

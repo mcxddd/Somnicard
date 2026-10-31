@@ -72,17 +72,16 @@ func _overview() -> void:
 	_text("每课几个局面，先选择，再看理由。学习进度保存在本机，也包含在学习记录备份中。", 17, UI.MUTED)
 	var pending = Academy.missed(store.data)
 	if not pending.is_empty():
-		body.add_child(UI.button("错题复习 · %d 题" % pending.size(), func():
-			if scroll.can_activate(): start_review(), UI.GOLD, 66))
+		body.add_child(UI.entry("错题复习 · %d 题" % pending.size(), "把做错的题再做一遍，答对后移出", func():
+			if scroll.can_activate(): start_review(), "review-mistakes"))
 	for i in range(Academy.LESSONS.size()):
 		var course = Academy.LESSONS[i]
 		var correct = 0
 		for q in range(course.questions.size()):
 			if store.data.get("academy", {}).get(course.id + ":" + str(q), {}).get("correct", false): correct += 1
-		var button = UI.button("%02d   %s   %s\n%s" % [i + 1, course.title, "✓" if correct == course.questions.size() else "%d/%d" % [correct, course.questions.size()], course.subtitle], func():
-			if scroll.can_activate(): start_lesson(i), Color("183b38") if correct == course.questions.size() else Color("172c35"), 96)
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var finished = correct == course.questions.size()
+		var button = UI.entry("%02d  %s" % [i + 1, course.title], ("已完成 · " if finished else "%d / %d · " % [correct, course.questions.size()]) + course.subtitle, func():
+			if scroll.can_activate(): start_lesson(i), "lesson-done" if finished else "lesson")
 		body.add_child(button)
 	next_button.text = "进入主题训练" if progress.lessons == Academy.LESSONS.size() else "继续学习 · " + Academy.LESSONS[progress.next].title
 	next_button.disabled = false

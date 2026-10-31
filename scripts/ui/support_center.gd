@@ -69,7 +69,10 @@ func _overview() -> void:
 	title.text = "帮助与关于"
 	_label("SOMNICARD  " + str(ProjectSettings.get_setting("application/config/version")), 25, UI.GOLD)
 	_label("从一个问题开始。", 20, UI.MUTED)
-	for i in range(TOPICS.size()): _button(TOPICS[i][0] + "  ›", show_topic.bind(i))
+	for i in range(TOPICS.size()):
+		var index = i
+		body.add_child(UI.entry(TOPICS[i][0], TOPICS[i][1], func():
+			if scroll.can_activate(): show_topic(index), "help"))
 	_button("引擎与第三方许可", _licenses)
 	_button("官网 · 下载与版本说明 ↗", func(): OS.shell_open(DOWNLOAD))
 	_button("复制诊断摘要", func():

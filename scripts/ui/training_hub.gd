@@ -5,6 +5,7 @@ const UI = preload("res://scripts/ui/style.gd")
 const History = preload("res://scripts/poker/history.gd")
 const Practice = preload("res://scripts/poker/practice.gd")
 const Store = preload("res://scripts/poker/training_store.gd")
+const TOPIC_ICONS = {"翻前入池": "topic-preflop", "面对下注": "topic-facing", "主动下注": "topic-betting", "河牌判断": "topic-river"}
 const GRADES = {"good": ["✓", "好的选择", Color("7cd7b7")], "ok": ["≈", "可以接受", Color("dec488")], "miss": ["✗", "偏离建议", Color("f2a3a9")], "unscored": ["·", "不评分", Color("a4b9b4")]}
 var host
 var home_page: VBoxContainer
@@ -30,28 +31,29 @@ func build() -> void:
 	summary_box = VBoxContainer.new()
 	summary_box.add_theme_constant_override("separation", 8)
 	home_page.add_child(summary_box)
-	var today = UI.panel(Color("16322f"), 14, 18)
+	var today = UI.card("hero")
 	home_page.add_child(today)
 	var today_column = VBoxContainer.new()
 	today_column.add_theme_constant_override("separation", 10)
 	today.add_child(today_column)
-	today_title = host._label("今天 · 5 题", 26, UI.GOLD)
+	today_title = UI.title("今天 · 5 题")
 	today_column.add_child(today_title)
-	today_note = host._label("", 17)
+	today_note = UI.caption("")
 	today_column.add_child(today_note)
-	start_button = UI.button("开始练习", func(): start_set(), UI.GREEN, 60)
-	start_button.add_theme_font_size_override("font_size", 22)
+	start_button = UI.primary("开始练习", func(): start_set())
 	today_column.add_child(start_button)
-	home_page.add_child(host._label("各主题掌握情况 · 点一行只练这个主题", 18, UI.GOLD))
+	home_page.add_child(UI.heading("各主题掌握情况"))
+	home_page.add_child(UI.caption("点一个主题，只练这个主题。"))
 	topic_rows = VBoxContainer.new()
 	topic_rows.add_theme_constant_override("separation", 8)
 	home_page.add_child(topic_rows)
-	home_page.add_child(UI.button("练习记录 ›", show_records, Color("1d343e"), 52))
-	home_page.add_child(host._label("练习结果不计入对局统计。建议来自本机模型：河牌限定双人抽象求解，其余为范围与价格估算，不是完整 GTO。", 15))
+	home_page.add_child(UI.entry("练习记录", "按日期查看做过的题，可以再练一次", show_records, "history"))
+	home_page.add_child(UI.caption("练习结果不计入对局统计。建议来自本机模型：河牌限定双人抽象求解，其余为范围与价格估算，不是完整 GTO。"))
 	records_page = VBoxContainer.new()
 	records_page.add_theme_constant_override("separation", 10)
 	add_child(records_page)
-	records_page.add_child(host._label("练习记录 · 点一题再练一次", 22, UI.GOLD))
+	records_page.add_child(UI.heading("练习记录"))
+	records_page.add_child(UI.caption("点一题再练一次。"))
 	records_list = VBoxContainer.new()
 	records_list.add_theme_constant_override("separation", 8)
 	records_page.add_child(records_list)
@@ -129,10 +131,7 @@ func refresh() -> void:
 		if r.rate >= 0:
 			var filled = roundi(r.rate * 10)
 			line = "%s  掌握 %d%% · 练过 %d 题" % ["▰".repeat(filled) + "▱".repeat(10 - filled), roundi(r.rate * 100), r.attempts]
-		var row = UI.button("%s  ›\n%s" % [topic, line], func(): start_set(topic), Color("17313a"), 72)
-		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		row.add_theme_font_size_override("font_size", 19)
-		topic_rows.add_child(row)
+		topic_rows.add_child(UI.entry(topic, line, func(): start_set(topic), TOPIC_ICONS[topic]))
 
 ## Start a set. The selection is automatic; a topic only narrows it.
 func start_set(topic: String = "") -> void:
@@ -162,7 +161,8 @@ func show_summary(results: Array) -> void:
 	var parts: Array = []
 	for grade in ["good", "ok", "miss", "unscored"]:
 		if counts[grade] > 0: parts.append("%d %s" % [counts[grade], GRADES[grade][1]])
-	summary_box.add_child(host._label("本组完成 · " + " · ".join(parts), 22, UI.GOLD))
+	summary_box.add_child(UI.heading("本组完成"))
+	summary_box.add_child(UI.caption(" · ".join(parts)))
 	for i in range(results.size()):
 		var r: Dictionary = results[i]
 		var g = GRADES[Store.grade(r.feedback)]

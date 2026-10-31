@@ -1,0 +1,58 @@
+extends Button
+## Navigation row with an icon, a title and one line of supporting text.
+## The plain-text form stays in `text` (drawn transparent) for accessibility and tests.
+const UI = preload("res://scripts/ui/style.gd")
+var title_label: Label
+var subtitle_label: Label
+
+func setup(title_text: String, subtitle: String, icon_name: String, vertical: bool) -> void:
+	custom_minimum_size = Vector2(64, 132 if vertical else 76)
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var fill = UI.CARD
+		if state == "hover": fill = UI.CARD.lightened(0.08)
+		if state == "pressed": fill = UI.CARD.lightened(0.04)
+		var style = UI.surface(fill, 14, 0, Color("2a4048"))
+		style.set_border_width_all(1)
+		add_theme_stylebox_override(state, style)
+	add_theme_stylebox_override("focus", UI.surface(Color.TRANSPARENT, 14, 0, UI.GOLD))
+	for color in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
+		add_theme_color_override(color, Color.TRANSPARENT)
+	var inset = MarginContainer.new()
+	inset.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for edge in ["left", "right", "top", "bottom"]: inset.add_theme_constant_override("margin_" + edge, 14)
+	inset.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(inset)
+	var row: BoxContainer = VBoxContainer.new() if vertical else HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8 if vertical else 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inset.add_child(row)
+	var picture = UI.icon(icon_name, 36 if vertical else 40)
+	if picture != null:
+		picture.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		if vertical: picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		row.add_child(picture)
+	var lines = VBoxContainer.new()
+	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lines.alignment = BoxContainer.ALIGNMENT_CENTER
+	lines.add_theme_constant_override("separation", 4)
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(lines)
+	title_label = UI.label("", UI.SIZE_BODY + 1, UI.TEXT)
+	subtitle_label = UI.caption("")
+	for label in [title_label, subtitle_label]:
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lines.add_child(label)
+	if not vertical:
+		var chevron = UI.label("›", 26, UI.MUTED)
+		chevron.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(chevron)
+	set_lines(title_text, subtitle)
+
+func set_lines(title_text: String, subtitle: String) -> void:
+	title_label.text = title_text
+	subtitle_label.text = subtitle
+	subtitle_label.visible = not subtitle.is_empty()
+	text = title_text + ("\n" + subtitle if not subtitle.is_empty() else "")
+	tooltip_text = text.replace("\n", "：")
