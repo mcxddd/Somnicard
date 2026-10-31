@@ -10,6 +10,13 @@ Android 原位更新必须保持包名和签名证书。旧试用版使用 `com.
 
 参考：[Android 应用签名](https://developer.android.com/studio/publish/app-signing)、[Godot Android 导出](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html)。
 
+## 2.1.1 发布记录（2026-10-31）
+
+- 下注金额改用数字键盘、进阶电脑对手升级为 opponent-3、训练室与 main.gd 拆分；versionCode 29。
+- 官网与 [GitHub v2.1.1 Release](https://github.com/mcxddd/Somnicard/releases/tag/v2.1.1) 的 APK 相同：SHA-256 `6e52c0805828ca081e856b6337cd9ce5d56dbb0002b63e3575bf3ca60fd2ed84`，52,813,357 字节。签名证书与 2.1.0 相同（`0914a276…09eb2`），可覆盖安装。
+- 验收：打包前 23 套回归通过；模拟器从 2.1.0 覆盖升级、存档恢复、开桌与加注面板正常；真机确认金额输入弹出 9 键数字键盘。
+- 首次签名构建在隔离工程的首次资源导入步骤偶发返回非零（日志无错误），清理隔离目录后重试通过。若再出现，先重试一次，再看 `.local/release-logs/build-1.log`。
+
 ## 2.1.0 发布记录（2026-10-31）
 
 - 源码已发布到 [GitHub 公开仓库](https://github.com/mcxddd/Somnicard)，使用 MIT 许可；[v2.1.0 Release](https://github.com/mcxddd/Somnicard/releases/tag/v2.1.0) 附正式 APK 和校验文件。

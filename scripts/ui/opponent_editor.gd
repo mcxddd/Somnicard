@@ -44,7 +44,7 @@ func _ready() -> void:
 	name_edit.custom_minimum_size.y = 52
 	add_child(name_edit)
 	name_edit.text_changed.connect(func(value): seat_names[selected - 1] = value; changed.emit())
-	level = _option("决策能力", ["跟随默认难度", "入门", "标准", "进阶（实验）"])
+	level = _option("决策能力", ["跟随默认难度", "入门", "标准", "进阶"])
 	aggression = _option("行动风格", Profiles.STYLES)
 	level.item_selected.connect(func(index): profiles[selected - 1].difficulty = index - 1; _render(); changed.emit())
 	aggression.item_selected.connect(func(index): profiles[selected - 1].aggression = index; _render(); changed.emit())
@@ -55,7 +55,7 @@ func _ready() -> void:
 		for p in profiles: p.difficulty = -1
 		_render()
 		changed.emit()))
-	local_note = UI.label("激进 ≠ 更强：主要改变下注、加注和诈唬倾向；偏被动更常过牌、跟注。实测支持入门较弱；标准与进阶尚未稳定分出高下。进阶为实验档。没有真人对照数据，不能换算成真人段位。\n\n应用后从下一次电脑决策生效；已发生的行动不变。", 17, UI.MUTED)
+	local_note = UI.label("激进 ≠ 更强：主要改变下注、加注和诈唬倾向；偏被动更常过牌、跟注。实测强弱依次为入门、标准、进阶。没有真人对照数据，不能换算成真人段位。\n\n应用后从下一次电脑决策生效；已发生的行动不变。", 17, UI.MUTED)
 	local_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(local_note)
 	var evidence = UI.label(Evaluation.TEXT, 17, UI.MUTED)

@@ -17,7 +17,7 @@ func _note(text: String, font_size: int = 18) -> void:
 	add_child(label)
 
 func _published_summary() -> String:
-	var path = "res://data/arena-evidence-1.11.0.json"
+	var path = "res://data/arena-evidence.json"
 	if not FileAccess.file_exists(path): return "评测数据缺失"
 	var evidence = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not evidence is Dictionary: return "评测数据缺失"
@@ -35,5 +35,15 @@ func _published_summary() -> String:
 		for style_id in range(3):
 			var b: Dictionary = evidence.reports["level%d-style%d" % [level_id, style_id]].groups["9人/100BB"].behavior
 			lines.append("%s · %s：%.1f%% / %.1f%%" % [["入门", "标准", "进阶"][level_id], ["均衡", "偏被动", "偏激进"][style_id], 100.0 * int(b.vpip) / int(b.hands), 100.0 * int(b.pfr) / int(b.hands)])
-	lines.append("\n进阶相对标准的配对区间在本次多数场景包含零，尚不能认定普遍更强。档位表示决策逻辑，不是已验证的真人段位。范围、牌序和标准对手都会影响结果；风格样本更少。")
+	# Summarise the paired advanced-minus-standard intervals instead of a fixed verdict.
+	var above = 0
+	var spanning = 0
+	var below = 0
+	for key in evidence.get("paired", {}):
+		if not key.ends_with(":2-1"): continue
+		var d: Dictionary = evidence.paired[key]
+		if d.low > 0: above += 1
+		elif d.high < 0: below += 1
+		else: spanning += 1
+	lines.append("\n进阶减标准的配对区间：%d 组高于零，%d 组包含零，%d 组低于零。档位表示决策逻辑，不是已验证的真人段位。范围、牌序和标准对手都会影响结果；风格样本更少。" % [above, spanning, below])
 	return "\n".join(lines)

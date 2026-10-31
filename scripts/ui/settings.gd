@@ -100,7 +100,7 @@ func _ready() -> void:
 	var scope_note = UI.label("两个开关独立保存。教学页也可以即时开关。\n\n数值分析在本地完成。2–9 人支持范围推断；CFR 仅覆盖限定的双人河牌抽象，不代表完整 GTO。\n\n先思考自己的选择，再揭示讲解，有助于区分决策质量与最后输赢。", 18, UI.MUTED)
 	scope_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pages[2].add_child(scope_note)
-	_add_option(3, "difficulty", "默认电脑难度", "跟随默认的座位会一起更新；单独指定难度的座位保持原设置。下方可以逐个配置。", ["入门", "标准", "进阶（实验）"])
+	_add_option(3, "difficulty", "默认电脑难度", "跟随默认的座位会一起更新；单独指定难度的座位保持原设置。下方可以逐个配置。", ["入门", "标准", "进阶"])
 	opponent_editor = OpponentEditor.new()
 	pages[3].add_child(opponent_editor)
 	opponent_editor.changed.connect(_changed)

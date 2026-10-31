@@ -1,6 +1,6 @@
 extends RefCounted
 ## Seat 1..8; -1 inherits the global level. Style is independent of skill.
-const LEVELS = ["入门", "标准", "进阶（实验）"]
+const LEVELS = ["入门", "标准", "进阶"]
 const STYLES = ["均衡", "偏被动", "偏激进"]
 const DESCRIPTIONS = [
 	"休闲型：起手范围偏宽，爱跟注；位置与大额下注判断较粗糙。",
