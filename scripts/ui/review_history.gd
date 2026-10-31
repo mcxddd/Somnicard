@@ -11,6 +11,8 @@ var filenames: Array = []
 var entries: Array = []
 var history_list: ItemList
 var history_status: Label
+## Real-game totals for the hands the current filters select.
+var stats_label: Label
 var previous_page: Button
 var next_page: Button
 var history_scroll
@@ -31,6 +33,9 @@ var reset_filters: Button
 
 
 func build() -> void:
+	stats_label = UI.label("", 17, UI.GOLD)
+	stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	self.add_child(stats_label)
 	history_status = UI.label("", 18, UI.MUTED)
 	history_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	self.add_child(history_status)
@@ -256,5 +261,22 @@ func _apply_history_filter() -> void:
 			if filters.tag.selected > 0 and filters.tag.get_item_text(filters.tag.selected) not in m.tags: return false
 			return true)
 	filenames = HistoryFilter.select(selected_catalog, _filter_values(), Time.get_date_string_from_system())
+	_update_stats(selected_catalog)
 	page = mini(page, maxi(0, ceili(float(filenames.size()) / PAGE_SIZE) - 1))
 	_fill_history()
+
+func _update_stats(catalog: Array) -> void:
+	var chosen = {}
+	for file in filenames: chosen[file] = true
+	var hands = 0
+	var net = 0.0
+	var vpip = 0
+	var pfr = 0
+	for item in catalog:
+		if not chosen.has(item.file) or not item.valid_result: continue
+		hands += 1
+		net += float(item.net) / item.big_blind
+		vpip += int(item.vpip)
+		pfr += int(item.pfr)
+	stats_label.visible = hands > 0
+	stats_label.text = "%d 手 · 净变化 %+.1f BB · 主动入池 %.0f%% · 翻前加注 %.0f%%" % [hands, net, 100.0 * vpip / maxi(1, hands), 100.0 * pfr / maxi(1, hands)]

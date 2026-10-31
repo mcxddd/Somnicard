@@ -142,7 +142,6 @@ func _capture() -> void:
 		instance._open_training()
 		while instance.training.hub.scan_cursor >= 0: await process_frame
 		if "--lesson" in OS.get_cmdline_user_args():
-			instance.training.hub.source_picker.select(4)
 			if players == 9:
 				var fixture = instance.training.Practice.fixtures()[2]
 				instance.training.open_case(fixture, 0)
@@ -192,7 +191,10 @@ func _capture() -> void:
 			event.pressed = down
 			root.push_input(event, true)
 		for frame in range(8): await process_frame
-	if "--training-stats" in OS.get_cmdline_user_args(): instance.training._select_hub_page(2)
+	if "--training-stats" in OS.get_cmdline_user_args(): instance.training.hub.show_records()
+	if "--training-summary" in OS.get_cmdline_user_args():
+		instance.training.hub.show_summary([{"topic": "翻前入池", "feedback": "与建议一致"}, {"topic": "面对下注", "feedback": "边缘决策"}, {"topic": "主动下注", "feedback": "参考混合打法"}, {"topic": "河牌判断", "feedback": "不同选择"}, {"topic": "面对下注", "feedback": "与建议一致"}])
+		instance.training.hub.refresh()
 	if "--data-settings" in OS.get_cmdline_user_args(): instance.settings._select_page(4)
 	if "--arena" in OS.get_cmdline_user_args():
 		instance._open_settings()
@@ -210,7 +212,7 @@ func _capture() -> void:
 	if "--settings" in OS.get_cmdline_user_args(): file_name = "settings"
 	if "--confirm" in OS.get_cmdline_user_args(): file_name = "confirm"
 	if "--midnight" in OS.get_cmdline_user_args(): file_name += "-midnight"
-	for flag in ["arena", "gto-facing", "gto-rows", "home", "home-active", "settings-index", "data-settings", "training-stats", "bet", "menu", "seat", "seat-repeat", "analysis", "detail", "detail-body", "chips", "teach", "ranges", "range-selected", "teaching-settings", "opponents", "opponents-demo", "ratings", "coach", "training", "lesson", "answer", "branch"]:
+	for flag in ["arena", "gto-facing", "gto-rows", "home", "home-active", "settings-index", "data-settings", "training-stats", "training-summary", "bet", "menu", "seat", "seat-repeat", "analysis", "detail", "detail-body", "chips", "teach", "ranges", "range-selected", "teaching-settings", "opponents", "opponents-demo", "ratings", "coach", "training", "lesson", "answer", "branch"]:
 		if "--" + flag in OS.get_cmdline_user_args(): file_name += "-" + flag
 	if instance.portrait: file_name += "-portrait"
 	var error := root.get_texture().get_image().save_png("res://.local/" + file_name + "-preview.png")

@@ -121,7 +121,7 @@ const LESSONS = [
     "id": "price",
     "title": "算清跟注价格",
     "subtitle": "用一个分数，减少昂贵的跟注。",
-    "topic": "跟注犹豫",
+    "topic": "面对下注",
     "questions": [
       {
         "prompt": "面对下注后，桌上已有 60 筹码，你还需跟 20。没有边池。只考虑这次投入，盈亏平衡门槛是多少？",
@@ -179,7 +179,7 @@ const LESSONS = [
     "id": "sizing",
     "title": "下注与加注",
     "subtitle": "分清“加到”与“再加”。",
-    "topic": "加注尺度",
+    "topic": "主动下注",
     "questions": [
       {
         "prompt": "盲注 5 / 10，界面显示“加注到 3 BB”。你本轮此前没有投入，目标总额是多少？",
@@ -237,7 +237,7 @@ const LESSONS = [
     "id": "draw",
     "title": "听牌与风险",
     "subtitle": "把“可能击中”变成合理估计。",
-    "topic": "跟注犹豫",
+    "topic": "面对下注",
     "questions": [
       {
         "prompt": "翻牌时，你的底牌和公共牌中共有四张同一花色的牌。未知牌中还有多少张这个花色的牌？",
@@ -295,7 +295,7 @@ const LESSONS = [
     "id": "range",
     "title": "从单张牌到范围",
     "subtitle": "给对手一组可能的牌。",
-    "topic": "诈唬判断",
+    "topic": "河牌判断",
     "questions": [
       {
         "prompt": "对手在河牌大额下注。只凭这一个动作，哪种说法更可靠？",
@@ -469,7 +469,7 @@ const LESSONS = [
     "id": "texture",
     "title": "看懂牌面结构",
     "subtitle": "先看连接与花色，再考虑尺度。",
-    "topic": "加注尺度",
+    "topic": "主动下注",
     "questions": [
       {
         "prompt": "K♠ 7♦ 2♣ 与 J♥ 10♥ 9♣ 相比，哪个牌面更“湿润”，听牌更多？",
@@ -527,7 +527,7 @@ const LESSONS = [
     "id": "spr",
     "title": "筹码深度与 SPR",
     "subtitle": "把剩余筹码与底池放在一起看。",
-    "topic": "加注尺度",
+    "topic": "主动下注",
     "questions": [
       {
         "prompt": "两人牌局中，有效筹码指什么？",
@@ -643,7 +643,7 @@ const LESSONS = [
     "id": "multiway",
     "title": "多人底池",
     "subtitle": "把每一位仍在局中的对手算进去。",
-    "topic": "跟注犹豫",
+    "topic": "面对下注",
     "questions": [
       {
         "prompt": "相比两人底池，多人底池里一次纯诈唬直接成功的机会通常怎样变化？",

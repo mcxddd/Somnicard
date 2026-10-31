@@ -150,3 +150,93 @@ func suggested_decisions() -> Array:
 	var rows: Array = data.get("decisions", {}).values().duplicate(true)
 	rows.reverse()
 	return rows.slice(0, 12)
+
+## The four practice topics, in the order the training room lists them.
+const TOPICS = ["翻前入池", "面对下注", "主动下注", "河牌判断"]
+
+## Older attempts and course links used other names for the same situations.
+static func topic_name(topic: String) -> String:
+	return {"加注尺度": "主动下注", "跟注犹豫": "面对下注", "诈唬判断": "河牌判断"}.get(topic, topic)
+
+## Collapse the coach's comparison labels into three grades plus "not scored".
+static func grade(feedback: String) -> String:
+	if feedback in ["与建议一致", "参考混合打法"]: return "good"
+	if feedback in ["边缘决策", "同类打法，金额不同", "低频选择"]: return "ok"
+	if feedback == "不同选择": return "miss"
+	return "unscored"
+
+static func position_key(hand: String, point: int) -> String:
+	return hand + ":" + str(point)
+
+## Attempts grouped by position, oldest first. Derived on demand; nothing extra is stored.
+func positions() -> Dictionary:
+	var out = {}
+	for a in data.attempts:
+		var key = position_key(a.hand, int(a.point))
+		if not out.has(key): out[key] = []
+		out[key].append(a)
+	return out
+
+## A missed position comes back until it is answered without a miss twice in a row,
+## and the second of those answers must be on a later day than the first.
+func review_due(today: String = Time.get_date_string_from_system()) -> Array:
+	var due: Array = []
+	var grouped = positions()
+	for key in grouped:
+		var attempts: Array = grouped[key]
+		var grades: Array = attempts.map(func(a): return grade(a.feedback))
+		if "miss" not in grades: continue
+		var streak = 0
+		for i in range(grades.size() - 1, -1, -1):
+			if grades[i] == "miss": break
+			if grades[i] != "unscored": streak += 1
+		var last: Dictionary = attempts[-1]
+		if streak == 0 or (streak == 1 and str(last.date).left(10) < today): due.append({"key": key, "date": last.date})
+	due.sort_custom(func(a, b): return a.date < b.date)
+	return due.map(func(d): return d.key)
+
+## Per-topic mastery over the most recent scored answers.
+func mastery() -> Dictionary:
+	var out = {}
+	for topic in TOPICS: out[topic] = {"attempts": 0, "scored": 0, "kept": 0, "rate": -1.0}
+	var recent = {}
+	for a in data.attempts:
+		var topic = topic_name(a.topic)
+		if not out.has(topic): continue
+		out[topic].attempts += 1
+		var g = grade(a.feedback)
+		if g == "unscored": continue
+		if not recent.has(topic): recent[topic] = []
+		recent[topic].append(g)
+	for topic in recent:
+		var grades: Array = recent[topic].slice(maxi(0, recent[topic].size() - 20))
+		out[topic].scored = grades.size()
+		out[topic].kept = grades.filter(func(g): return g != "miss").size()
+		out[topic].rate = float(out[topic].kept) / grades.size()
+	return out
+
+## Pick a practice set: due reviews first (at most two), then unseen positions from
+## the weakest topics (own hands before fixtures), then the least recently practised.
+func pick(candidates: Array, topic: String = "", count: int = 5, today: String = Time.get_date_string_from_system()) -> Array:
+	var pool: Array = []
+	var seen_keys = {}
+	for c in candidates:
+		var key = position_key(History.hand_id(c.record), int(c.point))
+		if seen_keys.has(key) or (not topic.is_empty() and topic_name(c.topic) != topic): continue
+		seen_keys[key] = true
+		pool.append(c)
+	var grouped = positions()
+	var keyed = func(c): return position_key(History.hand_id(c.record), int(c.point))
+	var due_keys: Array = review_due(today)
+	var due: Array = pool.filter(func(c): return keyed.call(c) in due_keys)
+	due.sort_custom(func(a, b): return due_keys.find(keyed.call(a)) < due_keys.find(keyed.call(b)))
+	var rates = mastery()
+	var fresh: Array = pool.filter(func(c): return not grouped.has(keyed.call(c)))
+	fresh.shuffle()
+	var weight = func(c):
+		var rate: float = rates.get(topic_name(c.topic), {}).get("rate", -1.0)
+		return (1.0 if c.record.get("fixture", false) else 0.0) + (0.6 if rate < 0 else rate)
+	fresh.sort_custom(func(a, b): return weight.call(a) < weight.call(b))
+	var rest: Array = pool.filter(func(c): return grouped.has(keyed.call(c)) and keyed.call(c) not in due_keys)
+	rest.sort_custom(func(a, b): return grouped[keyed.call(a)][-1].date < grouped[keyed.call(b)][-1].date)
+	return (due.slice(0, 2) + fresh + rest + due.slice(2)).slice(0, count)

@@ -3,7 +3,7 @@ extends RefCounted
 const History = preload("res://scripts/poker/history.gd")
 
 static func summary(loaded: Dictionary, filename: String) -> Dictionary:
-	var out = {"file": filename, "id": "", "players": 0, "net": 0, "pot": 0, "big_blind": 1, "valid_result": false, "showdown": false, "all_in": false, "raised": false, "day": "", "search": filename.to_upper()}
+	var out = {"file": filename, "id": "", "players": 0, "net": 0, "pot": 0, "big_blind": 1, "valid_result": false, "showdown": false, "all_in": false, "raised": false, "vpip": false, "pfr": false, "day": "", "search": filename.to_upper()}
 	if not loaded.get("record") is Dictionary: return out
 	var record: Dictionary = loaded.record
 	var stacks = record.get("starting_stacks")
@@ -24,6 +24,9 @@ static func summary(loaded: Dictionary, filename: String) -> Dictionary:
 			if event is Dictionary and event.get("kind") == "action" and event.get("seat") == 0:
 				out.all_in = out.all_in or event.get("all_in") == true
 				out.raised = out.raised or event.get("action") == "raise"
+				if event.get("phase") == "preflop":
+					out.vpip = out.vpip or event.get("action") in ["call", "raise"]
+					out.pfr = out.pfr or event.get("action") == "raise"
 	var saved: String = str(record.get("saved_at", ""))
 	var pattern = RegEx.new()
 	pattern.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}")

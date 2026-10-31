@@ -92,7 +92,7 @@ func step() -> void:
 static func topic(view: Dictionary) -> String:
 	if view.phase == "preflop": return "翻前入池"
 	if view.phase == "river": return "河牌判断"
-	return "面对下注" if view.legal.get("call_amount", 0) > 0 else "加注尺度"
+	return "面对下注" if view.legal.get("call_amount", 0) > 0 else "主动下注"
 
 static func points(rebuilt: Dictionary) -> Array:
 	var found: Array = []

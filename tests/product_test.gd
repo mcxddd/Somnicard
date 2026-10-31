@@ -79,7 +79,10 @@ func run() -> void:
 		_test_review_ui(ui)
 	ui._open_product("academy")
 	ui.learning_center.practice_requested.emit("跟注犹豫")
-	verify(ui.training.visible and not ui.learning_center.visible and ui.training.hub.topic_picker.get_item_text(ui.training.hub.topic_picker.selected) == "面对下注", "course hands off to matching topic")
+	while ui.training.hub.scan_cursor >= 0: await process_frame
+	await process_frame
+	verify(ui.training.visible and not ui.learning_center.visible and ui.training.case_page.visible and ui.training.case_page.queue.all(func(c): return c.topic == "面对下注"), "course hands off straight into a matching topic set")
+	ui.training.store.data.session = {}
 	ui.training.hide(); ui._open_home()
 	ui._open_settings(); ui.settings._select_page(1)
 	ui.settings.controls.sound.select(0)

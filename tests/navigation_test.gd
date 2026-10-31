@@ -70,9 +70,7 @@ func run() -> void:
 		verify(ui.support_center.visible if route == "help" else ui.training.visible if route == "training" else ui.review.visible, "home opens " + route)
 		if route == "training":
 			while ui.training.hub.scan_cursor >= 0: await process_frame
-			for i in range(3):
-				ui.training.hub_buttons[i].pressed.emit()
-				verify(ui.training.hub.hub_pages[i].visible and ui.training.hub.hub_pages.filter(func(p): return p.visible).size() == 1, "training tab has a single purpose")
+			verify(ui.training.hub.home_page.visible and not ui.training.hub.records_page.visible and not ui.training.hub.start_button.disabled, "training opens on its single home page")
 		elif route == "history": verify(ui.review.close_button.text == "返回主界面", "review destination labels its origin")
 		ui.modals.back()
 		verify(ui.home.visible and not ui.training.visible and not ui.review.visible, "destination returns home")
