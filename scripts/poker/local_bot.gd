@@ -5,7 +5,7 @@ const Ranges = preload("res://scripts/poker/range_model.gd")
 const Rank = preload("res://scripts/poker/fast_rank.gd")
 const Sizing = preload("res://scripts/ui/bet_sizing.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
-const VERSION = "opponent-2"
+const VERSION = "opponent-3"
 var samples: Array = []
 var rng := RandomNumberGenerator.new()
 var style: int = 0
@@ -91,7 +91,8 @@ func _preflop(view: Dictionary) -> Dictionary:
 			elif a.action == "call" and raises == 0: limpers += 1
 	var aggression: float = [0.0, -0.055, 0.055][style]
 	var threshold = 0.64
-	if position in ["BTN", "BTN/SB"]: threshold = 0.41 if active == 2 else 0.50
+	# Advanced opens wider heads-up; paired-deck duels showed the standard range folds too much.
+	if position in ["BTN", "BTN/SB"]: threshold = (0.32 if difficulty == 2 else 0.41) if active == 2 else 0.50
 	elif position == "CO": threshold = 0.56
 	elif position == "HJ": threshold = 0.59
 	elif position == "SB": threshold = 0.56
@@ -232,7 +233,7 @@ func _equity(view: Dictionary, opponents: Array) -> float:
 	var total: float = 0.0
 	var square: float = 0.0
 	var uniform: float = 0.0
-	var count: int = [24, 72, 160][difficulty]
+	var count: int = [24, 72, 320][difficulty]
 	samples.clear()
 	var needed = 5 - view.board.size() + opponents.size() * 2
 	for sample in range(count):
