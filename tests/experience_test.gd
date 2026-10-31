@@ -31,7 +31,7 @@ func _run() -> void:
 	ui.screen.amount_input.get_line_edit().text = "3.7"
 	var before = ui.game.view_for(0)
 	ui._open_settings()
-	verify(ui.selected_raise == 37, "typed amount preserved when opening settings")
+	verify(ui.bet.selected_raise == 37, "typed amount preserved when opening settings")
 	ui._human_action("fold")
 	ui._next_hand()
 	ui._bot_step()
@@ -47,7 +47,7 @@ func _run() -> void:
 	ui.settings.controls.confirm_all_in.button_pressed = false
 	ui.settings.apply_button.pressed.emit()
 	verify(not ui.settings.visible and not ui.prefs.use_bb and ui.prefs.speed_index == 2 and ui.prefs.felt_theme == 1, "apply closes and commits selected settings")
-	verify(ui.selected_raise == 37 and ui.screen.amount_input.value == 37 and ui.game.view_for(0) == before, "unit apply keeps exact target and game")
+	verify(ui.bet.selected_raise == 37 and ui.screen.amount_input.value == 37 and ui.game.view_for(0) == before, "unit apply keeps exact target and game")
 	verify(ui.screen.table_view.four_color and ui.review.table_view.four_color and not ui.screen.table_view.motion, "table and review share visuals")
 	verify(not ui.screen.fast_fold.button_pressed and not ui.screen.sidebar.visible and not ui.prefs.confirm_all_in, "all toggles take effect")
 	var applied = ui._settings_values()

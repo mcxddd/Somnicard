@@ -141,15 +141,15 @@ func build_table() -> void:
 	sizing_row.add_child(UI.label("本轮加到", 17, UI.MUTED))
 	amount_input = SpinBox.new()
 	amount_input.custom_minimum_size = Vector2(134, 46)
-	amount_input.value_changed.connect(host._amount_changed)
+	amount_input.value_changed.connect(host.bet.amount_changed)
 	sizing_row.add_child(amount_input)
-	minus_button = UI.button("−1 BB", host._adjust_bb.bind(-1), Color("243a40"), 46)
-	plus_button = UI.button("+1 BB", host._adjust_bb.bind(1), Color("243a40"), 46)
+	minus_button = UI.button("−1 BB", host.bet.adjust_bb.bind(-1), Color("243a40"), 46)
+	plus_button = UI.button("+1 BB", host.bet.adjust_bb.bind(1), Color("243a40"), 46)
 	sizing_row.add_child(minus_button)
 	amount_slider = HSlider.new()
 	amount_slider.custom_minimum_size = Vector2(110, 46)
 	amount_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	amount_slider.value_changed.connect(func(value): host._set_target(int(value)))
+	amount_slider.value_changed.connect(func(value): host.bet.set_target(int(value)))
 	sizing_row.add_child(amount_slider)
 	sizing_row.add_child(plus_button)
 	amount_note = UI.label("", 16, UI.MUTED)
@@ -160,11 +160,11 @@ func build_table() -> void:
 	quick_row.add_theme_constant_override("h_separation", 7)
 	quick_row.add_theme_constant_override("v_separation", 10)
 	controls.add_child(quick_row)
-	add_quick("最小", host._quick_minimum)
+	add_quick("最小", host.bet.quick_minimum)
 	for bb in [2.0, 2.5, 3.0, 4.0]:
-		add_quick(("%.1f" % bb).trim_suffix(".0") + " BB", host._quick_bb.bind(bb))
+		add_quick(("%.1f" % bb).trim_suffix(".0") + " BB", host.bet.quick_bb.bind(bb))
 	for pair in [["⅓ 底池", 1.0 / 3.0], ["½ 底池", 0.5], ["满池", 1.0]]:
-		add_quick(pair[0], host._quick_pot.bind(pair[1]))
+		add_quick(pair[0], host.bet.quick_pot.bind(pair[1]))
 	actions = row(10)
 	controls.add_child(actions)
 	fold_button = UI.button("弃牌", func(): host._human_action("fold"), Color("2e3b42"), 56)
@@ -342,3 +342,95 @@ func add_quick(text: String, callback: Callable) -> void:
 func move(node: Node, parent: Node, index: int) -> void:
 	if node.get_parent() != parent: node.reparent(parent)
 	parent.move_child(node, mini(index, parent.get_child_count() - 1))
+
+func arrange() -> void:
+	if not host.is_inside_tree(): return
+	var previous_focus = host.get_viewport().gui_get_focus_owner()
+	safe_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if OS.has_feature("mobile"):
+		var safe = DisplayServer.get_display_safe_area()
+		var pixels = Vector2(host.get_window().size)
+		var scale_factor = host.size / pixels
+		safe_root.offset_left = maxf(0, safe.position.x) * scale_factor.x
+		safe_root.offset_top = maxf(0, safe.position.y) * scale_factor.y
+		safe_root.offset_right = -maxf(0, pixels.x - safe.end.x) * scale_factor.x
+		safe_root.offset_bottom = -maxf(0, pixels.y - safe.end.y) * scale_factor.y
+	# One portrait surface on every platform. Wide/maximized desktop windows
+	# add side gutters instead of changing the table or expanding its overlays.
+	var available_width = safe_root.size.x
+	var gutter = maxf(0, (available_width - 540) / 2)
+	safe_root.offset_left += gutter
+	safe_root.offset_right -= gutter
+	for edge in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + edge, 12)
+	mark.hide()
+	brand.hide()
+	more_button.show()
+	subhead.hide()
+	move(header, top, 0)
+	advice_button.hide()
+	move(sizing_row, bet_sheet.content, 0)
+	move(amount_note, bet_sheet.content, 1)
+	move(quick_row, bet_sheet.content, 2)
+	move(amount_slider, bet_sheet.content, 3)
+	move(all_in_button, bet_sheet.footer, 0)
+	move(raise_button, bet_sheet.footer, 1)
+	quick_row.columns = 4
+	minus_button.hide()
+	plus_button.hide()
+	bet_open_button.visible = host.game == null or host.game.phase != "complete"
+	for button in [fold_button, call_button, bet_open_button, raise_button, all_in_button]: button.custom_minimum_size.y = 72
+	sidebar.hide()
+	table_view.set_portrait(true)
+	host.settings.set_portrait(true)
+	host.confirmation.set_portrait(true)
+	host.review.set_portrait(true)
+	lobby_welcome.custom_minimum_size.x = 0
+	for i in range(lobby_welcome.get_child_count()): lobby_welcome.get_child(i).visible = i in [0, 1]
+	lobby_note.custom_minimum_size = Vector2(0, 60)
+	if host.game != null: host._refresh()
+	host.modals.sync_focus()
+	if is_instance_valid(previous_focus) and previous_focus.is_visible_in_tree() and previous_focus.focus_mode != Control.FOCUS_NONE:
+		previous_focus.grab_focus()
+
+func update_explanation(view: Dictionary) -> void:
+	if not host.prefs.live_teaching:
+		explanation.text = "对局教学已关闭 · 下方保留公开行动记录。"
+		return
+	if view.phase == "complete":
+		explanation.text = "每人选出最佳五张，逐个结算主池和边池。同牌力平分，多出的零头按庄家左侧顺序分配。\n可向下查看各玩家牌型与分池结果。" if view.result.showdown else "只剩一位玩家未弃牌，无需摊牌即可赢得底池。无人跟注的多余投入已退回。"
+	elif view.actor == 0:
+		var legal = view.legal
+		explanation.text = "可以免费过牌。" if legal.check else "需要跟注 %s。" % host._money(legal.call_amount)
+		explanation.text += "\nBB 是大盲：本桌 1 BB = 10 筹码。快捷档位只选金额，不会自动下注。\n底池比例：先计入跟注，再按比例加注；不足最小加注会自动调整。"
+	else:
+		explanation.text = "电脑按座位顺序独立行动，不共享底牌。金色边框标出当前行动者。\n翻牌前由大盲后第一个玩家行动；翻牌后从庄家左侧开始。\n可切换速度，或暂停后查看记录。"
+
+func update_log(view: Dictionary) -> void:
+	var lines = ["牌局 ID  " + host.History.hand_id(host.game.record_state())]
+	for event in view.events: lines.append(_event_text(event))
+	if view.phase == "complete" and view.result.showdown:
+		for id in view.result.ranks:
+			var rank = view.result.ranks[id]
+			lines.append("%s：%s\n最佳五张 %s" % [view.seats[id].name, rank.name, host._cards_text(rank.cards)])
+		for index in range(view.result.pots.size()):
+			var pot = view.result.pots[index]
+			var shares = []
+			for id in pot.shares: shares.append("%s +%s" % [view.seats[id].name, host._money(pot.shares[id])])
+			lines.append("%s %s：%s" % ["主池" if index == 0 else "边池 %d" % index, host._money(pot.amount), "，".join(shares)])
+	log_view.text = "\n\n".join(lines)
+
+func _event_text(event: Dictionary) -> String:
+	var name_text = host.game.seats[event.seat].name if event.has("seat") else ""
+	match event.kind:
+		"start": return "第 %d 手 · %s 为庄家" % [event.hand, host.game.seats[event.button].name]
+		"blind": return "%s 下盲注 %s" % [name_text, host._money(event.amount)]
+		"action":
+			var text = name_text + " " + host.ACTIONS[event.action]
+			if event.action == "raise": text += "到 " + host._money(event.to)
+			elif event.action == "call": text += " " + host._money(event.paid)
+			if event.all_in: text += "（全押）"
+			return text
+		"street": return "%s  %s" % [host.PHASES[event.phase], host._cards_text(event.board)]
+		"refund": return "%s 收回未被跟注的 %s" % [name_text, host._money(event.amount)]
+		"finish": return "摊牌结算" if event.showdown else "弃牌结束 · 分配底池"
+	return ""

@@ -7,13 +7,14 @@ const TableScreen = preload("res://scripts/ui/table_screen.gd")
 var screen = TableScreen.new()
 const TableStorage = preload("res://scripts/app/table_storage.gd")
 var storage = TableStorage.new()
+const BetControl = preload("res://scripts/app/bet_control.gd")
+var bet = BetControl.new()
 const Table = preload("res://scripts/poker/table.gd")
 const Eval = preload("res://scripts/poker/evaluator.gd")
 const Names = preload("res://scripts/poker/player_names.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
 const LocalBot = preload("res://scripts/poker/local_bot.gd")
 const UI = preload("res://scripts/ui/style.gd")
-const Sizing = preload("res://scripts/ui/bet_sizing.gd")
 const History = preload("res://scripts/poker/history.gd")
 const Review = preload("res://scripts/ui/review.gd")
 const Session = preload("res://scripts/poker/session.gd")
@@ -41,8 +42,6 @@ var bot = LocalBot.new()
 var bot_timer: Timer
 var paused: bool = false
 var smoke_mode: bool = false
-var selected_raise: int = 20
-var decision_key: String = ""
 var mobile_layout: bool = true
 var review
 var resume_button: Button
@@ -70,6 +69,8 @@ func _ready() -> void:
 	screen.host = self
 	storage.host = self
 	add_child(storage)
+	bet.host = self
+	add_child(bet)
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_clear_retired_data()
@@ -81,7 +82,7 @@ func _ready() -> void:
 	layout_ready = true
 	get_window().size_changed.connect(_resize_ui)
 	resized.connect(_resize_ui)
-	_arrange_ui()
+	screen.arrange()
 	get_tree().auto_accept_quit = false
 	get_tree().quit_on_go_back = false
 	_open_home()
@@ -297,7 +298,7 @@ func _start_table(count: int) -> void:
 		game.seats[id]["style"] = bots[id].style_name()
 	_apply_names()
 	storage.saved_hand = -1
-	decision_key = ""
+	bet.decision_key = ""
 	_next_hand()
 
 func _next_hand() -> void:
@@ -311,7 +312,7 @@ func _next_hand() -> void:
 		return
 	opponent_changes = [{"event": 0, "profiles": Profiles.snapshot(opponent_profiles, player_count, difficulty)}]
 	storage.save_status = ""
-	decision_key = ""
+	bet.decision_key = ""
 	_refresh()
 	_schedule_bot()
 
@@ -342,7 +343,7 @@ func _human_action(action: String, amount: int = 0, confirmed: bool = false) -> 
 func _submit_raise() -> void:
 	screen.amount_input.apply()
 	if screen.bet_sheet.visible: screen.bet_sheet.close()
-	_human_action("raise", selected_raise)
+	_human_action("raise", bet.selected_raise)
 
 func _schedule_bot() -> void:
 	bot_timer.stop()
@@ -384,67 +385,6 @@ func _unit_changed(index: int) -> void:
 	_refresh()
 	_save_preferences()
 
-func _quick_bb(bb_amount: float) -> void:
-	if game == null or game.actor != 0: return
-	var requested = roundi(bb_amount * game.big_blind)
-	_set_target(Sizing.from_bb(bb_amount, game.big_blind, game.legal_actions(0)))
-	if selected_raise != requested: screen.amount_note.text += " · 已调整至合法范围"
-
-func _quick_minimum() -> void:
-	if game != null and game.actor == 0:
-		_set_target(game.legal_actions(0).min_raise_to)
-
-func _adjust_bb(delta: int) -> void:
-	if game != null: _set_target(selected_raise + delta * game.big_blind)
-
-func _quick_pot(fraction: float) -> void:
-	if game == null or game.actor != 0: return
-	var view = game.view_for(0)
-	var requested = view.current_bet + roundi((view.pot + view.legal.to_call) * fraction)
-	_set_target(Sizing.from_pot(fraction, view))
-	if selected_raise != requested: screen.amount_note.text += " · 已调整至合法范围"
-
-func _set_target(requested: int) -> void:
-	if game == null or game.actor != 0: return
-	var target = Sizing.clamp_target(requested, game.legal_actions(0))
-	if target == 0: return
-	selected_raise = target
-	_sync_amount()
-	if requested != target: screen.amount_note.text += " · 已调整至合法范围"
-
-func _amount_changed(value: float) -> void:
-	if game == null or game.actor != 0: return
-	_set_target(roundi(value * (game.big_blind if prefs.use_bb else 1)))
-
-func _sync_amount() -> void:
-	var legal = game.legal_actions(0)
-	if legal.is_empty(): return
-	var factor = float(game.big_blind if prefs.use_bb else 1)
-	screen.amount_input.set_block_signals(true)
-	screen.amount_input.step = 1.0 / factor
-	screen.amount_input.suffix = "BB" if prefs.use_bb else ""
-	# Phones open a digit pad; BB amounts also need a decimal point.
-	screen.amount_input.get_line_edit().virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL if prefs.use_bb else LineEdit.KEYBOARD_TYPE_NUMBER
-	screen.amount_input.min_value = mini(legal.min_raise_to, legal.max_raise_to) / factor
-	screen.amount_input.max_value = legal.max_raise_to / factor
-	screen.amount_input.value = selected_raise / factor
-	# SpinBox defers its text refresh. Keep the editor synchronized immediately so
-	# apply() during a rapid unit switch cannot reparse the previous displayed value.
-	screen.amount_input.get_line_edit().text = ("%.1f BB" % (selected_raise / factor)) if prefs.use_bb else str(selected_raise)
-	screen.amount_input.set_block_signals(false)
-	screen.amount_slider.set_block_signals(true)
-	screen.amount_slider.min_value = mini(legal.min_raise_to, legal.max_raise_to)
-	screen.amount_slider.max_value = legal.max_raise_to
-	screen.amount_slider.step = 1
-	screen.amount_slider.value = selected_raise
-	screen.amount_slider.set_block_signals(false)
-	screen.raise_button.text = ("下注 " if game.current_bet == 0 else "加注到 ") + _money(selected_raise)
-	screen.amount_note.text = "本次再投入 " + _money(maxi(0, selected_raise - game.seats[0].street_bet))
-	if not legal.raise:
-		screen.amount_note.text = "当前不可加注；请跟注、过牌或弃牌。"
-		screen.raise_button.text = "不可加注"
-	elif legal.max_raise_to < legal.min_raise_to: screen.amount_note.text = "筹码不足最小加注，仅可全押到 " + _money(legal.max_raise_to)
-
 func _refresh() -> void:
 	if game == null: return
 	var view = game.view_for(0)
@@ -463,8 +403,8 @@ func _refresh() -> void:
 	else: screen.turn_label.text = "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
 	_update_controls(view)
 	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not modals.is_open())
-	_update_explanation(view)
-	_update_log(view)
+	screen.update_explanation(view)
+	screen.update_log(view)
 	storage.save_session()
 	if storage.session_save_error: screen.turn_label.text += " · 当前进度保存失败，请检查存储空间"
 	if settings_status != "": screen.turn_label.text += " · " + settings_status
@@ -504,58 +444,11 @@ func _update_controls(view: Dictionary) -> void:
 		screen.call_button.text = "过牌" if legal.check else ("跟注\n" if portrait else "跟注 ") + _money(legal.call_amount)
 		if legal.call and legal.call_amount == view.seats[0].stack: screen.call_button.text = ("跟注全押\n" if portrait else "跟注全押 ") + _money(legal.call_amount)
 		screen.all_in_button.text = "全押 " + _money(view.seats[0].stack)
-		var key = "%d:%s:%d:%d" % [view.hand, view.phase, view.current_bet, view.seats[0].stack]
-		if key != decision_key:
-			selected_raise = Sizing.clamp_target(legal.min_raise_to, legal)
-			decision_key = key
-		_sync_amount()
+		bet.sync(view)
 		for i in range(screen.quick_buttons.size()):
 			screen.quick_buttons[i].visible = i == 0 or (i in [1, 2, 3] if view.board.is_empty() else i in [5, 6, 7])
 	else:
 		screen.amount_note.text = "等待当前玩家行动 · 快捷按钮仅填入金额，点击加注后才提交"
-
-func _update_explanation(view: Dictionary) -> void:
-	if not prefs.live_teaching:
-		screen.explanation.text = "对局教学已关闭 · 下方保留公开行动记录。"
-		return
-	if view.phase == "complete":
-		screen.explanation.text = "每人选出最佳五张，逐个结算主池和边池。同牌力平分，多出的零头按庄家左侧顺序分配。\n可向下查看各玩家牌型与分池结果。" if view.result.showdown else "只剩一位玩家未弃牌，无需摊牌即可赢得底池。无人跟注的多余投入已退回。"
-	elif view.actor == 0:
-		var legal = view.legal
-		screen.explanation.text = "可以免费过牌。" if legal.check else "需要跟注 %s。" % _money(legal.call_amount)
-		screen.explanation.text += "\nBB 是大盲：本桌 1 BB = 10 筹码。快捷档位只选金额，不会自动下注。\n底池比例：先计入跟注，再按比例加注；不足最小加注会自动调整。"
-	else:
-		screen.explanation.text = "电脑按座位顺序独立行动，不共享底牌。金色边框标出当前行动者。\n翻牌前由大盲后第一个玩家行动；翻牌后从庄家左侧开始。\n可切换速度，或暂停后查看记录。"
-
-func _update_log(view: Dictionary) -> void:
-	var lines = ["牌局 ID  " + History.hand_id(game.record_state())]
-	for event in view.events: lines.append(_event_text(event))
-	if view.phase == "complete" and view.result.showdown:
-		for id in view.result.ranks:
-			var rank = view.result.ranks[id]
-			lines.append("%s：%s\n最佳五张 %s" % [view.seats[id].name, rank.name, _cards_text(rank.cards)])
-		for index in range(view.result.pots.size()):
-			var pot = view.result.pots[index]
-			var shares = []
-			for id in pot.shares: shares.append("%s +%s" % [view.seats[id].name, _money(pot.shares[id])])
-			lines.append("%s %s：%s" % ["主池" if index == 0 else "边池 %d" % index, _money(pot.amount), "，".join(shares)])
-	screen.log_view.text = "\n\n".join(lines)
-
-func _event_text(event: Dictionary) -> String:
-	var name_text = game.seats[event.seat].name if event.has("seat") else ""
-	match event.kind:
-		"start": return "第 %d 手 · %s 为庄家" % [event.hand, game.seats[event.button].name]
-		"blind": return "%s 下盲注 %s" % [name_text, _money(event.amount)]
-		"action":
-			var text = name_text + " " + ACTIONS[event.action]
-			if event.action == "raise": text += "到 " + _money(event.to)
-			elif event.action == "call": text += " " + _money(event.paid)
-			if event.all_in: text += "（全押）"
-			return text
-		"street": return "%s  %s" % [PHASES[event.phase], _cards_text(event.board)]
-		"refund": return "%s 收回未被跟注的 %s" % [name_text, _money(event.amount)]
-		"finish": return "摊牌结算" if event.showdown else "弃牌结束 · 分配底池"
-	return ""
 
 func _money(chips: int) -> String:
 	return UI.money(chips, game.big_blind, prefs.use_bb)
@@ -695,7 +588,7 @@ func _resume_session() -> void:
 	storage.saved_hand = int(rebuilt.record.saved_hand)
 	storage.save_status = "记录已保存" if storage.saved_hand == game.hand_number else ""
 	storage.session_stamp = ""
-	decision_key = ""
+	bet.decision_key = ""
 	bots.clear()
 	for id in range(1, player_count):
 		var p = Profiles.resolve(opponent_profiles, id, difficulty)
@@ -845,56 +738,7 @@ func _resize_ui() -> void:
 	# Resizing preserves the amount being edited and never submits it.
 	if game != null and game.actor == 0: screen.amount_input.apply()
 	_update_scale()
-	call_deferred("_arrange_ui")
-
-func _arrange_ui() -> void:
-	if not is_inside_tree(): return
-	var previous_focus = get_viewport().gui_get_focus_owner()
-	screen.safe_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	if OS.has_feature("mobile"):
-		var safe = DisplayServer.get_display_safe_area()
-		var pixels = Vector2(get_window().size)
-		var scale_factor = size / pixels
-		screen.safe_root.offset_left = maxf(0, safe.position.x) * scale_factor.x
-		screen.safe_root.offset_top = maxf(0, safe.position.y) * scale_factor.y
-		screen.safe_root.offset_right = -maxf(0, pixels.x - safe.end.x) * scale_factor.x
-		screen.safe_root.offset_bottom = -maxf(0, pixels.y - safe.end.y) * scale_factor.y
-	# One portrait surface on every platform. Wide/maximized desktop windows
-	# add side gutters instead of changing the table or expanding its overlays.
-	var available_width = screen.safe_root.size.x
-	var gutter = maxf(0, (available_width - 540) / 2)
-	screen.safe_root.offset_left += gutter
-	screen.safe_root.offset_right -= gutter
-	for edge in ["left", "right", "top", "bottom"]: screen.margin.add_theme_constant_override("margin_" + edge, 12)
-	screen.mark.hide()
-	screen.brand.hide()
-	screen.more_button.show()
-	screen.subhead.hide()
-	screen.move(screen.header, screen.top, 0)
-	screen.advice_button.hide()
-	screen.move(screen.sizing_row, screen.bet_sheet.content, 0)
-	screen.move(screen.amount_note, screen.bet_sheet.content, 1)
-	screen.move(screen.quick_row, screen.bet_sheet.content, 2)
-	screen.move(screen.amount_slider, screen.bet_sheet.content, 3)
-	screen.move(screen.all_in_button, screen.bet_sheet.footer, 0)
-	screen.move(screen.raise_button, screen.bet_sheet.footer, 1)
-	screen.quick_row.columns = 4
-	screen.minus_button.hide()
-	screen.plus_button.hide()
-	screen.bet_open_button.visible = game == null or game.phase != "complete"
-	for button in [screen.fold_button, screen.call_button, screen.bet_open_button, screen.raise_button, screen.all_in_button]: button.custom_minimum_size.y = 72
-	screen.sidebar.hide()
-	screen.table_view.set_portrait(true)
-	settings.set_portrait(true)
-	confirmation.set_portrait(true)
-	review.set_portrait(true)
-	screen.lobby_welcome.custom_minimum_size.x = 0
-	for i in range(screen.lobby_welcome.get_child_count()): screen.lobby_welcome.get_child(i).visible = i in [0, 1]
-	screen.lobby_note.custom_minimum_size = Vector2(0, 60)
-	if game != null: _refresh()
-	modals.sync_focus()
-	if is_instance_valid(previous_focus) and previous_focus.is_visible_in_tree() and previous_focus.focus_mode != Control.FOCUS_NONE:
-		previous_focus.grab_focus()
+	screen.call_deferred("arrange")
 
 func _open_bet() -> void:
 	if game == null or paused or modals.is_open() or not game.legal_actions(0).get("raise", false): return
