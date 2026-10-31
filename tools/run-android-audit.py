@@ -1,6 +1,6 @@
 """Run the isolated audit APK on an already running, explicitly named test emulator."""
 from pathlib import Path
-import subprocess,json,time,sys
+import os,subprocess,json,time,sys
 root=Path(__file__).resolve().parent.parent
 serial=sys.argv[1]
 assert serial in ['emulator-5554','emulator-5556']
@@ -8,7 +8,7 @@ folder=root/'.local/android-audit'/('api36' if serial.endswith('5554') else 'api
 folder.mkdir(exist_ok=True)
 port=int(sys.argv[2]) if len(sys.argv)>2 else 5037
 assert port in [5037,5038]
-adb=[str(Path.home()/'AppData/Local/Android/Sdk/platform-tools/adb.exe'),'-H','127.0.0.1','-P',str(port),'-s',serial]
+adb=[str(Path(os.environ.get('ANDROID_HOME', str(Path.home()/'DevTools/Android/Sdk')))/'platform-tools/adb.exe'),'-H','127.0.0.1','-P',str(port),'-s',serial]
 package='com.somnicard.audit'
 def call(*args,check=True):
     return subprocess.run(adb+list(args),check=check,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=45)

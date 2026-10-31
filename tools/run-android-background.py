@@ -7,6 +7,7 @@ Requires Pillow. Example: python tools/run-android-background.py emulator-5554 5
 from pathlib import Path
 import hashlib
 import io
+import os
 import json
 import subprocess
 import sys
@@ -18,7 +19,7 @@ serial = sys.argv[1]
 assert serial in ['emulator-5554', 'emulator-5556']
 port = int(sys.argv[2]) if len(sys.argv) > 2 else 5037
 assert port in [5037, 5038]
-adb = [str(Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'),
+adb = [str(Path(os.environ.get('ANDROID_HOME', str(Path.home()/'DevTools/Android/Sdk')))/'platform-tools/adb.exe'),
        '-H', '127.0.0.1', '-P', str(port), '-s', serial]
 package = sys.argv[3] if len(sys.argv) > 3 else 'com.somnicard.practice'
 assert package in ['com.somnicard.practice', 'com.somnicard.game', 'com.somnicard.background']

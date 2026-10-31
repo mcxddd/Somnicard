@@ -5,7 +5,7 @@ import os, re, shutil, zipfile
 root = Path(__file__).resolve().parent.parent
 build = root / 'android/build'
 if not (build / 'build.gradle').exists():
-    template = Path(os.environ['APPDATA']) / 'Godot/export_templates/4.7.2.stable/android_source.zip'
+    template = Path.home() / 'DevTools/Godot/4.7.2/editor_data/export_templates/4.7.2.stable/android_source.zip'
     build.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(template) as archive:
         archive.extractall(build)

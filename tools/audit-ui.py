@@ -3,7 +3,7 @@ from pathlib import Path
 import os, shutil, subprocess, time
 import sys
 root=Path(__file__).resolve().parent.parent
-godot=Path(os.environ.get('SOMNICARD_GODOT', str(Path(os.environ['LOCALAPPDATA'])/'Programs/Godot/4.7.2/Godot_v4.7.2-stable_win64_console.exe')))
+godot=Path(os.environ.get('SOMNICARD_GODOT', str(Path.home()/'DevTools/Godot/4.7.2/Godot_v4.7.2-stable_win64_console.exe')))
 output=root/'.local/audit-ui'
 output.mkdir(parents=True,exist_ok=True)
 cases=[
