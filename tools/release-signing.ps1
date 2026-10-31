@@ -1,9 +1,12 @@
 param(
-    [Parameter(Mandatory=$true)][ValidateSet('Create','Build')][string]$Action
+    [Parameter(Mandatory=$true)][ValidateSet('Create','Check','Build')][string]$Action,
+    [string]$SigningDirectory = $env:SOMNICARD_SIGNING_DIR
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/common.ps1"
-$signingDirectory = Join-Path $env:LOCALAPPDATA 'Somnicard/signing'
+# Keep signing material outside AppData: packaged apps may redirect that directory.
+if (-not $SigningDirectory) { $SigningDirectory = Join-Path $env:USERPROFILE '.somnicard/signing' }
+$signingDirectory = [System.IO.Path]::GetFullPath($SigningDirectory)
 $keyFile = Join-Path $signingDirectory 'somnicard-release.p12'
 $passwordFile = Join-Path $signingDirectory 'password.dpapi'
 $javaBin = Join-Path $env:LOCALAPPDATA 'Programs/Java/jdk-21.0.12.1+1/bin'
@@ -33,15 +36,24 @@ if ($Action -eq 'Create') {
     exit
 }
 if (-not (Test-Path -LiteralPath $keyFile) -or -not (Test-Path -LiteralPath $passwordFile)) { throw 'Dedicated signing material has not been created.' }
-$protectedPassword = (Get-Content -LiteralPath $passwordFile -Raw).Trim() | ConvertTo-SecureString
+$protectedPassword = (Get-Content -LiteralPath $passwordFile -Raw -Encoding UTF8).Trim() | ConvertTo-SecureString
 $env:GODOT_ANDROID_KEYSTORE_RELEASE_PATH = $keyFile
 $env:GODOT_ANDROID_KEYSTORE_RELEASE_USER = 'somnicard'
 $env:GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD = [System.Net.NetworkCredential]::new('', $protectedPassword).Password
 $previousJavaHome = $env:JAVA_HOME
 try {
     $env:JAVA_HOME = Split-Path -Parent $javaBin
-    python "$PSScriptRoot/build-release.py" --identity standalone --engine $GodotExe
-    if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
+    if ($Action -eq 'Check') {
+        $details = & $keytool -list -v -storetype PKCS12 -keystore $keyFile -alias somnicard -storepass:env GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD 2>&1
+        if ($LASTEXITCODE -ne 0) { throw 'Signing key check failed.' }
+        $certificate = [regex]::Match(($details -join "`n"), 'SHA256:\s*([a-fA-F0-9:]{64,95})')
+        if (-not $certificate.Success) { throw 'Signing certificate SHA-256 not found.' }
+        Write-Output ('Certificate SHA-256: ' + $certificate.Groups[1].Value.Replace(':', '').ToLowerInvariant())
+        Write-Output 'Signing key and saved password are usable. No APK was built.'
+    } else {
+        python "$PSScriptRoot/build-release.py" --identity standalone --engine $GodotExe
+        if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
+    }
 } finally {
     Remove-Item Env:GODOT_ANDROID_KEYSTORE_RELEASE_PATH -ErrorAction SilentlyContinue
     Remove-Item Env:GODOT_ANDROID_KEYSTORE_RELEASE_USER -ErrorAction SilentlyContinue

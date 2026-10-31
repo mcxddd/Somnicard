@@ -62,7 +62,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\export-android.ps1
 | `native/android/` | Android 渲染生命周期修复 |
 | `tests/` | 规则 / UI 回归和隔离安卓测试入口 |
 | `tools/` | 构建、资源生成、截屏、测试及发布核验 |
-| `site/` | 保留的站点打包测试素材；线上官网由服务器侧生成 |
+| `site/` | 保留的站点打包测试素材；线上官网在服务器管理工作区构建后上传 |
 
 桌面数据位于 `%APPDATA%/Godot/app_userdata/Somnicard`；Android 数据属于各自安装包。完整备份包含隐藏底牌，请妥善保存。设备设置与当前普通牌桌不包含在学习备份里。游戏不联网，所有记录只保存在本机。
 

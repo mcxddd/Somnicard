@@ -1,6 +1,6 @@
 # 本机开发环境
 
-检查日期：2026-10-21。
+初始环境检查日期：2026-10-21；工具路径与正式签名目录更新：2026-10-31。下方早期 APK 测试记录保留原版本，当前发布状态见 [发布工程](release-engineering.md)。
 
 ## 已验证工具
 
@@ -24,9 +24,11 @@ Godot 编辑器设置已自动识别 JDK 和 Android SDK，保存在 `%USERPROFI
 
 2026-10-31：工具链从 AppData 迁到 `%USERPROFILE%\DevTools`。原因是 Codex 桌面应用（MSIX）会把对 AppData 的写入重定向到它的私有目录，导致不同软件看到不同的 SDK、模板和签名；DevTools 不受这种重定向影响。用户环境变量 `ANDROID_HOME` 与 PATH 中的 SDK 路径已同步更新。
 
+2026-10-31：正式签名的工作目录统一为 `%USERPROFILE%\.somnicard\signing`，避免桌面应用对 AppData 的重定向。使用 `tools/release-signing.ps1 -Action Check` 检查密钥与密码，并与 [发布工程](release-engineering.md) 中的正式证书指纹核对。不要将签名文件放进项目仓库。
+
 安卓导出使用内置模板，无需本轮安装 NDK、CMake 或配置 Gradle。未来使用原生插件或自定义 Gradle 构建时再核对所需组件。
 
-## 验证结果
+## 初始环境验证结果（0.0.1 历史记录）
 
 - 资源导入完成，无脚本解析错误。
 - 无窗口启动检查通过，测试发牌回调正常。
@@ -38,10 +40,10 @@ Godot 编辑器设置已自动识别 JDK 和 Android SDK，保存在 `%USERPROFI
 - Manifest 包含主界面的启动别名与 MAIN / LAUNCHER intent。
 - 未检测到连接的安卓设备，尚未进行真机安装、触屏或性能验证。
 
-## 下一次开始
+## 初始环境的后续验证步骤（历史记录）
 
 1. 运行 README 中的编辑器命令，在 Godot 中按 F5。
-2. 当前版本已进入完整双人牌桌，使用跟注/加注等按钮开始练习。
+2. 当时版本已进入完整双人牌桌，使用跟注/加注等按钮开始练习。
 3. 连接安卓手机并授权 USB 调试，安装 APK 验证设备。
 
 ## 0.1.0 完整牌局更新
@@ -50,7 +52,7 @@ Godot 编辑器设置已自动识别 JDK 和 Android SDK，保存在 `%USERPROFI
 
 ## 0.2.0 多人牌桌更新（2026-10-22）
 
-当前 APK 为 versionCode 3 / versionName 0.2.0，57,075,580 字节。已重新导出并通过签名校验，确认包含三个新的 UI 模块，且未包含 tests、tools、docs 或 .local 调试资源。
+该阶段 APK 为 versionCode 3 / versionName 0.2.0，57,075,580 字节。已重新导出并通过签名校验，确认包含三个新的 UI 模块，且未包含 tests、tools、docs 或 .local 调试资源。
 
 最后一轮完整检查：270 手规则模拟、8,149 项规则检查、25 项原有 UI 集成检查、24 手牌局的 1,253 项多人 UI 检查以及启动检查均通过。多人 UI 检查数量会随随机发牌和行动次数变化。另已运行收起侧栏的手机布局测试。
 

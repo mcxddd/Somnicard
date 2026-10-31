@@ -10,7 +10,7 @@
 - 增加发牌、筹码入池与分池动画，支持关闭动效与省电模式。
 - 学习路线扩展为 12 课 60 题，加入错题复习与进度备份。
 - 正式发布采用专用签名与新包名 `com.somnicard.game`，可与试用版并存，通过备份迁移记录。
-- 下载地址迁移至官网 `https://somnicard.nightricecake.com/`，安装包路径为 `/download/<文件名>`，同时准备 GitHub Releases 发布。
+- 下载地址迁移至官网 `https://somnicard.nightricecake.com/`，安装包路径为 `/download/<文件名>`；2026-10-31 已发布 [GitHub v2.1.0 Release](https://github.com/mcxddd/Somnicard/releases/tag/v2.1.0)，并按用户决定公开源码。
 
 ## 2.0.x
 

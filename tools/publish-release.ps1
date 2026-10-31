@@ -3,7 +3,7 @@ param(
 	[string]$Version
 )
 . "$PSScriptRoot/common.ps1"
-$preset = Get-Content -LiteralPath (Join-Path $ProjectRoot 'export_presets.cfg') -Raw
+$preset = Get-Content -LiteralPath (Join-Path $ProjectRoot 'export_presets.cfg') -Raw -Encoding UTF8
 $versionMatch = [regex]::Match($preset, '(?m)^version/name="([\d.]+)"\r?$')
 if (-not $versionMatch.Success) { throw 'Export version/name not found.' }
 $exportVersion = $versionMatch.Groups[1].Value
@@ -13,7 +13,7 @@ $apk = Join-Path $ProjectRoot "builds/android/somnicard-$Version-release.apk"
 $checksumFile = "$apk.sha256"
 
 if ($Stage -eq 'Build') {
-	$project = Get-Content -LiteralPath (Join-Path $ProjectRoot 'project.godot') -Raw
+	$project = Get-Content -LiteralPath (Join-Path $ProjectRoot 'project.godot') -Raw -Encoding UTF8
 	$projectVersion = [regex]::Match($project, '(?m)^config/version="([\d.]+)"\r?$').Groups[1].Value
 	if ($Version -ne $exportVersion -or $Version -ne $projectVersion) { throw 'Build version must match project.godot and export_presets.cfg.' }
 	& "$PSScriptRoot/check.ps1"
@@ -39,7 +39,7 @@ if ($Stage -eq 'Build') {
 
 if (-not (Test-Path -LiteralPath $apk -PathType Leaf) -or -not (Test-Path -LiteralPath $checksumFile -PathType Leaf)) { throw 'Release APK and .sha256 must already exist.' }
 $digest = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
-$checksum = [regex]::Match((Get-Content -LiteralPath $checksumFile -Raw).Trim(), '^([a-fA-F0-9]{64})\s+\*?([^\r\n]+)$')
+$checksum = [regex]::Match((Get-Content -LiteralPath $checksumFile -Raw -Encoding UTF8).Trim(), '^([a-fA-F0-9]{64})\s+\*?([^\r\n]+)$')
 if (-not $checksum.Success -or $checksum.Groups[1].Value.ToLowerInvariant() -ne $digest -or $checksum.Groups[2].Value -cne (Split-Path -Leaf $apk)) { throw 'Release checksum or filename does not match APK.' }
 Write-Output "APK: $apk"
 Write-Output "Bytes: $((Get-Item -LiteralPath $apk).Length)"
@@ -49,7 +49,7 @@ if ($Stage -eq 'Github') {
 	$ghCommand = Get-Command gh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 	$gh = if ($ghCommand) { $ghCommand.Source } else { Join-Path $env:USERPROFILE 'DevTools/gh/bin/gh.exe' }
 	if (-not (Test-Path -LiteralPath $gh -PathType Leaf)) { throw 'GitHub CLI not found in PATH or DevTools/gh/bin.' }
-	$notes = Get-Content -LiteralPath (Join-Path $ProjectRoot "docs/release-notes/$Version.md") -Raw
+	$notes = Get-Content -LiteralPath (Join-Path $ProjectRoot "docs/release-notes/$Version.md") -Raw -Encoding UTF8
 	if ($notes -notmatch '(?m)^SHA-256: <pending>\r?$') { throw 'Release notes must contain the SHA-256 placeholder line.' }
 	$notes = [regex]::Replace($notes, '(?m)^SHA-256: <pending>\r?$', "SHA-256: $digest")
 	$tempDirectory = Join-Path $ProjectRoot '.local/tmp'

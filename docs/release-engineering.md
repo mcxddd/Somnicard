@@ -10,19 +10,30 @@ Android 原位更新必须保持包名和签名证书。旧试用版使用 `com.
 
 参考：[Android 应用签名](https://developer.android.com/studio/publish/app-signing)、[Godot Android 导出](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html)。
 
+## 2.1.0 发布记录（2026-10-31）
+
+- 源码已发布到 [GitHub 公开仓库](https://github.com/mcxddd/Somnicard)，使用 MIT 许可；[v2.1.0 Release](https://github.com/mcxddd/Somnicard/releases/tag/v2.1.0) 附正式 APK 和校验文件。
+- 官网、GitHub 与本地 APK 的 SHA-256 均为 `ed40594cfe7a7b36834120fca416278086663520bfe2b2319b618bbeef6782f8`，大小 52,809,132 字节；官网尾部 Range 下载已核对。
+- 正式签名证书 SHA-256：`0914a27626aa5e6375e925438dcdad64a2502d9cffc9133a799002b8c9509eb2`。后续版本应与此指纹核对，不要重新生成正式密钥。
+- 交接记录中的 Release 模拟器验收包含首页、开桌、发牌和下注；尚无 2.1.0 的完整真机验收记录。备份迁移、文件选择、后台恢复、震动和不同手机 GPU 仍需真机验收。
+- 本次后续维护仅修复发布工具和文档，不重建或替换已发布 APK，也不移动 `v2.1.0` 标签。
+
 ## 本地工具
 
 - `tools/publish-release.ps1 -Stage Build|Github [-Version 2.1.0]`：默认读取 `export_presets.cfg` 的 `version/name`；Build 检查、签名构建并核验，Github 推送版本标签并创建 GitHub Release。
-- `tools/release-signing.ps1 -Action Create`：仅用于首次准备正式签名；已有签名不得重复创建。将随机密码通过 Windows 当前用户 DPAPI 保存，在 `%LOCALAPPDATA%/Somnicard/signing` 创建 RSA 3072 位 PKCS#12 密钥，限制目录 ACL，永不覆盖已有文件。
+- `tools/release-signing.ps1 -Action Create`：仅用于首次准备正式签名；本项目已有正式密钥，丢失时应恢复备份，不得重新创建。将随机密码通过 Windows 当前用户 DPAPI 保存，在 `%USERPROFILE%/.somnicard/signing` 创建 RSA 3072 位 PKCS#12 密钥，限制目录 ACL，永不覆盖已有文件。
+- `tools/release-signing.ps1 -Action Check`：验证保存的密码能够打开密钥，并输出公开证书指纹；不构建或上传 APK。对照上面的正式证书指纹核验。
 - `tools/release-signing.ps1 -Action Build`：解密到当前进程内存，通过 Godot 指定环境变量提供签名；内部调用 `tools/build-release.py --identity standalone --engine <Godot>`，结束时清除环境变量。密码不进入命令行或导出配置。
 - `tools/build-release.py --identity standalone|upgrade --engine <Godot>`：复制发布白名单到隔离目录，用 `--export-release` 导出，生成源码和 APK 指纹清单。正式发布使用 standalone；upgrade 仅供保留旧包名的流程，由调用方提供原证书环境变量。
 - `tools/verify-release.py <APK> --build-tools <SDK build-tools目录> --package com.somnicard.game --certificate <公钥证书SHA-256>`：检查非调试、签名 v2、版本、ABI、最小 SDK、权限、CRC、ZIP 与原生库 16 KB 对齐、开发文件排除；成功才写 `.verified.json` 与 `<APK>.sha256`。
 
-Build Tools 固定使用 `%USERPROFILE%/DevTools/Android/Sdk/build-tools/36.0.0`。GitHub CLI 优先使用 PATH 中的 `gh`，否则使用 `%USERPROFILE%/DevTools/gh/bin/gh.exe`；运行 Github 阶段前需完成登录，且 origin 指向目标 GitHub 仓库。
+签名目录默认使用 `%USERPROFILE%/.somnicard/signing`，不依赖 AppData 或某个应用的数据目录。需要指定其他已有签名目录时，使用 `-SigningDirectory <目录>` 或环境变量 `SOMNICARD_SIGNING_DIR`。目录内必须有 `somnicard-release.p12` 和当前 Windows 用户可解密的 `password.dpapi`。迁移后先运行 Check，不要用 Create 来解决路径缺失。
+
+Build Tools 固定使用 `%USERPROFILE%/DevTools/Android/Sdk/build-tools/36.0.0`。GitHub CLI 优先使用 PATH 中的 `gh`，否则使用 `%USERPROFILE%/DevTools/gh/bin/gh.exe`；运行 Github 阶段前需完成登录，且 origin 指向目标 GitHub 仓库。发布脚本显式按 UTF-8 读取中文版本说明，兼容 Windows PowerShell 5.1 和 PowerShell 7。
 
 DPAPI 文件与 Windows 身份绑定，不等同于跨机器备份。维护者应另行保存可恢复的加密密钥及密码到离线备份 / 密码管理器；不要将密码粘贴到聊天、网站、Git 或发布日志。尚未建立恢复备份时应明确记录。
 
-`site/` 与 `tools/prepare-site.py` 仍被 `tests/release_tools_test.py` 的站点打包测试使用，因此保留。线上官网由服务器侧生成，不使用本仓库的站点生成工具；失效 nginx 配置已移除。
+`site/` 与 `tools/prepare-site.py` 仍被 `tests/release_tools_test.py` 的站点打包测试使用，因此保留。线上官网在电脑上的服务器管理工作区构建后上传，不使用本仓库的站点生成工具；失效 nginx 配置已移除。
 
 ## 发布步骤
 
