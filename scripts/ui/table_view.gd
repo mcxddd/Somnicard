@@ -3,6 +3,7 @@ signal seat_selected(id: int)
 ## Responsive felt and clockwise seat layout, with the human fixed at the bottom.
 const UI = preload("res://scripts/ui/style.gd")
 const Eval = preload("res://scripts/poker/evaluator.gd")
+const Motion = preload("res://scripts/ui/table_motion.gd")
 const Card = preload("res://scripts/ui/card_view.gd")
 const Badge = preload("res://scripts/ui/seat_badge.gd")
 const Money = preload("res://scripts/ui/money_display.gd")
@@ -28,7 +29,15 @@ var result_label: Label
 var view: Dictionary = {}
 var felt_theme: int = 0
 var four_color: bool = false
-var motion: bool = true
+var effects: bool = false:
+	set(value):
+		effects = value
+		if not effects: _stop_motion()
+var motion: bool = true:
+	set(value):
+		motion = value
+		if not motion: _stop_motion()
+var motion_layer
 var display_bb: bool = true
 var display_paused: bool = false
 var portrait: bool = false
@@ -54,9 +63,24 @@ func _ready() -> void:
 	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_label.custom_minimum_size.y = 24
 	center.add_child(result_label)
+	motion_layer = Motion.new()
+	add_child(motion_layer)
+	motion_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	visibility_changed.connect(func():
+		if not is_visible_in_tree(): _stop_motion())
 	resized.connect(_layout)
 
 func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> void:
+	var previous = view
+	var new_hand = previous.is_empty() or previous.hand != new_view.hand
+	if new_hand or seat_nodes.size() != new_view.seats.size() or not effects or not motion: _stop_motion()
+	var collecting = []
+	var animate = effects and motion and is_visible_in_tree()
+	var new_phase = not previous.is_empty() and not new_hand and previous.phase != new_view.phase
+	if animate and new_phase:
+		for seat in previous.seats:
+			if seat.street_bet > 0 and seat.id < seat_nodes.size():
+				collecting.append(seat_nodes[seat.id].bet.get_global_rect().get_center() - motion_layer.global_position)
 	view = new_view
 	display_bb = use_bb
 	display_paused = paused
@@ -93,6 +117,7 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		node.bet.visible = seat.street_bet > 0 and view.phase != "complete"
 		for card_index in range(2):
 			var card = node.cards[card_index]
+			card.modulate.a = 0.0 if motion_layer.pending.has(card) else 1.0
 			card.motion = motion
 			card.set_card(seat.hole[card_index] if not seat.hole.is_empty() else -1 if seat.in_hand else -2, four_color)
 		node.stack.set_amount(seat.stack, view.big_blind, use_bb)
@@ -146,6 +171,26 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		result_label.modulate.a = 1.0
 		for entry in seat_nodes: entry.status.modulate.a = 1.0
 	_layout()
+	if animate:
+		if new_hand and not view.seats[0].hole.is_empty():
+			var order = []
+			for offset in range(1, view.seats.size() + 1):
+				var id = (view.button + offset) % view.seats.size()
+				if view.seats[id].in_hand: order.append(id)
+			for round_index in range(2):
+				for index in range(order.size()):
+					motion_layer.deal(seat_nodes[view.button].panel, seat_nodes[order[index]].cards[round_index], (round_index * order.size() + index) * 0.05)
+		for origin in collecting: motion_layer.chips("collect", origin, pot_label, 0.28)
+		if new_phase and view.phase == "complete":
+			for id in view.result.payouts:
+				if view.result.payouts[id] > 0:
+					motion_layer.chips("payout", pot_label, seat_nodes[id].panel, 0.4, 0.28 if not collecting.is_empty() else 0.0)
+		motion_layer.set_actor(seat_nodes[view.actor].panel if view.phase != "complete" and view.actor >= 0 else null, paused)
+
+func _stop_motion() -> void:
+	if motion_layer != null: motion_layer.clear()
+	for seat in seat_nodes:
+		for card in seat.cards: card.modulate.a = 1.0
 
 func _make_seat() -> Dictionary:
 	var panel = UI.panel(Color("10282c"), 10, 6)
@@ -153,6 +198,7 @@ func _make_seat() -> Dictionary:
 	var id = seat_nodes.size()
 	var bet = BetMarker.new()
 	add_child(bet)
+	move_child(motion_layer, -1)
 	panel.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			seat_selected.emit(id))
@@ -198,6 +244,7 @@ func _pass_input(node: Control) -> void:
 		if child is Control: _pass_input(child)
 
 func set_portrait(value: bool) -> void:
+	_stop_motion()
 	portrait = value
 	custom_minimum_size = Vector2(0, 580) if portrait else Vector2(850, 490)
 	if not view.is_empty(): update_table(view, display_bb, display_paused)
@@ -380,16 +427,6 @@ func _oval(middle: Vector2, radii: Vector2) -> PackedVector2Array:
 	var points = PackedVector2Array()
 	for i in range(128): points.append(middle + Vector2.from_angle(TAU * i / 128.0) * radii)
 	return points
-
-func _chips(at: Vector2, color: Color, count: int) -> void:
-	for layer in range(count):
-		var middle = at + Vector2(layer * 2, -layer * 4)
-		draw_colored_polygon(_oval(middle + Vector2(0, 3), Vector2(14, 8)), color.darkened(0.65))
-		draw_colored_polygon(_oval(middle, Vector2(14, 8)), color.darkened(0.25))
-		draw_polyline(_oval(middle, Vector2(10, 5)), color.lightened(0.1), 1.0, true)
-		for i in range(6):
-			var direction = Vector2.from_angle(i * TAU / 6)
-			draw_line(middle + direction * Vector2(11, 6), middle + direction * Vector2(14, 8), UI.TEXT, 2, true)
 
 func _card(card: int) -> Control:
 	var node = Card.new()

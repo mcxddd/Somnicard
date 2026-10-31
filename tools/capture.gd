@@ -12,12 +12,17 @@ func _capture() -> void:
 	instance.smoke_mode = true
 	var target = "preflop"
 	var players = 2
+	var motion_frame = -1.0
 	var capture_lobby = "--home" in OS.get_cmdline_user_args()
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture-state="):
 			target = arg.trim_prefix("--capture-state=")
 		if arg.begins_with("--players="): players = int(arg.trim_prefix("--players="))
 		if arg == "--lobby": capture_lobby = true
+		if arg.begins_with("--motion-frame="): motion_frame = float(arg.trim_prefix("--motion-frame="))
+	if motion_frame >= 0.0:
+		await _capture_motion(instance, players, target, motion_frame)
+		return
 	instance._select_count(players)
 	if not capture_lobby: instance._start_table(players)
 	elif "--home" not in OS.get_cmdline_user_args(): instance._open_lobby()
@@ -208,4 +213,29 @@ func _capture() -> void:
 		if "--" + flag in OS.get_cmdline_user_args(): file_name += "-" + flag
 	if instance.portrait: file_name += "-portrait"
 	var error := root.get_texture().get_image().save_png("res://.local/" + file_name + "-preview.png")
+	quit(error)
+
+func _capture_motion(instance, players: int, target: String, seconds: float) -> void:
+	instance.screen.table_view.set_preferences(instance.prefs.felt_theme, instance.prefs.four_color, true)
+	for frame in range(24): await process_frame
+	instance._start_table(players)
+	if target != "preflop":
+		await create_timer(1.2).timeout
+		while instance.game.phase != target and instance.game.phase != "complete":
+			var legal = instance.game.legal_actions(instance.game.actor)
+			if target == "complete" and instance.game.phase == "river" and instance.game.current_bet == 0:
+				instance.game.act(instance.game.actor, "raise", legal.min_raise_to)
+			else: instance.game.act(instance.game.actor, "check" if legal.check else "call")
+			instance._refresh()
+	await create_timer(seconds).timeout
+	await RenderingServer.frame_post_draw
+	var layer = instance.screen.table_view.motion_layer
+	var visible_flights = layer.flights.filter(func(f): return f.age >= 0.0 and f.age < f.duration)
+	if visible_flights.is_empty():
+		printerr("No visible motion at capture time")
+		quit(1)
+		return
+	DirAccess.make_dir_recursive_absolute("res://.local/motion-shots")
+	var error = root.get_texture().get_image().save_png("res://.local/motion-shots/%d-%s.png" % [players, target])
+	print("MOTION_CAPTURE: %s, %d visible flights" % [target, visible_flights.size()])
 	quit(error)

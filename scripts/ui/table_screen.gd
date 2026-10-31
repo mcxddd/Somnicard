@@ -117,9 +117,10 @@ func build_table() -> void:
 	main.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(main)
 	table_view = TableView.new()
+	table_view.effects = true
 	table_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(table_view)
-	table_view.set_preferences(host.prefs.felt_theme, host.prefs.four_color, host.prefs.motion)
+	table_view.set_preferences(host.prefs.felt_theme, host.prefs.four_color, host.prefs.motion and host.prefs.performance_mode == 0)
 	dock = UI.panel(Color("10252d"), 16, 14)
 	main.add_child(dock)
 	controls = VBoxContainer.new()
