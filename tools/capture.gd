@@ -140,16 +140,16 @@ func _capture() -> void:
 	if "--training" in OS.get_cmdline_user_args():
 		instance.training.history_directory = "res://.local/capture-hands"
 		instance._open_training()
-		while instance.training.scan_cursor >= 0: await process_frame
+		while instance.training.hub.scan_cursor >= 0: await process_frame
 		if "--lesson" in OS.get_cmdline_user_args():
-			instance.training.source_picker.select(4)
+			instance.training.hub.source_picker.select(4)
 			if players == 9:
 				var fixture = instance.training.Practice.fixtures()[2]
 				instance.training.open_case(fixture, 0)
-				if instance.training.game == null:
+				if instance.training.case_page.game == null:
 					var rebuilt = instance.History.replay(fixture)
 					instance.training.open_case(fixture, instance.training.Practice.points(rebuilt)[0].point)
-			else: instance.training.start_set()
+			else: instance.training.hub.start_set()
 			if "--lesson-flop" in OS.get_cmdline_user_args():
 				var stacks: Array = []
 				stacks.resize(players); stacks.fill(1000)
@@ -160,15 +160,15 @@ func _capture() -> void:
 				var points = instance.training.Practice.points(instance.History.replay(record)).filter(func(p): return p.view.phase == "flop")
 				instance.training.open_case(record, points[0].point)
 				if "--all-wagers" in OS.get_cmdline_user_args() and "--capture-test" in OS.get_cmdline_user_args():
-					var snapshot: Dictionary = instance.training.game.view_for(0)
+					var snapshot: Dictionary = instance.training.case_page.game.view_for(0)
 					for seat in snapshot.seats: seat.street_bet = 125
-					instance.training.table_view.update_table(snapshot, true)
+					instance.training.case_page.table_view.update_table(snapshot, true)
 			if "--answer" in OS.get_cmdline_user_args():
-				instance.training.submit("check_call")
-				while instance.training.job != null: await process_frame
+				instance.training.case_page.submit("check_call")
+				while instance.training.case_page.job != null: await process_frame
 			if "--branch" in OS.get_cmdline_user_args():
-				instance.training.begin_branch()
-				while instance.training.builder != null: await process_frame
+				instance.training.case_page.begin_branch()
+				while instance.training.case_page.builder != null: await process_frame
 	for frame in range(24):
 		await process_frame
 	if "--detail-body" in OS.get_cmdline_user_args():

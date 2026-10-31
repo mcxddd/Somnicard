@@ -146,8 +146,8 @@ func run() -> void:
 	var point = Practice.points(rebuilt)[0].point
 	fixture["opponent_changes"] = [{"event": 0, "profiles": Profiles.snapshot(ui.opponent_profiles, 9, 1)}]
 	ui.training.open_case(fixture, point)
-	verify(ui.training.bots[8].difficulty == 2 and ui.training.bots[8].style == 2, "training uses archived opponent configuration")
-	ui.training._persist()
+	verify(ui.training.case_page.bots[8].difficulty == 2 and ui.training.case_page.bots[8].style == 2, "training uses archived opponent configuration")
+	ui.training.case_page._persist()
 	verify(ui.training.store.data.session.opponents[7].difficulty == 2, "training continuation saves configuration")
 	ui.queue_free()
 	await process_frame

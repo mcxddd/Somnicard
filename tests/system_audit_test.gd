@@ -35,7 +35,7 @@ func run() -> void:
 	# Training uses a shorter table than normal play; wagers must not cover public cards.
 	ui.training.history_directory = "user://audit-empty-history"
 	ui._open_training()
-	while ui.training.scan_cursor >= 0: await process_frame
+	while ui.training.hub.scan_cursor >= 0: await process_frame
 	for dimensions in [Vector2i(360, 640), Vector2i(390, 844)]:
 		root.size = dimensions
 		for fixture in ui.training.Practice.fixtures():
@@ -43,7 +43,7 @@ func run() -> void:
 				if point.view.phase != "flop": continue
 				ui.training.open_case(fixture, point.point)
 				await settle()
-				var table = ui.training.table_view
+				var table = ui.training.case_page.table_view
 				for seat in table.seat_nodes:
 					if not seat.bet.visible: continue
 					var bet_rect = seat.bet.get_content_rect()
@@ -59,8 +59,8 @@ func run() -> void:
 			var record = sample.completed_record()
 			var points = ui.training.Practice.points(ui.History.replay(record)).filter(func(p): return p.view.phase == "flop")
 			ui.training.open_case(record, points[0].point)
-			var table = ui.training.table_view
-			var state: Dictionary = ui.training.game.view_for(0)
+			var table = ui.training.case_page.table_view
+			var state: Dictionary = ui.training.case_page.game.view_for(0)
 			for seat in state.seats: seat.street_bet = 125
 			table.update_table(state, true)
 			await settle()

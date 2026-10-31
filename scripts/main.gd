@@ -115,7 +115,7 @@ func _build_ui() -> void:
 	training.replay_requested.connect(_training_replay_requested)
 	review.units_changed.connect(_review_units_changed)
 	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
-	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
+	training.case_page.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
 	review.analysis_view.set_teaching(prefs.live_teaching, prefs.review_teaching)
 	review.teaching_changed.connect(_teaching_changed)
 	settings = Settings.new()
@@ -142,8 +142,8 @@ func _build_product() -> void:
 		learning_center.hide()
 		_open_training()
 		var selected_topic = "面对下注" if topic in ["跟注犹豫", "诈唬判断"] else topic
-		for i in range(training.topic_picker.item_count):
-			if training.topic_picker.get_item_text(i) == selected_topic: training.topic_picker.select(i))
+		for i in range(training.hub.topic_picker.item_count):
+			if training.hub.topic_picker.get_item_text(i) == selected_topic: training.hub.topic_picker.select(i))
 	support_center = preload("res://scripts/ui/support_center.gd").new()
 	screen.safe_root.add_child(support_center)
 	support_center.closed.connect(_close_product)
@@ -770,7 +770,7 @@ func _apply_settings(values: Dictionary) -> void:
 	screen.sidebar.hide()
 	screen.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
 	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
-	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
+	training.case_page.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
 	review.set_units(prefs.use_bb)
 	_save_preferences()
 	settings.hide()
@@ -948,7 +948,7 @@ func _open_training() -> void:
 	training.difficulty = difficulty
 	training.opponent_profiles = opponent_profiles.duplicate(true)
 	training.speed = SPEEDS[prefs.speed_index]
-	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
+	training.case_page.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
 	training.return_text = "‹ " + _return_text()
 	training._select_hub_page(0)
 	training.open_hub()
@@ -963,7 +963,7 @@ func _practice_from_review(record: Dictionary, point: int) -> void:
 	training.difficulty = difficulty
 	training.opponent_profiles = opponent_profiles.duplicate(true)
 	training.speed = SPEEDS[prefs.speed_index]
-	training.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
+	training.case_page.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
 	training.open_case(record, point)
 	modals.sync_focus()
 	_refresh()

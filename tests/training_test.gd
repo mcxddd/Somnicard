@@ -115,50 +115,50 @@ func _run() -> void:
 	ui.training.history_directory = hands
 	ui.review.training_store = ui.training.store
 	ui._open_training()
-	while ui.training.scan_cursor >= 0: await process_frame
-	verify(ui.modals.top() == ui.training and not ui.training.start_button.disabled, "training is an independent modal")
+	while ui.training.hub.scan_cursor >= 0: await process_frame
+	verify(ui.modals.top() == ui.training and not ui.training.hub.start_button.disabled, "training is an independent modal")
 	var t = ui.training
-	t.source_picker.select(4)
-	t.start_set()
+	t.hub.source_picker.select(4)
+	t.hub.start_set()
 	await settle()
-	verify(t.queue.size() == 5 and t.game.actor == 0 and t.answer.is_empty() and not t.answer_area.visible, "five-case set hides answers and future result")
-	var record_before = JSON.stringify(t.current.record)
-	t.submit("check_call")
-	while t.job != null: await process_frame
-	verify(t.answer.has("attempt") and t.answer_area.visible and not t.detail.text.is_empty(), "answer submission unlocks feedback")
-	verify(t.summary.text.contains("经验建议") or t.summary.text.contains("参考") or t.summary.text.contains("边缘判断"), "feedback identifies reliability")
-	t.unclear.button_pressed = true
-	verify(t.store.mark(History.hand_id(t.current.record)).pending, "unclear answer becomes pending review")
-	t.begin_branch()
-	while t.builder != null: await process_frame
-	verify(t.playing and t.game.phase != "idle", "answer starts playable isolated branch")
+	verify(t.case_page.queue.size() == 5 and t.case_page.game.actor == 0 and t.case_page.answer.is_empty() and not t.case_page.answer_area.visible, "five-case set hides answers and future result")
+	var record_before = JSON.stringify(t.case_page.current.record)
+	t.case_page.submit("check_call")
+	while t.case_page.job != null: await process_frame
+	verify(t.case_page.answer.has("attempt") and t.case_page.answer_area.visible and not t.case_page.detail.text.is_empty(), "answer submission unlocks feedback")
+	verify(t.case_page.summary.text.contains("经验建议") or t.case_page.summary.text.contains("参考") or t.case_page.summary.text.contains("边缘判断"), "feedback identifies reliability")
+	t.case_page.unclear.button_pressed = true
+	verify(t.store.mark(History.hand_id(t.case_page.current.record)).pending, "unclear answer becomes pending review")
+	t.case_page.begin_branch()
+	while t.case_page.builder != null: await process_frame
+	verify(t.case_page.playing and t.case_page.game.phase != "idle", "answer starts playable isolated branch")
 	var session = t.store.data.session.duplicate(true)
 	t.back_action()
-	while t.scan_cursor >= 0: await process_frame
-	t.resume_set()
+	while t.hub.scan_cursor >= 0: await process_frame
+	t.case_page.resume_set()
 	await settle()
-	verify(t.playing and t.store.data.attempts.size() == 1, "unfinished branch resumes without duplicate attempt")
+	verify(t.case_page.playing and t.store.data.attempts.size() == 1, "unfinished branch resumes without duplicate attempt")
 	var max_steps = 0
-	verify(t.branch_paused, "restored branch waits for explicit resume")
-	t.branch_paused = false
+	verify(t.case_page.branch_paused, "restored branch waits for explicit resume")
+	t.case_page.branch_paused = false
 	t.speed = 0.0
-	while t.game.phase != "complete" and max_steps < 2000:
-		if t.game.actor == 0: t.submit("check_call")
+	while t.case_page.game.phase != "complete" and max_steps < 2000:
+		if t.case_page.game.actor == 0: t.case_page.submit("check_call")
 		await process_frame
 		max_steps += 1
-	verify(t.game.phase == "complete" and not t.branch_id.is_empty(), "branch completes and is saved separately")
-	verify(JSON.stringify(t.current.record) == record_before and History.files(hands).size() == 1, "branch never enters ordinary hand history")
-	verify(not History.replay(t.store.data.branches[t.branch_id].record).has("error"), "saved UI branch passes full validation")
-	t._review_branch(t.branch_id)
+	verify(t.case_page.game.phase == "complete" and not t.case_page.branch_id.is_empty(), "branch completes and is saved separately")
+	verify(JSON.stringify(t.case_page.current.record) == record_before and History.files(hands).size() == 1, "branch never enters ordinary hand history")
+	verify(not History.replay(t.store.data.branches[t.case_page.branch_id].record).has("error"), "saved UI branch passes full validation")
+	t._review_branch(t.case_page.branch_id)
 	verify(ui.review.visible and ui.review.analysis_view.comparisons.size() == 2 and ui.review.analysis_view.comparison_index == 1, "saved branch and source are linked for comparison")
 	ui.review.comparison_button.pressed.emit()
-	verify(ui.review.analysis_view.comparison_index == 0 and ui.review.current_record == t.current.record, "comparison switches to immutable original")
+	verify(ui.review.analysis_view.comparison_index == 0 and ui.review.current_record == t.case_page.current.record, "comparison switches to immutable original")
 	ui.review.close()
-	while t.job != null: await process_frame
-	t.next_case()
-	verify(t.cursor == 1 and t.answer.is_empty(), "lesson advances without exposing next answer")
+	while t.case_page.job != null: await process_frame
+	t.case_page.next_case()
+	verify(t.case_page.cursor == 1 and t.case_page.answer.is_empty(), "lesson advances without exposing next answer")
 	t.back_action()
-	while t.scan_cursor >= 0: await process_frame
+	while t.hub.scan_cursor >= 0: await process_frame
 	t.back_action()
 	verify(not t.visible, "training closes back to existing screen")
 	ui._open_history()

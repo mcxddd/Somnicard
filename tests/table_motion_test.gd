@@ -120,11 +120,11 @@ func run() -> void:
 		finish(ui)
 		ui._next_hand()
 		verify(layer.flights.is_empty() and cards_visible() and not table.motion, option + " disables new-hand flights")
-		verify(not ui.review.table_view.motion and not ui.training.table_view.motion, option + " disables existing review and training card animations")
+		verify(not ui.review.table_view.motion and not ui.training.case_page.table_view.motion, option + " disables existing review and training card animations")
 	settings.motion = true
 	settings.performance = 0
 	ui._apply_settings(settings)
-	for other in [ui.review.table_view, ui.training.table_view]:
+	for other in [ui.review.table_view, ui.training.case_page.table_view]:
 		other.show()
 		other.update_table(ui.game.view_for(0), true)
 		verify(not other.effects and other.motion_layer.flights.is_empty() and other.motion_layer.actor == null, "review and training never enable live-table effects")

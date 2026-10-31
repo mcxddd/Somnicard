@@ -59,9 +59,9 @@ func _ready() -> void:
 	verify(ui.review.frames.size() > 0, "review analysis completes")
 	ui.review.hide()
 	ui._open_training()
-	while ui.training.scan_cursor >= 0: await get_tree().process_frame
-	ui.training.start_set()
-	verify(ui.training.game != null, "training opens a playable decision")
+	while ui.training.hub.scan_cursor >= 0: await get_tree().process_frame
+	ui.training.hub.start_set()
+	verify(ui.training.case_page.game != null, "training opens a playable decision")
 	await shot("training")
 	ui.training.hide()
 	ui._open_settings()
