@@ -21,7 +21,7 @@ func _published_summary() -> String:
 	if not FileAccess.file_exists(path): return "评测数据缺失"
 	var evidence = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not evidence is Dictionary: return "评测数据缺失"
-	var lines: Array = ["1.11.0 · 已完成 %s 手\n三档均衡：各桌型/深度 128 个独立牌序块；两种偏向风格：9 人 / 100 BB，各 32 块。" % int(evidence.hands), "\n均衡风格净收益 BB/100（括号为 95% 区间）："]
+	var lines: Array = ["%s · 已完成 %s 手\n三档均衡：各桌型/深度 128 个独立牌序块；两种偏向风格：9 人 / 100 BB，各 32 块。" % [str(evidence.version), int(evidence.hands)], "\n均衡风格净收益 BB/100（括号为 95% 区间）："]
 	for level_id in range(3):
 		lines.append("\n" + ["入门", "标准", "进阶"][level_id])
 		var r: Dictionary = evidence.reports["level%d-style0" % level_id]

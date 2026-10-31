@@ -8,11 +8,11 @@
 | --- | --- |
 | 操作系统 | Windows 11 x64 |
 | Godot 标准版 | 4.7.2.stable.official.ed1daf0bf |
-| Godot 目录 | `C:\Users\macxd\DevTools\Godot\4.7.2`（自包含模式，目录内有 `_sc_`） |
-| 安卓导出模板 | `C:\Users\macxd\DevTools\Godot\4.7.2\editor_data\export_templates\4.7.2.stable` |
+| Godot 目录 | `%USERPROFILE%\DevTools\Godot\4.7.2`（自包含模式，目录内有 `_sc_`） |
+| 安卓导出模板 | `%USERPROFILE%\DevTools\Godot\4.7.2\editor_data\export_templates\4.7.2.stable` |
 | Java | Temurin OpenJDK 21.0.12.1 |
-| JAVA_HOME | `C:\Users\macxd\AppData\Local\Programs\Java\jdk-21.0.12.1+1` |
-| Android SDK | `C:\Users\macxd\DevTools\Android\Sdk`（用户环境变量 `ANDROID_HOME`） |
+| JAVA_HOME | `%LOCALAPPDATA%\Programs\Java\jdk-21.0.12.1+1` |
+| Android SDK | `%USERPROFILE%\DevTools\Android\Sdk`（用户环境变量 `ANDROID_HOME`） |
 | SDK Platform | Android 36 |
 | Build Tools | 36.0.0（本次 APK 签名工具） |
 | ADB | 37.0.1 |
@@ -20,9 +20,9 @@
 
 Godot 压缩包和模板包已比对官方发布的 SHA-512 校验值。仅安装匹配版本的安卓模板文件（debug、release、Gradle source、version）；桌面开发直接通过编辑器运行。下载缓存位于 `%LOCALAPPDATA%\Somnicard\downloads`。
 
-Godot 编辑器设置已自动识别 JDK 和 Android SDK，保存在 `C:\Users\macxd\DevTools\Godot\4.7.2\editor_data\editor_settings-4.7.tres`；安卓调试签名在同目录的 `keystores\debug.keystore`（测试版证书 SHA-256 `d12eb9b8…6c76`）。游戏运行数据（`user://`）不受自包含模式影响，仍在 `%APPDATA%\Godot\app_userdata\Somnicard`。
+Godot 编辑器设置已自动识别 JDK 和 Android SDK，保存在 `%USERPROFILE%\DevTools\Godot\4.7.2\editor_data\editor_settings-4.7.tres`；安卓调试签名在同目录的 `keystores\debug.keystore`（测试版证书 SHA-256 `d12eb9b8…6c76`）。游戏运行数据（`user://`）不受自包含模式影响，仍在 `%APPDATA%\Godot\app_userdata\Somnicard`。
 
-2026-10-31：工具链从 AppData 迁到 `C:\Users\macxd\DevTools`。原因是 Codex 桌面应用（MSIX）会把对 AppData 的写入重定向到它的私有目录，导致不同软件看到不同的 SDK、模板和签名；DevTools 不受这种重定向影响。用户环境变量 `ANDROID_HOME` 与 PATH 中的 SDK 路径已同步更新。
+2026-10-31：工具链从 AppData 迁到 `%USERPROFILE%\DevTools`。原因是 Codex 桌面应用（MSIX）会把对 AppData 的写入重定向到它的私有目录，导致不同软件看到不同的 SDK、模板和签名；DevTools 不受这种重定向影响。用户环境变量 `ANDROID_HOME` 与 PATH 中的 SDK 路径已同步更新。
 
 安卓导出使用内置模板，无需本轮安装 NDK、CMake 或配置 Gradle。未来使用原生插件或自定义 Gradle 构建时再核对所需组件。
 

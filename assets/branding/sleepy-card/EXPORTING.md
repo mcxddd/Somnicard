@@ -3,8 +3,9 @@
 Run from PowerShell:
 
 ```powershell
-& 'C:\Users\macxd\Documents\Proj\Somnicard\assets\branding\sleepy-card\export.ps1'
-python 'C:\Users\macxd\Documents\Proj\Somnicard\assets\branding\sleepy-card\verify_assets.py'
+# Run from the repository root.
+& '.\assets\branding\sleepy-card\export.ps1'
+python '.\assets\branding\sleepy-card\verify_assets.py'
 ```
 
 `export.ps1` regenerates the SVG files from the supplied measured geometry and

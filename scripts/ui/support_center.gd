@@ -2,7 +2,7 @@ extends ColorRect
 signal closed
 signal destination(name: String)
 const UI = preload("res://scripts/ui/style.gd")
-const DOWNLOAD = "https://somnicard.nightricecake.com/download/"
+const DOWNLOAD = "https://somnicard.nightricecake.com/"
 const TOPICS = [
 	["开始使用", "先打一手，还是先学一点？", "已经熟悉规则：主页 → 开始新局，选择人数和筹码即可离线游玩。\n\n刚接触德州：从学习路线开始，每课三个局面，先选择再看理由。所有课程均可直接进入。\n\n练习一个主题：训练室先独立作答，再查看分析，也可以从这个决定继续打完。"],
 	["牌桌与操作", "操作前看清这三个数", "剩余筹码：你还可以投入多少。\n当前下注：每个座位旁显示本轮已经投入的数量。\n底池：牌桌中间显示本手累积底池。\n\n加注面板显示的是“本轮加注到”的总额。快捷按钮只填金额，确认加注后才执行。顶部切换 BB / 筹码不会改变实际投入。全押默认再次确认。\n\n点座位查看玩家详情；只有实际摊牌才展示未弃牌对手底牌。后台自动暂停，回来后手动继续。"],

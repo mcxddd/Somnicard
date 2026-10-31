@@ -23,6 +23,7 @@ func _capture() -> void:
 	if motion_frame >= 0.0:
 		await _capture_motion(instance, players, target, motion_frame)
 		return
+	instance.screen.table_view.effects = false
 	instance._select_count(players)
 	if not capture_lobby: instance._start_table(players)
 	elif "--home" not in OS.get_cmdline_user_args(): instance._open_lobby()

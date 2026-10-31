@@ -3,6 +3,8 @@ builds/
 .local/
 *.keystore
 *.jks
+*.p12
+*.dpapi
 .env
 .env.*
 !.env.example

@@ -19,4 +19,4 @@ Adaptive foreground and monochrome are centered at (216,216) and fitted within r
 - `adaptive-foreground.png`、`adaptive-background.png`、`adaptive-monochrome.png` → `assets/android/` 下同名文件。
 - `export_presets.cfg` 的 `launcher_icons/main_192x192`、`launcher_icons/adaptive_foreground_432x432`、`launcher_icons/adaptive_background_432x432`、`launcher_icons/adaptive_monochrome_432x432` 分别使用上述四个安卓图标文件。
 - `logo-mark.svg`、`wordmark.svg` → `assets/` 下同名文件，由 `scripts/ui/home.gd` 和 `scripts/ui/table_screen.gd` 加载；牌桌中央文字水印保持原样。
-- `logo-mark.svg`、`favicon.svg` → `site/images/` 下同名文件，供 `site/index.html` 导航和浏览器图标使用；`site/style.css` 设置导航图标尺寸。`tools/prepare-site.py` 会复制整个 `site/images/`，无需额外列出新文件。
+- `logo-mark.svg`、`favicon.svg` → `site/images/` 下同名文件，供 `site/index.html` 导航和浏览器图标使用；`site/style.css` 设置导航图标尺寸。此目录与 `tools/prepare-site.py` 保留供现有打包测试使用；线上官网由服务器侧生成。

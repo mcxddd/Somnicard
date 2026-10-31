@@ -20,11 +20,11 @@ class SitePackaging(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='somnicard-site-test-')
         self.root = Path(self.temp.name)
         shutil.copytree(ROOT / 'site', self.root / 'site')
-        self.apk = self.root / 'somnicard-2.0.0-release.apk'
+        self.apk = self.root / 'somnicard-2.1.0-release.apk'
         self.apk.write_bytes(b'TEST FIXTURE ONLY - NOT AN APK')
         self.meta = {'sha256': hashlib.sha256(self.apk.read_bytes()).hexdigest(),
             'bytes': self.apk.stat().st_size, 'debuggable': False,
-            'version': '2.0.0', 'package': 'com.somnicard.game',
+            'version': '2.1.0', 'package': 'com.somnicard.game',
             'certificateSha256': '0' * 64}
         self.apk.with_name(self.apk.name + '.sha256').write_text(self.meta['sha256'])
 
@@ -39,7 +39,7 @@ class SitePackaging(unittest.TestCase):
     def test_standalone_and_no_javascript_requirement(self):
         page = self.build()
         self.assertNotIn('<script', page)
-        self.assertIn('href="somnicard-2.0.0-release.apk" download', page)
+        self.assertIn('href="somnicard-2.1.0-release.apk" download', page)
         self.assertIn('正式版与早期测试版独立安装', page)
         self.assertIn(self.meta['sha256'], page)
         self.assertIn('&lt;fixture&gt;', page)

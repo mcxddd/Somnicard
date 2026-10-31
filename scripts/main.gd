@@ -70,7 +70,7 @@ func _ready() -> void:
 	screen.host = self
 	storage.host = self
 	add_child(storage)
-	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version", "1.4.1")
+	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_clear_retired_data()
 	_update_scale()
