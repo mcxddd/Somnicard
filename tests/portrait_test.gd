@@ -123,15 +123,15 @@ func _run() -> void:
 		for control in [ui.review.prev, ui.review.next, ui.review.play, ui.review.mine, ui.review.street, ui.review.slider]: fits(control, "replay transport fits")
 		var step = ui.review.index
 		ui.review.analysis_tab.pressed.emit()
-		ui.review._analyze()
-		while ui.review.job != null: await process_frame
+		ui.review.analysis_view._analyze()
+		while ui.review.analysis_view.job != null: await process_frame
 		await settle()
 		verify(ui.review.analysis_selected and ui.review.left.visible and not ui.review.portrait_tabs.visible and ui.review.index == step, "coach overlay preserves visible table and replay step")
 		fits(ui.review.analysis_panel, "analysis fits")
-		verify(not ui.review.details.visible and not ui.review.range_button.visible, "review opens with concise advice")
-		ui.review.detail_toggle.pressed.emit()
+		verify(not ui.review.analysis_view.details.visible and not ui.review.analysis_view.range_button.visible, "review opens with concise advice")
+		ui.review.analysis_view.detail_toggle.pressed.emit()
 		await settle()
-		verify(ui.review.details.visible and ui.review.range_button.visible and ui.review.index == step, "details disclosure preserves replay decision")
+		verify(ui.review.analysis_view.details.visible and ui.review.analysis_view.range_button.visible and ui.review.index == step, "details disclosure preserves replay decision")
 		verify(ui.review.analysis_panel.global_position.y >= ui.review.table_view.board_row.get_global_rect().end.y, "expanded analysis leaves community cards visible")
 		fits(ui.review.analysis_panel, "expanded analysis fits")
 		ui.review.replay_tab.pressed.emit()

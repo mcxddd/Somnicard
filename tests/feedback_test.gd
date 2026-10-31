@@ -49,7 +49,7 @@ func _run() -> void:
 	verify(ui.screen.table_view.seat_nodes[1].cards.all(func(c): return not c.visible and c.card_id == -1), "folded hole cards remain hidden")
 	verify(History.hand_id(tie.completed_record()) == stable_id, "ID stable from deal through settlement")
 	verify(History.hand_id(JSON.parse_string(JSON.stringify(tie.completed_record()))) == stable_id, "ID compatible with old JSON records")
-	verify(ui.review._record_label(tie.completed_record(), "old.json").contains(stable_id), "history displays derived legacy ID")
+	verify(ui.review.history_page._record_label(tie.completed_record(), "old.json").contains(stable_id), "history displays derived legacy ID")
 	var side = Table.new([50, 100, 200])
 	side.start_hand(0, deck("Ks Qs As Kh Qh Ah Jc 2s 3h 7d Tc 8c 9c 9d"))
 	side.act(side.actor, "all_in")
@@ -108,16 +108,16 @@ func _run() -> void:
 			verify(game.phase == "complete" and game.chip_total() == players * 150, "difficulty finishes with chip conservation")
 	# Actual input dispatch over history buttons: drag should scroll, never open.
 	ui._open_history()
-	while ui.review.scan_cursor >= 0: await process_frame
-	UI.clear(ui.review.history_cards)
+	while ui.review.history_page.scan_cursor >= 0: await process_frame
+	UI.clear(ui.review.history_page.history_cards)
 	var clicks = [0]
 	for i in range(30):
 		var card = UI.button("测试历史 %d" % i, func():
-			if ui.review.history_scroll.can_activate(): clicks[0] += 1, UI.GREEN, 130)
+			if ui.review.history_page.history_scroll.can_activate(): clicks[0] += 1, UI.GREEN, 130)
 		card.mouse_filter = Control.MOUSE_FILTER_PASS
-		ui.review.history_cards.add_child(card)
+		ui.review.history_page.history_cards.add_child(card)
 	await settle()
-	var scroll = ui.review.history_scroll
+	var scroll = ui.review.history_page.history_scroll
 	var start = scroll.global_position + Vector2(80, 200)
 	var press = InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_LEFT

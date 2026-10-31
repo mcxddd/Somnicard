@@ -139,16 +139,16 @@ func review_flow() -> void:
 	var before = ui.game.record_state()
 	ui._open_advice()
 	var review = ui.review
-	while review.job != null: await process_frame
-	review.expanded_details = true
-	review._render_details()
-	review.range_button.pressed.emit()
+	while review.analysis_view.job != null: await process_frame
+	review.analysis_view.expanded_details = true
+	review.analysis_view._render_details()
+	review.analysis_view.range_button.pressed.emit()
 	await settle()
 	await inspect_ranges(review)
 	verify(ui.game.record_state() == before, "range inspection never acts on live table")
-	review.analysis_scroll.released_at = -1000
-	review.range_button.pressed.emit()
-	verify(not review.range_selection.is_visible_in_tree(), "collapsing ranges also hides the readout")
+	review.analysis_view.analysis_scroll.released_at = -1000
+	review.analysis_view.range_button.pressed.emit()
+	verify(not review.analysis_view.range_selection.is_visible_in_tree(), "collapsing ranges also hides the readout")
 	while ui.game.phase != "complete":
 		var legal = ui.game.legal_actions(ui.game.actor)
 		ui.game.act(ui.game.actor, "check" if legal.check else "call")
@@ -156,12 +156,12 @@ func review_flow() -> void:
 	review.open_replay(ui.History.replay(record), true)
 	review._jump_street(1)
 	review.next_decision()
-	review._analyze()
-	while review.job != null: await process_frame
+	review.analysis_view._analyze()
+	while review.analysis_view.job != null: await process_frame
 	review._select_portrait_tab(true)
-	review.expanded_details = true
-	review._render_details()
-	review.range_button.pressed.emit()
+	review.analysis_view.expanded_details = true
+	review.analysis_view._render_details()
+	review.analysis_view.range_button.pressed.emit()
 	await settle()
 	await inspect_ranges(review)
 	verify(review.current_record == record, "range inspection never modifies replay record")
@@ -172,11 +172,11 @@ func inspect_ranges(review) -> void:
 	for screen in [Vector2i(360, 640), Vector2i(390, 844)]:
 		root.size = screen
 		await settle()
-		review.analysis_scroll.reset_scroll(roundi(review.range_box.position.y + review.range_grid.position.y + 100))
-		review.analysis_scroll.released_at = -1000
+		review.analysis_view.analysis_scroll.reset_scroll(roundi(review.analysis_view.range_box.position.y + review.analysis_view.range_grid.position.y + 100))
+		review.analysis_view.analysis_scroll.released_at = -1000
 		await settle()
-		var viewport = review.analysis_scroll.get_global_rect()
-		var grid = review.range_grid
+		var viewport = review.analysis_view.analysis_scroll.get_global_rect()
+		var grid = review.analysis_view.range_grid
 		var center = viewport.get_center()
 		var local = center - grid.global_position
 		var cell = grid.size / 13
@@ -184,23 +184,23 @@ func inspect_ranges(review) -> void:
 		var col = 3
 		var at = grid.global_position + cell * Vector2(col + 0.5, row + 0.5)
 		verify(viewport.has_point(at), "tap fixture targets visible range row")
-		var offset = review.analysis_scroll.scroll_vertical
+		var offset = review.analysis_view.analysis_scroll.scroll_vertical
 		button(at, true, true)
 		button(at, false, true)
 		await settle()
 		var expected = grid._name(row, col)
 		var mass: float = grid.classes.get(expected, 0.0)
-		verify(grid.selected_hand == expected and review.range_selection.text.contains("%.2f%%" % (mass * 100)), "coach tap shows the selected probability (live=%s)" % review.live_mode)
-		verify(review.range_selection.is_visible_in_tree() and review.analysis_panel.get_global_rect().encloses(review.range_selection.get_global_rect()), "probability stays visible inside portrait overlay")
-		verify(not viewport.intersects(review.range_selection.get_global_rect()), "selected probability is outside scrolling region")
-		verify(offset == review.analysis_scroll.scroll_vertical, "selection never jumps the scroll position")
-		var selected = review.range_selection.text
-		var pinned = review.range_selection.global_position
+		verify(grid.selected_hand == expected and review.analysis_view.range_selection.text.contains("%.2f%%" % (mass * 100)), "coach tap shows the selected probability (live=%s)" % review.live_mode)
+		verify(review.analysis_view.range_selection.is_visible_in_tree() and review.analysis_panel.get_global_rect().encloses(review.analysis_view.range_selection.get_global_rect()), "probability stays visible inside portrait overlay")
+		verify(not viewport.intersects(review.analysis_view.range_selection.get_global_rect()), "selected probability is outside scrolling region")
+		verify(offset == review.analysis_view.analysis_scroll.scroll_vertical, "selection never jumps the scroll position")
+		var selected = review.analysis_view.range_selection.text
+		var pinned = review.analysis_view.range_selection.global_position
 		swipe(viewport.get_center(), Vector2(0, -45), true)
 		await settle()
-		verify(review.range_selection.text == selected and review.range_selection.global_position == pinned, "scroll leaves selection and fixed readout intact")
-		review._select_range(1)
-		verify(grid.selected_hand.is_empty() and not review.range_selection.text.contains(expected + " ·"), "switching opponents clears old hand probability")
+		verify(review.analysis_view.range_selection.text == selected and review.analysis_view.range_selection.global_position == pinned, "scroll leaves selection and fixed readout intact")
+		review.analysis_view._select_range(1)
+		verify(grid.selected_hand.is_empty() and not review.analysis_view.range_selection.text.contains(expected + " ·"), "switching opponents clears old hand probability")
 		if review.live_mode:
 			verify(not review.slider.visible and not review.transport.visible, "live coaching frees space from inapplicable replay controls")
 		else:

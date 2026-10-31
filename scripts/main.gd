@@ -115,7 +115,7 @@ func _build_ui() -> void:
 	training.replay_requested.connect(_training_replay_requested)
 	review.units_changed.connect(_review_units_changed)
 	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
-	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
+	review.analysis_view.set_teaching(prefs.live_teaching, prefs.review_teaching)
 	review.teaching_changed.connect(_teaching_changed)
 	settings = Settings.new()
 	screen.safe_root.add_child(settings)
@@ -651,7 +651,7 @@ func _review_current_hand() -> void:
 	review.open_replay(rebuilt, prefs.use_bb)
 	review.next_decision()
 	review._select_portrait_tab(true)
-	if review.teaching_enabled(): review._analyze()
+	if review.analysis_view.teaching_enabled(): review.analysis_view._analyze()
 
 func _close_review() -> void:
 	if training_replay:
@@ -762,7 +762,7 @@ func _apply_settings(values: Dictionary) -> void:
 		storage.session_stamp = ""
 		storage.save_session()
 	coach.configure(_settings_values())
-	review.set_teaching(prefs.live_teaching, prefs.review_teaching)
+	review.analysis_view.set_teaching(prefs.live_teaching, prefs.review_teaching)
 	screen.unit_picker.select(1 if prefs.use_bb else 0)
 	screen.speed_picker.select(prefs.speed_index)
 	screen.fast_fold.button_pressed = prefs.fast_fold_enabled
@@ -976,7 +976,7 @@ func _training_replay_requested(payload: Dictionary) -> void:
 	training.hide()
 	training_replay = true
 	if payload.has("original"):
-		review.open_comparison([{"record": payload.original, "label": "原牌局"}, {"record": record, "label": "重打分支 · " + ("未知牌重采样" if payload.mode == "sampled" else "保留原牌")}], 1, prefs.use_bb)
+		review.analysis_view.open_comparison([{"record": payload.original, "label": "原牌局"}, {"record": record, "label": "重打分支 · " + ("未知牌重采样" if payload.mode == "sampled" else "保留原牌")}], 1, prefs.use_bb)
 	else: review.open_replay(rebuilt, prefs.use_bb)
 	review.close_button.text = "返回训练"
 	modals.sync_focus()

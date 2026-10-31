@@ -100,15 +100,15 @@ func _run() -> void:
 	verify(ui.review.visible and ui.review.record_id_label.text.contains(id), "finished-hand coach opens the exact completed hand")
 	verify(ui.review.left.visible and ui.review.analysis_panel.visible and not ui.review.portrait_tabs.visible, "analysis overlays replay rather than switching screen")
 	verify(ui.review._hero_decision() and ui.review.frames[ui.review.index].view.seats[1].hole.is_empty(), "review begins at a decision with then-known information")
-	while ui.review.job != null: await process_frame
+	while ui.review.analysis_view.job != null: await process_frame
 	await settle()
-	verify(not ui.review.analysis.is_empty(), "finished-hand coach produces decision analysis")
+	verify(not ui.review.analysis_view.analysis.is_empty(), "finished-hand coach produces decision analysis")
 	verify(ui.review.analysis_panel.get_global_rect().end.y <= ui.review.slider.global_position.y, "overlay leaves timeline available")
 	verify(ui.review.analysis_panel.global_position.y >= ui.review.table_view.board_row.get_global_rect().end.y, "overlay leaves community cards visible")
 	ui.review.next_decision()
 	verify(ui.review.left.visible and ui.review.analysis_panel.visible, "next decision keeps same table and overlay")
 	ui.modals.back()
-	verify(ui.review.visible and not ui.review.analysis_panel.visible and ui.review.job == null, "back collapses analysis and cancels job")
+	verify(ui.review.visible and not ui.review.analysis_panel.visible and ui.review.analysis_view.job == null, "back collapses analysis and cancels job")
 	ui.modals.back()
 	verify(not ui.review.visible and ui.game.phase == "complete", "second back returns to completed live hand")
 	ui.queue_free()

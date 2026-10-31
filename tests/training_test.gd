@@ -150,9 +150,9 @@ func _run() -> void:
 	verify(JSON.stringify(t.current.record) == record_before and History.files(hands).size() == 1, "branch never enters ordinary hand history")
 	verify(not History.replay(t.store.data.branches[t.branch_id].record).has("error"), "saved UI branch passes full validation")
 	t._review_branch(t.branch_id)
-	verify(ui.review.visible and ui.review.comparisons.size() == 2 and ui.review.comparison_index == 1, "saved branch and source are linked for comparison")
+	verify(ui.review.visible and ui.review.analysis_view.comparisons.size() == 2 and ui.review.analysis_view.comparison_index == 1, "saved branch and source are linked for comparison")
 	ui.review.comparison_button.pressed.emit()
-	verify(ui.review.comparison_index == 0 and ui.review.current_record == t.current.record, "comparison switches to immutable original")
+	verify(ui.review.analysis_view.comparison_index == 0 and ui.review.current_record == t.current.record, "comparison switches to immutable original")
 	ui.review.close()
 	while t.job != null: await process_frame
 	t.next_case()

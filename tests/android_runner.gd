@@ -54,8 +54,8 @@ func _ready() -> void:
 	ui._review_current_hand()
 	await shot("review")
 	ui.review.seek(3)
-	ui.review._analyze()
-	while ui.review.job != null: await get_tree().process_frame
+	ui.review.analysis_view._analyze()
+	while ui.review.analysis_view.job != null: await get_tree().process_frame
 	verify(ui.review.frames.size() > 0, "review analysis completes")
 	ui.review.hide()
 	ui._open_training()

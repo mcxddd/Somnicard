@@ -187,15 +187,15 @@ func _ui_tests(fixture: Dictionary) -> void:
 	ui._bot_step()
 	verify(JSON.stringify(ui.game.view_for(0)) == before, "modal blocks commands and bot")
 	var ticks = 0
-	while ui.review.job != null and ticks < 1200:
+	while ui.review.analysis_view.job != null and ticks < 1200:
 		await process_frame
 		ticks += 1
-	verify(not ui.review.analysis.is_empty() and ui.review.job == null, "incremental advice completes")
-	var analysis = ui.review.analysis.duplicate(true)
+	verify(not ui.review.analysis_view.analysis.is_empty() and ui.review.analysis_view.job == null, "incremental advice completes")
+	var analysis = ui.review.analysis_view.analysis.duplicate(true)
 	ui.review.units.item_selected.emit(0)
 	verify(not ui.prefs.use_bb and not ui.review.use_bb, "units synchronize to main")
 	ui.review.units.item_selected.emit(1)
-	verify(ui.prefs.use_bb and ui.review.analysis == analysis, "unit switch keeps exact equity")
+	verify(ui.prefs.use_bb and ui.review.analysis_view.analysis == analysis, "unit switch keeps exact equity")
 	ui.review.close()
 	verify(not ui.review.visible and ui.screen.call_button.focus_mode != Control.FOCUS_NONE, "modal restores controls")
 	verify(JSON.stringify(ui.game.view_for(0)) == before, "analysis never changes game")
@@ -203,10 +203,10 @@ func _ui_tests(fixture: Dictionary) -> void:
 	ui.review.open_replay(fixture, true)
 	ui.review.next_decision()
 	verify(ui.review._hero_decision(), "jump to hero decision")
-	ui.review._analyze()
+	ui.review.analysis_view._analyze()
 	ui.review.seek(ui.review.frames.size() - 1)
-	verify(ui.review.job == null and ui.review.analysis.is_empty(), "seek cancels stale analysis")
-	verify(ui.review.frames[ui.review.index].view.phase == "complete" and ui.review.details.text.contains("本手净变化"), "settlement summary includes net result")
+	verify(ui.review.analysis_view.job == null and ui.review.analysis_view.analysis.is_empty(), "seek cancels stale analysis")
+	verify(ui.review.frames[ui.review.index].view.phase == "complete" and ui.review.analysis_view.details.text.contains("本手净变化"), "settlement summary includes net result")
 	ui.review._jump_street(1)
 	verify(ui.review.frames[ui.review.index].view.phase == "flop", "street jump")
 	ui.review.seek(0)

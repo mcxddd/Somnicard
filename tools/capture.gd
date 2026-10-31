@@ -37,7 +37,7 @@ func _capture() -> void:
 	if "--chips" in OS.get_cmdline_user_args(): instance._unit_changed(0)
 	if "--history" in OS.get_cmdline_user_args(): instance._open_history()
 	if "--history-demo" in OS.get_cmdline_user_args():
-		instance.review.history_directory = "res://.local/capture-hands"
+		instance.review.history_page.history_directory = "res://.local/capture-hands"
 		for i in range(12):
 			var count: int = [2, 6, 9][i % 3]
 			var stacks: Array = []
@@ -51,10 +51,10 @@ func _capture() -> void:
 				else: sample.act(sample.actor, "check" if legal.check else "call")
 			var record = sample.completed_record()
 			record.saved_at = Time.get_datetime_string_from_unix_time(int(Time.get_unix_time_from_system()) + int(Time.get_time_zone_from_system().bias) * 60 - i * 86400).replace("T", " ")
-			instance.History.save(record, "%d.json" % (1900000000 - i), instance.review.history_directory)
+			instance.History.save(record, "%d.json" % (1900000000 - i), instance.review.history_page.history_directory)
 		instance._open_history()
-		while instance.review.scan_cursor >= 0: await process_frame
-		instance.review.filter_panel.show()
+		while instance.review.history_page.scan_cursor >= 0: await process_frame
+		instance.review.history_page.filter_panel.show()
 	if "--help" in OS.get_cmdline_user_args(): instance._open_help()
 	if "--product-help" in OS.get_cmdline_user_args(): instance._open_product("help")
 	if "--academy" in OS.get_cmdline_user_args():
@@ -84,11 +84,11 @@ func _capture() -> void:
 		if instance.game.actor == 1: instance.game.act(1, "raise", 20)
 		instance._refresh()
 		instance._open_advice()
-		while instance.review.job != null: await process_frame
-		instance.review.expanded_details = true
-		instance.review._render_details()
+		while instance.review.analysis_view.job != null: await process_frame
+		instance.review.analysis_view.expanded_details = true
+		instance.review.analysis_view._render_details()
 		for frame in range(8): await process_frame
-		if "--gto-rows" in OS.get_cmdline_user_args(): instance.review.analysis_scroll.reset_scroll(roundi(instance.review.strategy_rows.global_position.y - instance.review.analysis_scroll.get_child(0).global_position.y))
+		if "--gto-rows" in OS.get_cmdline_user_args(): instance.review.analysis_view.analysis_scroll.reset_scroll(roundi(instance.review.analysis_view.strategy_rows.global_position.y - instance.review.analysis_view.analysis_scroll.get_child(0).global_position.y))
 	if "--midnight" in OS.get_cmdline_user_args():
 		instance.screen.table_view.set_preferences(1, true, false)
 		instance.review.table_view.set_preferences(1, true, false)
@@ -107,13 +107,13 @@ func _capture() -> void:
 		while instance.coach.job != null: await process_frame
 	if "--teach" in OS.get_cmdline_user_args():
 		instance._open_advice()
-		while instance.review.job != null: await process_frame
+		while instance.review.analysis_view.job != null: await process_frame
 		if "--ranges" in OS.get_cmdline_user_args():
-			instance.review.expanded_details = true
-			instance.review._render_details()
-			instance.review.range_button.pressed.emit()
+			instance.review.analysis_view.expanded_details = true
+			instance.review.analysis_view._render_details()
+			instance.review.analysis_view.range_button.pressed.emit()
 			await process_frame
-			instance.review.analysis_scroll.scroll_vertical = roundi(instance.review.range_button.position.y)
+			instance.review.analysis_view.analysis_scroll.scroll_vertical = roundi(instance.review.analysis_view.range_button.position.y)
 	if "--review" in OS.get_cmdline_user_args():
 		while instance.game.phase != "complete":
 			var legal = instance.game.legal_actions(instance.game.actor)
@@ -123,14 +123,14 @@ func _capture() -> void:
 		instance.review.open_replay(rebuilt, true)
 		instance.review._jump_street(1)
 		instance.review.next_decision()
-		instance.review._analyze()
-		while instance.review.job != null: await process_frame
+		instance.review.analysis_view._analyze()
+		while instance.review.analysis_view.job != null: await process_frame
 		if "--review-end" in OS.get_cmdline_user_args(): instance.review.seek(instance.review.frames.size() - 1)
 		if "--review-chips" in OS.get_cmdline_user_args(): instance.review.set_units(false)
 		if "--analysis" in OS.get_cmdline_user_args(): instance.review._select_portrait_tab(true)
 		if "--detail" in OS.get_cmdline_user_args():
-			instance.review.expanded_details = true
-			instance.review._render_details()
+			instance.review.analysis_view.expanded_details = true
+			instance.review.analysis_view._render_details()
 	if "--training" in OS.get_cmdline_user_args():
 		instance.training.history_directory = "res://.local/capture-hands"
 		instance._open_training()
@@ -166,19 +166,19 @@ func _capture() -> void:
 	for frame in range(24):
 		await process_frame
 	if "--detail-body" in OS.get_cmdline_user_args():
-		instance.review.analysis_scroll.reset_scroll(280)
+		instance.review.analysis_view.analysis_scroll.reset_scroll(280)
 		await process_frame
 	if "--range-selected" in OS.get_cmdline_user_args():
 		var review = instance.review
-		review.expanded_details = true
-		review._render_details()
-		if not review.range_box.visible: review.range_button.pressed.emit()
+		review.analysis_view.expanded_details = true
+		review.analysis_view._render_details()
+		if not review.analysis_view.range_box.visible: review.analysis_view.range_button.pressed.emit()
 		for frame in range(8): await process_frame
-		review.analysis_scroll.reset_scroll(roundi(review.range_box.position.y + review.range_grid.position.y + 100))
+		review.analysis_view.analysis_scroll.reset_scroll(roundi(review.analysis_view.range_box.position.y + review.analysis_view.range_grid.position.y + 100))
 		for frame in range(8): await process_frame
-		var grid = review.range_grid
+		var grid = review.analysis_view.range_grid
 		var cell = grid.size / 13
-		var row = clampi(int((review.analysis_scroll.get_global_rect().get_center().y - grid.global_position.y) / cell.y), 0, 12)
+		var row = clampi(int((review.analysis_view.analysis_scroll.get_global_rect().get_center().y - grid.global_position.y) / cell.y), 0, 12)
 		var at = grid.global_position + cell * Vector2(3.5, row + 0.5)
 		for down in [true, false]:
 			var event = InputEventScreenTouch.new()

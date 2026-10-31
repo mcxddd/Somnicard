@@ -105,45 +105,45 @@ func _run() -> void:
 	ui.smoke_mode = true
 	root.size = Vector2i(360, 640)
 	await settle()
-	ui.review.history_directory = directory
+	ui.review.history_page.history_directory = directory
 	ui._open_history()
-	while ui.review.scan_cursor >= 0: await process_frame
+	while ui.review.history_page.scan_cursor >= 0: await process_frame
 	await settle()
 	var review = ui.review
-	verify(review.filenames.size() == 35 and review.entries.size() == 25, "catalogue spans all pages")
-	review.search.text = History.hand_id(records[0]).right(8).to_lower()
-	review._filters_changed()
-	verify(review.filenames == [files[0]], "ID search finds hand outside first page")
-	review._reset_history_filters()
-	review.filters.action.select(1)
-	review._filters_changed()
-	verify(review.filenames.size() == 12 and review.entries.size() == 12, "hero all-in filter uses recorded actions")
-	review.search.text = "NO-MATCH"
-	review._filters_changed()
-	verify(review.entries.is_empty() and review.history_status.text.contains("没有符合"), "no results has a useful empty state")
-	review._reset_history_filters()
-	review.filters.result.select(2)
-	review._filters_changed()
+	verify(review.history_page.filenames.size() == 35 and review.history_page.entries.size() == 25, "catalogue spans all pages")
+	review.history_page.search.text = History.hand_id(records[0]).right(8).to_lower()
+	review.history_page._filters_changed()
+	verify(review.history_page.filenames == [files[0]], "ID search finds hand outside first page")
+	review.history_page._reset_history_filters()
+	review.history_page.filters.action.select(1)
+	review.history_page._filters_changed()
+	verify(review.history_page.filenames.size() == 12 and review.history_page.entries.size() == 12, "hero all-in filter uses recorded actions")
+	review.history_page.search.text = "NO-MATCH"
+	review.history_page._filters_changed()
+	verify(review.history_page.entries.is_empty() and review.history_page.history_status.text.contains("没有符合"), "no results has a useful empty state")
+	review.history_page._reset_history_filters()
+	review.history_page.filters.result.select(2)
+	review.history_page._filters_changed()
 	await settle()
-	review.history_scroll.reset_scroll(200)
-	review.list_offset = 200
+	review.history_page.history_scroll.reset_scroll(200)
+	review.history_page.list_offset = 200
 	review._open_entry(2)
 	verify(review.replay_page.visible, "filtered entry still validates and opens")
-	review.show_history()
-	while review.scan_cursor >= 0: await process_frame
+	review.history_page.show_history()
+	while review.history_page.scan_cursor >= 0: await process_frame
 	await settle()
-	verify(review.filters.result.selected == 2 and review.history_scroll.scroll_vertical == 200, "return preserves filter and list position: selected=%d scroll=%d stored=%d" % [review.filters.result.selected, review.history_scroll.scroll_vertical, review.list_offset])
-	review.filter_panel.show()
+	verify(review.history_page.filters.result.selected == 2 and review.history_page.history_scroll.scroll_vertical == 200, "return preserves filter and list position: selected=%d scroll=%d stored=%d" % [review.history_page.filters.result.selected, review.history_page.history_scroll.scroll_vertical, review.history_page.list_offset])
+	review.history_page.filter_panel.show()
 	await settle()
-	verify(root.get_visible_rect().encloses(review.reset_filters.get_global_rect()) and root.get_visible_rect().encloses(review.next_page.get_global_rect()), "expanded filters and paging fit small portrait")
+	verify(root.get_visible_rect().encloses(review.history_page.reset_filters.get_global_rect()) and root.get_visible_rect().encloses(review.history_page.next_page.get_global_rect()), "expanded filters and paging fit small portrait")
 	review.close()
 	ui._start_table(2)
 	var before = ui.game.record_state()
 	ui._open_advice()
-	while review.job != null: await process_frame
+	while review.analysis_view.job != null: await process_frame
 	await settle()
-	verify(not review.details.scroll_active, "one scroll owner for long explanation")
-	var scroll = review.analysis_scroll
+	verify(not review.analysis_view.details.scroll_active, "one scroll owner for long explanation")
+	var scroll = review.analysis_view.analysis_scroll
 	scroll.reset_scroll(100)
 	await settle()
 	var initial = scroll.scroll_vertical

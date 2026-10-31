@@ -193,11 +193,11 @@ func _teaching_tests() -> void:
 	ui.smoke_mode = true
 	ui._start_table(2)
 	ui._open_advice()
-	verify(ui.review.job != null, "live teaching starts incremental job")
-	ui.review.teaching_toggle.pressed.emit()
-	verify(not ui.prefs.live_teaching and ui.prefs.review_teaching and ui.review.job == null and ui.review.analysis.is_empty(), "live switch independent, cancels and clears")
-	ui.review._analyze()
-	verify(ui.review.job == null and not ui.review.analyze_button.visible, "disabled teaching cannot start computation")
+	verify(ui.review.analysis_view.job != null, "live teaching starts incremental job")
+	ui.review.analysis_view.teaching_toggle.pressed.emit()
+	verify(not ui.prefs.live_teaching and ui.prefs.review_teaching and ui.review.analysis_view.job == null and ui.review.analysis_view.analysis.is_empty(), "live switch independent, cancels and clears")
+	ui.review.analysis_view._analyze()
+	verify(ui.review.analysis_view.job == null and not ui.review.analysis_view.analyze_button.visible, "disabled teaching cannot start computation")
 	ui.review.close()
 	ui._open_advice()
 	verify(ui.settings.visible and ui.settings.pages[3].visible, "off entry explains and opens teaching settings")
@@ -207,17 +207,17 @@ func _teaching_tests() -> void:
 	verify(ui.prefs.live_teaching and not ui.prefs.review_teaching, "settings applies independent modes")
 	ui._open_advice()
 	var ticks = 0
-	while ui.review.job != null and ticks < 1000:
+	while ui.review.analysis_view.job != null and ticks < 1000:
 		await process_frame
 		ticks += 1
-	verify(not ui.review.analysis.is_empty(), "live works while replay disabled")
-	var analysis = ui.review.analysis.duplicate(true)
+	verify(not ui.review.analysis_view.analysis.is_empty(), "live works while replay disabled")
+	var analysis = ui.review.analysis_view.analysis.duplicate(true)
 	ui.review.set_units(false)
-	verify(ui.review.analysis == analysis, "units preserve posterior and strategy")
+	verify(ui.review.analysis_view.analysis == analysis, "units preserve posterior and strategy")
 	ui.review.live_mode = false
-	ui.review.set_teaching(true, false)
-	verify(ui.review.analysis.is_empty() and not ui.review.range_button.visible, "no cached teaching leaks into disabled review")
-	ui.review._toggle_teaching()
+	ui.review.analysis_view.set_teaching(true, false)
+	verify(ui.review.analysis_view.analysis.is_empty() and not ui.review.analysis_view.range_button.visible, "no cached teaching leaks into disabled review")
+	ui.review.analysis_view._toggle_teaching()
 	verify(ui.prefs.review_teaching and ui.prefs.live_teaching, "review toggle updates only review preference")
 	var path = "user://strategy-preferences-test.cfg"
 	var prefs = Preferences.DEFAULTS.duplicate()
