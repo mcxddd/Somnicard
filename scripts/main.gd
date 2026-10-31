@@ -423,6 +423,8 @@ func _sync_amount() -> void:
 	screen.amount_input.set_block_signals(true)
 	screen.amount_input.step = 1.0 / factor
 	screen.amount_input.suffix = "BB" if prefs.use_bb else ""
+	# Phones open a digit pad; BB amounts also need a decimal point.
+	screen.amount_input.get_line_edit().virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL if prefs.use_bb else LineEdit.KEYBOARD_TYPE_NUMBER
 	screen.amount_input.min_value = mini(legal.min_raise_to, legal.max_raise_to) / factor
 	screen.amount_input.max_value = legal.max_raise_to / factor
 	screen.amount_input.value = selected_raise / factor

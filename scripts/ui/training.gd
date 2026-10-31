@@ -409,6 +409,7 @@ func _sync_amount() -> void:
 	amount.max_value = l.max_raise_to / divisor
 	amount.step = 1.0 / divisor
 	amount.suffix = "BB" if use_bb else "筹码"
+	amount.get_line_edit().virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL if use_bb else LineEdit.KEYBOARD_TYPE_NUMBER
 	amount.value = amount.min_value
 
 func _quick(fraction: float) -> void:

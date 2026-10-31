@@ -80,9 +80,11 @@ func _run() -> void:
 	ui.screen.unit_picker.select(0)
 	ui.screen.unit_picker.item_selected.emit(0)
 	verify(ui.screen.amount_input.value == 25 and ui.selected_raise == 25, "switch to chips preserves amount")
+	verify(ui.screen.amount_input.get_line_edit().virtual_keyboard_type == LineEdit.KEYBOARD_TYPE_NUMBER, "chip amounts open a digit keypad")
 	ui.screen.unit_picker.select(1)
 	ui.screen.unit_picker.item_selected.emit(1)
 	verify(is_equal_approx(ui.screen.amount_input.value, 2.5) and ui.selected_raise == 25, "switch back to BB preserves amount")
+	verify(ui.screen.amount_input.get_line_edit().virtual_keyboard_type == LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL, "BB amounts open a decimal keypad")
 	ui.screen.amount_slider.value = 37
 	verify(ui.selected_raise == 37 and is_equal_approx(ui.screen.amount_input.value, 3.7), "slider and BB input synchronized")
 	ui.screen.minus_button.pressed.emit()
