@@ -26,7 +26,7 @@ DPAPI 文件与 Windows 身份绑定，不等同于跨机器备份。维护者�
 
 ## 发布步骤
 
-1. 准备版本：同步 `project.godot` 的 `config/version`、`export_presets.cfg` 的 `version/name`，递增 `version/code`，填写 `docs/release-notes/<版本>.md`，保留 `SHA-256: <填入>`。确认正式签名及恢复备份已准备好。
+1. 准备版本：同步 `project.godot` 的 `config/version`、`export_presets.cfg` 的 `version/name`，递增 `version/code`，填写 `docs/release-notes/<版本>.md`，保留 `SHA-256: <pending>` 占位行。确认正式签名及恢复备份已准备好。
 2. 检查 → 构建签名 → 校验：在项目根目录运行以下命令。脚本先运行 `tools/check.ps1`，再运行 `tools/release-signing.ps1 -Action Build`；从生成的 APK 通过 `apksigner verify --verbose --print-certs` 读取并打印证书 SHA-256，随后传给 `verify-release.py`，固定核验包名 `com.somnicard.game`。最终打印 APK 路径、字节数和文件 SHA-256。显式指定的 Build 版本必须与项目和导出配置一致。
 
    ```powershell

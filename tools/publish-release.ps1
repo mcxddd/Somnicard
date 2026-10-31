@@ -50,8 +50,8 @@ if ($Stage -eq 'Github') {
 	$gh = if ($ghCommand) { $ghCommand.Source } else { Join-Path $env:USERPROFILE 'DevTools/gh/bin/gh.exe' }
 	if (-not (Test-Path -LiteralPath $gh -PathType Leaf)) { throw 'GitHub CLI not found in PATH or DevTools/gh/bin.' }
 	$notes = Get-Content -LiteralPath (Join-Path $ProjectRoot "docs/release-notes/$Version.md") -Raw
-	if ($notes -notmatch '(?m)^SHA-256: <填入>\r?$') { throw 'Release notes must contain the SHA-256 placeholder line.' }
-	$notes = [regex]::Replace($notes, '(?m)^SHA-256: <填入>\r?$', "SHA-256: $digest")
+	if ($notes -notmatch '(?m)^SHA-256: <pending>\r?$') { throw 'Release notes must contain the SHA-256 placeholder line.' }
+	$notes = [regex]::Replace($notes, '(?m)^SHA-256: <pending>\r?$', "SHA-256: $digest")
 	$tempDirectory = Join-Path $ProjectRoot '.local/tmp'
 	New-Item -ItemType Directory -Path $tempDirectory -Force | Out-Null
 	$tempNotes = Join-Path $tempDirectory ("release-notes-" + [guid]::NewGuid().ToString('N') + '.md')
@@ -78,4 +78,4 @@ if ($Stage -eq 'Github') {
 	}
 }
 
-Write-Output '服务器上传不在本脚本内，由服务器管理工作区的发布脚本完成。'
+Write-Output 'Server upload is not part of this script; use the server workspace publish script.'
