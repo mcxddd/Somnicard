@@ -20,10 +20,10 @@ func run() -> void:
 	verify(not quit_on_go_back, "Android back does not automatically terminate the SceneTree")
 	ui._start_table(9)
 	ui._open_settings()
-	ui.settings._select_page(4)
+	ui.settings._select_page(3)
 	ui._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	verify(ui.settings.visible and ui.settings.current_page == -1, "Android back returns from setting detail to categories")
-	ui.settings._select_page(4)
+	ui.settings._select_page(3)
 	var editor = ui.settings.opponent_editor
 	editor.select(1)
 	verify(editor.name_edit.is_visible_in_tree(), "local opponents expose rename without online fields")
@@ -40,7 +40,7 @@ func run() -> void:
 	ui.settings.cancel()
 	verify(ui.game.seats[1].name != "阿北", "cancelled local rename stays a draft")
 	ui._open_settings()
-	ui.settings._select_page(4)
+	ui.settings._select_page(3)
 	editor.select(1)
 	editor.name_edit.text = "阿北"
 	editor.name_edit.text_changed.emit("阿北")

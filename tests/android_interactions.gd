@@ -135,7 +135,7 @@ func _ready() -> void:
 		verify(ui.screen.info_sheet.visible and ui.info_opponent_id == seat, "details selects intended seat")
 		verify(ui.screen.info_sheet.content.get_children().filter(func(c): return c is Button and c.text == "配置这位对手").size() == 1, "exactly one configure button")
 		await tap(ui.screen.info_opponent_button, "configure selected opponent")
-		verify(ui.settings.visible and ui.settings.current_page == 4 and ui.settings.opponent_editor.selected == seat, "editor targets same opponent")
+		verify(ui.settings.visible and ui.settings.current_page == 3 and ui.settings.opponent_editor.selected == seat, "editor targets same opponent")
 		await tap(ui.settings.cancel_button, "cancel opponent edit")
 		verify(not ui.settings.visible and not ui.screen.info_sheet.visible, "cancel returns to table")
 	verify(ui.game.events.size() == before_events, "configuration navigation did not advance hand")
@@ -226,10 +226,10 @@ func _ready() -> void:
 	verify(ui.review.replay_page.visible and not ui.review.frames.is_empty(), "selected history opens valid replay")
 	await tap(ui.review.close_button, "leave searched replay")
 	ui._open_settings()
-	ui.settings._select_page(6)
-	ui.settings.arena_page.export_dialog.use_native_dialog = false
-	ui.settings.arena_page.export_dialog.popup_centered_ratio(0.9)
-	await back("evaluation export back")
+	ui.settings._select_page(4)
+	ui.settings.data_page.dialog.use_native_dialog = false
+	ui.settings.data_page.dialog.popup_centered_ratio(0.9)
+	await back("backup dialog back")
 	await back("settings category back")
 	verify(ui.settings.visible and ui.settings.current_page == -1, "second back returns category list")
 	await tap(ui.settings.cancel_button, "cancel settings draft")

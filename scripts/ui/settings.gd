@@ -6,8 +6,8 @@ const UI = preload("res://scripts/ui/style.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const OpponentEditor = preload("res://scripts/ui/opponent_editor.gd")
 const DataPage = preload("res://scripts/ui/data_settings.gd")
-var arena_page
-const CATEGORIES = ["对局节奏", "外观与显示", "操作保护", "教练与教学", "电脑对手", "数据与备份", "牌力评测", "声音与性能"]
+var evidence_page
+const CATEGORIES = ["牌桌与操作", "外观与声音", "教练与教学", "电脑对手", "数据与备份"]
 var index_page: VBoxContainer
 var heading: Label
 var context: Label
@@ -60,7 +60,7 @@ func _ready() -> void:
 	index_page = VBoxContainer.new()
 	index_page.add_theme_constant_override("separation", 12)
 	body.add_child(index_page)
-	var descriptions = ["行动间隔、弃牌快进", "BB / 筹码、牌桌配色、花色与动画", "全押确认与返回规则", "悬浮教练、提示时机、复盘教学", "默认难度、每位对手、激进程度", "导入和导出牌局与学习记录", "独立测试本地电脑", "提示音、震动与省电模式"]
+	var descriptions = ["行动间隔、弃牌快进、全押确认", "配色、BB 单位、花色、动效、提示音与省电", "悬浮教练、提示时机、复盘教学", "默认难度、每位对手、本地实测", "导入和导出牌局与学习记录"]
 	for i in range(CATEGORIES.size()):
 		var tab = UI.button(CATEGORIES[i] + "  ›\n" + descriptions[i], func():
 			if scroll.can_activate(): _select_page(i), Color("1b3039"), 82)
@@ -75,40 +75,40 @@ func _ready() -> void:
 		body.add_child(page)
 		pages.append(page)
 	_add_option(0, "speed", "对局节奏", "只调整电脑行动间隔，不改变决策难度。", ["慢速", "标准", "快速"])
-	_add_option(4, "difficulty", "默认电脑难度", "跟随默认的座位会一起更新；单独指定难度的座位保持原设置。下方可以逐个配置。", ["入门", "标准", "进阶（实验）"])
 	_add_toggle(0, "fast_fold", "弃牌后快进", "你弃牌后，加快其余电脑的行动。")
 	_add_toggle(0, "sidebar", "显示讲解与行动记录", "从“更多”查看讲解与行动记录。")
 	# Retain the legacy preference for compatibility, but remove its obsolete switch.
 	controls.sidebar.get_parent().get_parent().hide()
 	pages[0].add_child(UI.label("讲解与行动记录：从牌桌“更多”进入。", 18, UI.MUTED))
+	_add_toggle(0, "confirm_all_in", "全押前确认", "全押按钮、跟注全押与加注到全部筹码都适用。")
+	var note = UI.label("重开牌桌始终需要确认。\n取消换桌不会改变筹码和初始人数；历史记录持续保留。\n\nEsc / 安卓返回键：返回上一层。\n切到后台：暂停牌局，回来后手动继续。", 19, UI.MUTED)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pages[0].add_child(note)
 	_add_option(1, "felt", "牌桌配色", "牌面和筹码保持清晰的对比。", ["经典墨绿", "午夜蓝"])
 	_add_option(1, "bb", "筹码显示单位", "1 BB = 10 筹码；输入与复盘同步切换。", ["筹码金额", "大盲 BB"])
 	_add_toggle(1, "four_color", "四色花色", "黑桃黑、红桃红、方块蓝、梅花绿。")
 	_add_toggle(1, "motion", "牌局动效", "发牌与输赢提示动画；关闭后立即显示结果。")
-	_add_option(7, "sound", "牌桌提示音", "发牌、筹码、轮到你和结算使用短提示音；不播放背景音乐。", ["静音", "轻声", "标准"])
-	_add_toggle(7, "haptics", "轮到我时轻震", "仅支持震动的手机生效；后台和暂停时不提示。")
-	_add_option(7, "performance", "画面帧率", "省电模式限制为 30 帧；标准模式最多 60 帧。不会改变规则或电脑难度。", ["标准 · 60 帧", "省电 · 30 帧"])
-	_add_toggle(2, "confirm_all_in", "全押前确认", "全押按钮、跟注全押与加注到全部筹码都适用。")
-	var note = UI.label("重开牌桌始终需要确认。\n取消换桌不会改变筹码和初始人数；历史记录持续保留。\n\nEsc / 安卓返回键：返回上一层。\n切到后台：暂停牌局，回来后手动继续。", 19, UI.MUTED)
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	pages[2].add_child(note)
-	_add_toggle(3, "live_teaching", "显示牌桌教练", "显示悬浮头像，点击后在牌桌内查看建议；关闭后隐藏头像。")
-	_add_toggle(3, "coach_after", "先行动，再看教练", "行动后暂停并解释刚才的决策；开启时不提前展示建议。")
-	_add_toggle(3, "coach_auto", "轮到我时自动提示", "关闭时只在点击头像后分析，不主动揭示建议。")
-	_add_option(3, "coach_detail", "提示内容", "简洁模式先给操作与关键理由，详细模式显示完整原因。", ["简洁", "详细"])
-	_add_option(3, "coach_side", "悬浮头像位置", "放在牌桌左下或右下，避开你的手牌和下注按钮。", ["左侧", "右侧"])
-	_add_toggle(3, "review_teaching", "复盘中的教学", "在自己的历史决策点显示分析入口。关闭后仍可回放、查看行动和结算。")
+	_add_option(1, "sound", "牌桌提示音", "发牌、筹码、轮到你和结算使用短提示音；不播放背景音乐。", ["静音", "轻声", "标准"])
+	_add_toggle(1, "haptics", "轮到我时轻震", "仅支持震动的手机生效；后台和暂停时不提示。")
+	_add_option(1, "performance", "画面帧率", "省电模式限制为 30 帧；标准模式最多 60 帧。不会改变规则或电脑难度。", ["标准 · 60 帧", "省电 · 30 帧"])
+	_add_toggle(2, "live_teaching", "显示牌桌教练", "显示悬浮头像，点击后在牌桌内查看建议；关闭后隐藏头像。")
+	_add_toggle(2, "coach_after", "先行动，再看教练", "行动后暂停并解释刚才的决策；开启时不提前展示建议。")
+	_add_toggle(2, "coach_auto", "轮到我时自动提示", "关闭时只在点击头像后分析，不主动揭示建议。")
+	_add_option(2, "coach_detail", "提示内容", "简洁模式先给操作与关键理由，详细模式显示完整原因。", ["简洁", "详细"])
+	_add_option(2, "coach_side", "悬浮头像位置", "放在牌桌左下或右下，避开你的手牌和下注按钮。", ["左侧", "右侧"])
+	_add_toggle(2, "review_teaching", "复盘中的教学", "在自己的历史决策点显示分析入口。关闭后仍可回放、查看行动和结算。")
 	var scope_note = UI.label("两个开关独立保存。教学页也可以即时开关。\n\n数值分析在本地完成。2–9 人支持范围推断；CFR 仅覆盖限定的双人河牌抽象，不代表完整 GTO。\n\n先思考自己的选择，再揭示讲解，有助于区分决策质量与最后输赢。", 18, UI.MUTED)
 	scope_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	pages[3].add_child(scope_note)
+	pages[2].add_child(scope_note)
+	_add_option(3, "difficulty", "默认电脑难度", "跟随默认的座位会一起更新；单独指定难度的座位保持原设置。下方可以逐个配置。", ["入门", "标准", "进阶（实验）"])
 	opponent_editor = OpponentEditor.new()
-	pages[4].add_child(opponent_editor)
+	pages[3].add_child(opponent_editor)
 	opponent_editor.changed.connect(_changed)
 	controls.difficulty.item_selected.connect(func(index): opponent_editor.default_level = index; opponent_editor._render())
+	evidence_page = preload("res://scripts/ui/arena_evidence.gd").new()
+	pages[3].add_child(evidence_page)
 	data_page = DataPage.new()
-	pages[5].add_child(data_page)
-	arena_page = preload("res://scripts/ui/arena_settings.gd").new()
-	pages[6].add_child(arena_page)
+	pages[4].add_child(data_page)
 	summary = UI.label("", 16, UI.GOLD)
 	column.add_child(summary)
 	var footer = HBoxContainer.new()
@@ -169,7 +169,6 @@ func _style_toggle(toggle: Button) -> void:
 	toggle.add_theme_stylebox_override("pressed", UI.surface(UI.GREEN.darkened(0.2), 8, 12))
 
 func _select_page(index: int) -> void:
-	if index != 6 and arena_page != null: arena_page.arena.pause()
 	current_page = index
 	if scroll != null: scroll.reset_scroll()
 	index_page.visible = index < 0
@@ -179,9 +178,7 @@ func _select_page(index: int) -> void:
 	if is_visible_in_tree(): back_button.grab_focus()
 
 func back_action() -> void:
-	if arena_page.export_dialog.visible:
-		arena_page.export_dialog.hide()
-	elif data_page.dialog.visible:
+	if data_page.dialog.visible:
 		data_page.dialog.hide()
 	elif current_page >= 0:
 		_select_page(-1)
@@ -224,7 +221,6 @@ func _changed() -> void:
 	cancel_button.text = "取消修改" if dirty else "返回"
 
 func cancel() -> void:
-	arena_page.arena.pause()
 	hide()
 	cancelled.emit()
 

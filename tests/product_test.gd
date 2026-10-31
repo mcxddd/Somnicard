@@ -77,7 +77,7 @@ func run() -> void:
 	ui.learning_center.practice_requested.emit("跟注犹豫")
 	verify(ui.training.visible and not ui.learning_center.visible and ui.training.topic_picker.get_item_text(ui.training.topic_picker.selected) == "面对下注", "course hands off to matching topic")
 	ui.training.hide(); ui._open_home()
-	ui._open_settings(); ui.settings._select_page(7)
+	ui._open_settings(); ui.settings._select_page(1)
 	ui.settings.controls.sound.select(0)
 	ui.settings.controls.haptics.set_pressed_no_signal(true)
 	ui.settings.controls.performance.select(1)

@@ -69,12 +69,12 @@ func _ready() -> void:
 		ui.settings._select_page(page)
 		await settle()
 		verify(get_viewport().get_visible_rect().grow(1).encloses(ui.settings.apply_button.get_global_rect()), "settings save button reachable")
-	ui.settings._select_page(4)
+	ui.settings._select_page(3)
 	verify(ui.settings.opponent_editor.name_edit.is_visible_in_tree(), "local rename field visible")
 	await shot("settings-opponents")
-	ui.settings._select_page(6)
-	ui.settings.arena_page.export_dialog.use_native_dialog = false
-	ui.settings.arena_page.export_dialog.popup_centered_ratio(0.9)
+	ui.settings._select_page(4)
+	ui.settings.data_page.dialog.use_native_dialog = false
+	ui.settings.data_page.dialog.popup_centered_ratio(0.9)
 	report("awaiting_export_back")
 	await marker("export-back")
 	report("awaiting_category_back")

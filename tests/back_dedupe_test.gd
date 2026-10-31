@@ -14,13 +14,13 @@ func run() -> void:
 	root.size = Vector2i(360, 640)
 	ui._start_table(6)
 	ui._open_settings()
-	ui.settings._select_page(6)
-	ui.settings.arena_page.export_dialog.use_native_dialog = false
-	ui.settings.arena_page.export_dialog.popup_centered_ratio(0.9)
+	ui.settings._select_page(4)
+	ui.settings.data_page.dialog.use_native_dialog = false
+	ui.settings.data_page.dialog.popup_centered_ratio(0.9)
 	await settle()
 	ui.modals.system_back(1000)
 	ui.modals.system_back(1174)
-	verify(ui.settings.current_page == 6, "duplicate Android 16 notification does not pop another level")
+	verify(ui.settings.current_page == 4, "duplicate Android 16 notification does not pop another level")
 	ui.modals.system_back(1400)
 	verify(ui.settings.current_page == -1, "next normal back press is accepted after duplicate interval")
 	ui.queue_free()

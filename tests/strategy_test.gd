@@ -200,7 +200,7 @@ func _teaching_tests() -> void:
 	verify(ui.review.analysis_view.job == null and not ui.review.analysis_view.analyze_button.visible, "disabled teaching cannot start computation")
 	ui.review.close()
 	ui._open_advice()
-	verify(ui.settings.visible and ui.settings.pages[3].visible, "off entry explains and opens teaching settings")
+	verify(ui.settings.visible and ui.settings.pages[2].visible, "off entry explains and opens teaching settings")
 	ui.settings.controls.live_teaching.button_pressed = true
 	ui.settings.controls.review_teaching.button_pressed = false
 	ui.settings.apply_button.pressed.emit()

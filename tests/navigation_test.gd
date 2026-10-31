@@ -40,7 +40,7 @@ func run() -> void:
 		ui.home.entries.settings.pressed.emit()
 		await settle()
 		verify(ui.settings.index_page.visible and ui.settings.current_page == -1, "settings starts at category index")
-		for i in range(6):
+		for i in range(ui.settings.CATEGORIES.size()):
 			ui.settings.scroll.released_at = -1000
 			ui.settings.tabs[i].pressed.emit()
 			await settle()
@@ -60,7 +60,7 @@ func run() -> void:
 	ui.settings.controls.felt.select(1 - ui.prefs.felt_theme)
 	ui.settings.controls.felt.item_selected.emit(1 - ui.prefs.felt_theme)
 	ui.modals.back()
-	ui.settings._select_page(3)
+	ui.settings._select_page(2)
 	verify(ui.settings.values().felt != original.felt and ui._settings_values() == original, "category navigation preserves unapplied draft only")
 	ui.settings.cancel_button.pressed.emit()
 	verify(ui._settings_values() == original and not ui.settings.visible, "cancel discards entire settings draft")

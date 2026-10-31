@@ -68,9 +68,9 @@ func _capture() -> void:
 			instance._apply_settings(settings)
 		instance._open_settings()
 		if "--settings-index" not in OS.get_cmdline_user_args(): instance.settings._select_page(1)
-		if "--teaching-settings" in OS.get_cmdline_user_args(): instance.settings._select_page(3)
+		if "--teaching-settings" in OS.get_cmdline_user_args(): instance.settings._select_page(2)
 		if "--opponents" in OS.get_cmdline_user_args():
-			instance.settings._select_page(4)
+			instance.settings._select_page(3)
 			if "--ratings" in OS.get_cmdline_user_args():
 				var editor = instance.settings.opponent_editor
 				editor.get_child(editor.get_child_count() - 1).show()
@@ -187,11 +187,11 @@ func _capture() -> void:
 			root.push_input(event, true)
 		for frame in range(8): await process_frame
 	if "--training-stats" in OS.get_cmdline_user_args(): instance.training._select_hub_page(2)
-	if "--data-settings" in OS.get_cmdline_user_args(): instance.settings._select_page(5)
+	if "--data-settings" in OS.get_cmdline_user_args(): instance.settings._select_page(4)
 	if "--arena" in OS.get_cmdline_user_args():
 		instance._open_settings()
-		instance.settings._select_page(6)
-		if "--arena-evidence" in OS.get_cmdline_user_args(): instance.settings.arena_page.published.show()
+		instance.settings._select_page(3)
+		if "--arena-evidence" in OS.get_cmdline_user_args(): instance.settings.evidence_page.published.show()
 		for frame in range(8): await process_frame
 	if target == "complete": await create_timer(0.8).timeout
 	await RenderingServer.frame_post_draw

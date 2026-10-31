@@ -96,7 +96,7 @@ func _build_ui() -> void:
 	add_child(bot_timer)
 	coach = Coach.new()
 	screen.safe_root.add_child(coach)
-	coach.settings_requested.connect(func(): _open_settings(); settings._select_page(3))
+	coach.settings_requested.connect(func(): _open_settings(); settings._select_page(2))
 	coach.details_requested.connect(_open_advice)
 	coach.review_requested.connect(_review_current_hand)
 	coach.configure(_settings_values())
@@ -151,7 +151,7 @@ func _build_product() -> void:
 		if name == "academy": _open_product("academy")
 		else:
 			_open_settings()
-			settings._select_page(5))
+			settings._select_page(4))
 	confirmation.z_index = 30
 
 func _apply_feedback_preferences() -> void:
@@ -625,7 +625,7 @@ func _open_advice() -> void:
 		return
 	if not prefs.live_teaching:
 		_open_settings()
-		settings._select_page(3)
+		settings._select_page(2)
 		return
 	screen.amount_input.apply()
 	bot_timer.stop()
@@ -708,8 +708,6 @@ func _resume_session() -> void:
 func _notification(what: int) -> void:
 	if not is_node_ready(): return
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		if settings != null:
-			settings.arena_page.arena.pause()
 		if training != null and training.visible and not smoke_mode: training.suspend()
 		if review != null and review.visible: review._stop_play()
 		if not smoke_mode and game != null and not paused:
@@ -771,7 +769,6 @@ func _apply_settings(values: Dictionary) -> void:
 	review.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion)
 	review.set_units(prefs.use_bb)
 	_save_preferences()
-	settings.arena_page.arena.pause()
 	settings.hide()
 	_close_settings()
 
@@ -995,7 +992,7 @@ func _close_training() -> void:
 func _open_opponents(seat: int = 1) -> void:
 	if screen.info_sheet.visible: screen.info_sheet.close()
 	_open_settings()
-	settings._select_page(4)
+	settings._select_page(3)
 	settings.opponent_editor.select(seat)
 
 func _apply_names() -> void:
@@ -1006,5 +1003,5 @@ func _apply_names() -> void:
 
 func _clear_retired_data() -> void:
 	if smoke_mode or "--capture-test" in OS.get_cmdline_user_args(): return
-	for path in ["user://ai/companions.json", "user://ai/credentials.bin"]:
+	for path in ["user://ai/companions.json", "user://ai/credentials.bin", "user://ai/arena.json"]:
 		if FileAccess.file_exists(path): DirAccess.remove_absolute(path)
