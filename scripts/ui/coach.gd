@@ -150,6 +150,7 @@ func _process(_delta: float) -> void:
 	_render()
 
 func _render() -> void:
+	if avatar != null: avatar.thinking = job != null
 	if headline == null or not expanded: return
 	progress.visible = job != null
 	if job != null:

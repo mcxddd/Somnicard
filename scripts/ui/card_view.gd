@@ -3,6 +3,7 @@ extends Control
 const UI = preload("res://scripts/ui/style.gd")
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 const SUITS = ["♠", "♥", "♦", "♣"]
+const BACK = preload("res://assets/art/card-back.png")
 var card_id: int = -2
 var four_color: bool = false
 var motion: bool = true
@@ -48,15 +49,7 @@ func _draw() -> void:
 	style.shadow_offset = Vector2(1, 3)
 	draw_style_box(style, rect)
 	if card_id == -1:
-		draw_style_box(UI.surface(Color("234353"), 3, 0, Color("74918b")), rect.grow(-4))
-		if size.x <= 30:
-			_center(font, "♠", size / 2 + Vector2(0, 5), 14, UI.GOLD)
-			return
-		for y in range(9, int(size.y) - 7, 8):
-			for x in range(8, int(size.x) - 7, 8):
-				draw_polyline(PackedVector2Array([Vector2(x, y - 2), Vector2(x + 2, y), Vector2(x, y + 2), Vector2(x - 2, y), Vector2(x, y - 2)]), Color("809788"), 0.6, true)
-		draw_circle(size / 2, size.x * 0.20, Color("183342"))
-		_center(font, "♠", size / 2 + Vector2(0, size.x * 0.13), int(size.x * 0.35), UI.GOLD)
+		draw_texture_rect(BACK, rect, false)
 		return
 	var color = ink()
 	var rank = RANKS[card_id % 13]

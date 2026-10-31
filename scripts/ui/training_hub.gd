@@ -156,6 +156,7 @@ func show_summary(results: Array) -> void:
 	UI.clear(summary_box)
 	if scan_cursor < 0: refresh()
 	if results.is_empty(): return
+	summary_box.add_child(UI.art(preload("res://assets/art/practice-complete.png"), 130))
 	var counts = {"good": 0, "ok": 0, "miss": 0, "unscored": 0}
 	for r in results: counts[Store.grade(r.feedback)] += 1
 	var parts: Array = []
@@ -177,6 +178,7 @@ func show_records() -> void:
 	UI.clear(records_list)
 	var attempts: Array = host.store.data.attempts
 	if attempts.is_empty():
+		records_list.add_child(UI.art(preload("res://assets/art/empty-practice.png"), 170))
 		records_list.add_child(host._label("还没有练习记录。完成第一题后会出现在这里。", 18))
 		return
 	var day = ""

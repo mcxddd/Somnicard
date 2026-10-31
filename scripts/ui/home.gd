@@ -3,7 +3,6 @@ extends ColorRect
 signal destination(name: String)
 const UI = preload("res://scripts/ui/style.gd")
 const Scroll = preload("res://scripts/ui/touch_scroll.gd")
-const Card = preload("res://scripts/ui/card_view.gd")
 var primary: Button
 var new_table: Button
 var session_note: Label
@@ -56,19 +55,7 @@ func _ready() -> void:
 	hero.add_child(inner)
 	inner.add_child(UI.label("每一手，都更明白", 32, UI.TEXT))
 	inner.add_child(_label("自由对战 · 即时教练 · 回到关键决定", 17))
-	var art = Control.new()
-	art.custom_minimum_size.y = 104
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inner.add_child(art)
-	for i in range(3):
-		var card = Card.new()
-		card.card_id = [49, 24, 12][i]
-		card.motion = false
-		card.size = Vector2(62, 88)
-		card.pivot_offset = card.size / 2
-		card.rotation = (i - 1) * 0.16
-		art.add_child(card)
-		art.resized.connect(func(): card.position = Vector2(art.size.x / 2 - 31 + (i - 1) * 44, 4 + absi(i - 1) * 8))
+	inner.add_child(UI.art(preload("res://assets/art/home-hero.png"), 150))
 	session_note = _label("2–9 人电脑对战 · 对手强度可调", 18)
 	inner.add_child(session_note)
 	primary = UI.button("开始新局  →", func(): destination.emit("play"), UI.GREEN, 66)

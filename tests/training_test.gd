@@ -197,7 +197,7 @@ func _run() -> void:
 		while t.case_page.job != null: await process_frame
 		t.case_page.next_case()
 	while t.hub.scan_cursor >= 0: await process_frame
-	verify(not t.case_page.visible and t.hub.summary_box.get_child_count() == 6 and t.hub.start_button.text == "再来一组" and t.store.data.session.is_empty(), "finishing a set shows its summary on the home page")
+	verify(not t.case_page.visible and t.hub.summary_box.get_child_count() == 7 and t.hub.start_button.text == "再来一组" and t.store.data.session.is_empty(), "finishing a set shows its summary on the home page")
 	t.hub.show_records()
 	verify(t.hub.records_page.visible and t.hub.records_list.get_child_count() >= 6, "practice history lists answered spots by date")
 	t.back_action()

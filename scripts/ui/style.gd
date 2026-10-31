@@ -56,6 +56,16 @@ static func panel(color: Color, radius: int = 12, padding: int = 12) -> PanelCon
 	node.add_theme_stylebox_override("panel", style)
 	return node
 
+## A centred illustration that keeps its aspect ratio within the given height.
+static func art(texture: Texture2D, height: float) -> TextureRect:
+	var node := TextureRect.new()
+	node.texture = texture
+	node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	node.custom_minimum_size.y = height
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return node
+
 static func label(text: String, size: int = 18, color := TEXT, centered: bool = false) -> Label:
 	var node := Label.new()
 	node.text = text

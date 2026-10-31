@@ -13,6 +13,7 @@ var history_list: ItemList
 var history_status: Label
 ## Real-game totals for the hands the current filters select.
 var stats_label: Label
+var empty_art: TextureRect
 var previous_page: Button
 var next_page: Button
 var history_scroll
@@ -39,6 +40,9 @@ func build() -> void:
 	history_status = UI.label("", 18, UI.MUTED)
 	history_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	self.add_child(history_status)
+	empty_art = UI.art(preload("res://assets/art/empty-history.png"), 170)
+	self.add_child(empty_art)
+	empty_art.hide()
 	_build_history_filters()
 	history_list = ItemList.new()
 	history_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -279,4 +283,5 @@ func _update_stats(catalog: Array) -> void:
 		vpip += int(item.vpip)
 		pfr += int(item.pfr)
 	stats_label.visible = hands > 0
+	empty_art.visible = all_filenames.is_empty()
 	stats_label.text = "%d 手 · 净变化 %+.1f BB · 主动入池 %.0f%% · 翻前加注 %.0f%%" % [hands, net, 100.0 * vpip / maxi(1, hands), 100.0 * pfr / maxi(1, hands)]
