@@ -104,6 +104,38 @@ static func entry(title_text: String, subtitle: String, callback: Callable, icon
 	node.pressed.connect(callback)
 	return node
 
+## One figure: a large value with a small label underneath.
+static func stat(value: String, caption_text: String, tint := TEXT) -> VBoxContainer:
+	var node := VBoxContainer.new()
+	node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	node.add_theme_constant_override("separation", 2)
+	node.add_child(label(value, 26, tint, true))
+	node.add_child(label(caption_text, SIZE_CAPTION, MUTED, true))
+	return node
+
+## Equal-width figures on an inset card. Items are [value, label] or [value, label, colour].
+static func stat_row(items: Array) -> PanelContainer:
+	var holder = card("inset")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	holder.add_child(row)
+	for item in items: row.add_child(stat(item[0], item[1], item[2] if item.size() > 2 else TEXT))
+	return holder
+
+## A thin bar for a 0–1 rate; the fill is green.
+static func progress(rate: float) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.min_value = 0
+	bar.max_value = 1
+	bar.step = 0.001
+	bar.value = clampf(rate, 0, 1)
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = 6
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_theme_stylebox_override("background", surface(Color("223840"), 3, 0))
+	bar.add_theme_stylebox_override("fill", surface(GREEN.lightened(0.15), 3, 0))
+	return bar
+
 ## Icons live in res://assets/icons/<name>.png; a missing icon is simply left out.
 static func icon(name: String, size: float) -> TextureRect:
 	var path = "res://assets/icons/%s.png" % name

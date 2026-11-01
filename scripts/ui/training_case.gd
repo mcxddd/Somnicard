@@ -33,6 +33,8 @@ var sizing: VBoxContainer
 var result_card: PanelContainer
 var grade_label: Label
 var compare_label: Label
+## Key figures for the answer: pot share, call threshold and model EV gap.
+var numbers: VBoxContainer
 var detail: RichTextLabel
 var branch_button: Button
 var branch_review_button: Button
@@ -97,6 +99,8 @@ func build() -> void:
 	card.add_child(grade_label)
 	compare_label = host._label("", 18, UI.TEXT)
 	card.add_child(compare_label)
+	numbers = VBoxContainer.new()
+	card.add_child(numbers)
 	detail = RichTextLabel.new()
 	detail.fit_content = true
 	detail.scroll_active = false
@@ -292,6 +296,15 @@ func _situation(view: Dictionary) -> String:
 	var facing = "需跟注 %s" % money.call(view.legal.call_amount) if view.legal.get("call_amount", 0) > 0 else "没人下注，轮到你"
 	return "%d 人桌 · 你在 %s · %s · 底池 %s · %s" % [view.seats.size(), Ranges.position(view, 0), street, money.call(view.pot), facing]
 
+func _key_numbers(compared: Dictionary, use_bb: bool) -> Array:
+	var figures: Array = [["%.0f%%" % (analysis.pot_equity * 100), "你的分池份额", UI.GOLD]]
+	if analysis.cost > 0: figures.append(["%.0f%%" % (analysis.odds * 100), "跟注门槛"])
+	var blind: float = decision_view.big_blind
+	var value = func(chips: float): return ("%.2f BB" % (chips / blind)) if use_bb else ("%.0f" % chips)
+	if compared.has("loss"): figures.append([value.call(compared.loss), "比模型最优少", UI.DANGER if compared.loss > blind * 0.05 else UI.TEXT])
+	elif analysis.cost > 0: figures.append([("+" if analysis.call_ev >= 0 else "") + value.call(analysis.call_ev), "跟注估计净值", UI.SUCCESS if analysis.call_ev >= 0 else UI.DANGER])
+	return figures
+
 func _action_text(action: String, value: int) -> String:
 	return ACTIONS.get(action, action) + (" " + UI.money(value, decision_view.big_blind, host.use_bb) if action == "raise" else "")
 
@@ -330,6 +343,7 @@ func _render_case() -> void:
 		var r = current.record.result
 		var original_net: int = int(r.payouts.get("0", r.payouts.get(0, 0))) - int(r.contributions[0])
 		feedback.text = "这手打完 · 净变化 %s（原牌局 %s）\n未知牌重新发过，这只是一次样本，不代表哪种打法长期更好。" % [UI.money(net, game.big_blind, use_bb), UI.money(original_net, game.big_blind, use_bb)]
+	UI.clear(numbers)
 	if job != null:
 		grade_label.text = "正在分析…"
 		grade_label.add_theme_color_override("font_color", UI.GOLD)
@@ -340,11 +354,11 @@ func _render_case() -> void:
 		var g = Hub.GRADES[Store.grade(compared.label)]
 		grade_label.text = "%s %s" % [g[0], g[1]]
 		grade_label.add_theme_color_override("font_color", g[2])
-		compare_label.text = "你：%s    建议：%s" % [_action_text(answer.action, int(answer.amount)), _action_text(analysis.action, int(analysis.amount))]
-		if compared.has("loss"): compare_label.text += "\n比模型最优少约 " + ("%.2f BB" % (compared.loss / game.big_blind) if use_bb else "%.0f 筹码" % compared.loss)
+		compare_label.text = "%s\n你：%s    建议：%s" % [compared.label, _action_text(answer.action, int(answer.amount)), _action_text(analysis.action, int(analysis.amount))]
+		numbers.add_child(UI.stat_row(_key_numbers(compared, use_bb)))
 		var words = Teaching.explain(decision_view, analysis, use_bb)
 		var plain = func(text): return str(text).replace("[", "[lb]")
-		detail.text = "[b]%s[/b]\n%s\n\n%s\n\n[b]详细理由[/b]\n%s" % [plain.call(compared.label), plain.call(words.summary), plain.call(compared.text), plain.call(words.details)] + "\n\n[color=#a4b9b4]%s · 不同选择值得讨论，不等于已确认的错误。[/color]" % plain.call(words.status)
+		detail.text = "[b][color=#e5c17a]为什么[/color][/b]\n%s\n\n%s\n\n[b][color=#e5c17a]详细理由[/color][/b]\n%s" % [plain.call(words.summary), plain.call(compared.text), plain.call(words.details)] + "\n\n[color=#a4b9b4]%s · 不同选择值得讨论，不等于已确认的错误。[/color]" % plain.call(words.status)
 	host.status.text = host.store.error
 
 func _process(delta: float) -> void:

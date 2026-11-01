@@ -163,6 +163,7 @@ func _run() -> void:
 	verify(t.case_page.answer.has("attempt") and t.case_page.result_card.visible and not t.case_page.detail.text.is_empty() and t.case_page.next_button.visible, "answer shows a graded result card and the next button")
 	verify(["✓", "≈", "✗", "·"].any(func(mark): return t.case_page.grade_label.text.begins_with(mark)) and t.case_page.compare_label.text.contains("建议"), "result card grades the answer and names the recommendation")
 	verify(t.case_page.results.size() == 1 and t.store.data.attempts.size() == 1, "answers are recorded once")
+	verify(t.case_page.numbers.get_child_count() == 1 and t.case_page.detail.text.contains("为什么"), "result card shows key figures and a reasoning section")
 	t.case_page.begin_branch()
 	while t.case_page.builder != null: await process_frame
 	verify(t.case_page.playing and t.case_page.game.phase != "idle" and not t.case_page.result_card.visible, "playing the hand out hides the result card")
@@ -198,6 +199,7 @@ func _run() -> void:
 		t.case_page.next_case()
 	while t.hub.scan_cursor >= 0: await process_frame
 	verify(not t.case_page.visible and t.hub.summary_box.get_child_count() == 8 and t.hub.start_button.text == "再来一组" and t.store.data.session.is_empty(), "finishing a set shows its summary on the home page")
+	verify(t.hub.overview.get_child_count() == 1 and t.hub.topic_rows.get_children().any(func(row): return row.bar != null and row.bar.visible), "home shows practice figures and topic progress bars")
 	t.hub.show_records()
 	verify(t.hub.records_page.visible and t.hub.records_list.get_child_count() >= 6, "practice history lists answered spots by date")
 	t.back_action()

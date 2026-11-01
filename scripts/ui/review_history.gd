@@ -12,7 +12,7 @@ var entries: Array = []
 var history_list: ItemList
 var history_status: Label
 ## Real-game totals for the hands the current filters select.
-var stats_label: Label
+var stats_box: VBoxContainer
 var empty_art: TextureRect
 var previous_page: Button
 var next_page: Button
@@ -34,9 +34,8 @@ var reset_filters: Button
 
 
 func build() -> void:
-	stats_label = UI.label("", 17, UI.GOLD)
-	stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	self.add_child(stats_label)
+	stats_box = VBoxContainer.new()
+	self.add_child(stats_box)
 	history_status = UI.label("", 18, UI.MUTED)
 	history_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	self.add_child(history_status)
@@ -282,6 +281,6 @@ func _update_stats(catalog: Array) -> void:
 		net += float(item.net) / item.big_blind
 		vpip += int(item.vpip)
 		pfr += int(item.pfr)
-	stats_label.visible = hands > 0
+	UI.clear(stats_box)
+	if hands > 0: stats_box.add_child(UI.stat_row([[str(hands), "手"], ["%+.1f" % net, "净变化 BB", UI.SUCCESS if net > 0 else UI.DANGER if net < 0 else UI.TEXT], ["%.0f%%" % (100.0 * vpip / hands), "主动入池"], ["%.0f%%" % (100.0 * pfr / hands), "翻前加注"]]))
 	empty_art.visible = all_filenames.is_empty()
-	stats_label.text = "%d 手 · 净变化 %+.1f BB · 主动入池 %.0f%% · 翻前加注 %.0f%%" % [hands, net, 100.0 * vpip / maxi(1, hands), 100.0 * pfr / maxi(1, hands)]

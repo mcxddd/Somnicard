@@ -4,6 +4,7 @@ extends Button
 const UI = preload("res://scripts/ui/style.gd")
 var title_label: Label
 var subtitle_label: Label
+var bar: ProgressBar
 
 func setup(title_text: String, subtitle: String, icon_name: String, vertical: bool) -> void:
 	custom_minimum_size = Vector2(64, 132 if vertical else 76)
@@ -49,6 +50,14 @@ func setup(title_text: String, subtitle: String, icon_name: String, vertical: bo
 		chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(chevron)
 	set_lines(title_text, subtitle)
+
+## Show a thin progress bar under the text; a negative rate hides it.
+func set_progress(rate: float) -> void:
+	if bar == null:
+		bar = UI.progress(0)
+		subtitle_label.get_parent().add_child(bar)
+	bar.visible = rate >= 0
+	bar.value = clampf(rate, 0, 1)
 
 func set_lines(title_text: String, subtitle: String) -> void:
 	title_label.text = title_text

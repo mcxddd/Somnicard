@@ -15,6 +15,8 @@ var today_title: Label
 var today_note: Label
 var start_button: Button
 var topic_rows: VBoxContainer
+## Answered / recent mastery / due figures; empty until the first answer.
+var overview: VBoxContainer
 var records_list: VBoxContainer
 var candidates: Array = []
 var records: Array = []
@@ -42,6 +44,8 @@ func build() -> void:
 	today_column.add_child(today_note)
 	start_button = UI.primary("开始练习", func(): start_set())
 	today_column.add_child(start_button)
+	overview = VBoxContainer.new()
+	home_page.add_child(overview)
 	home_page.add_child(UI.heading("各主题掌握情况"))
 	home_page.add_child(UI.caption("点一个主题，只练这个主题。"))
 	topic_rows = VBoxContainer.new()
@@ -124,14 +128,23 @@ func refresh() -> void:
 		elif not weakest.is_empty(): today_note.text = "优先挑你最弱的主题：%s。题目来自你打过的牌局，不够时用内置局面。" % weakest
 		else: today_note.text = "先作答，再看建议和理由。题目来自你打过的牌局，不够时用内置局面。"
 		start_button.text = "再来一组" if not last_results.is_empty() else "开始练习"
+	UI.clear(overview)
+	var answered: int = store.data.attempts.size()
+	if answered > 0:
+		var scored = 0
+		var kept = 0
+		for topic in Store.TOPICS:
+			scored += rates[topic].scored
+			kept += rates[topic].kept
+		overview.add_child(UI.stat_row([[str(answered), "练过的题"], ["%d%%" % roundi(100.0 * kept / scored) if scored > 0 else "—", "近期掌握率", UI.GOLD], [str(due), "待复习", UI.DANGER if due > 0 else UI.TEXT]]))
 	UI.clear(topic_rows)
 	for topic in Store.TOPICS:
 		var r: Dictionary = rates[topic]
 		var line = "还没练过"
-		if r.rate >= 0:
-			var filled = roundi(r.rate * 10)
-			line = "%s  掌握 %d%% · 练过 %d 题" % ["▰".repeat(filled) + "▱".repeat(10 - filled), roundi(r.rate * 100), r.attempts]
-		topic_rows.add_child(UI.entry(topic, line, func(): start_set(topic), TOPIC_ICONS[topic]))
+		if r.rate >= 0: line = "掌握 %d%% · 练过 %d 题" % [roundi(r.rate * 100), r.attempts]
+		var row = UI.entry(topic, line, func(): start_set(topic), TOPIC_ICONS[topic])
+		row.set_progress(r.rate)
+		topic_rows.add_child(row)
 
 ## Start a set. The selection is automatic; a topic only narrows it.
 func start_set(topic: String = "") -> void:
@@ -158,11 +171,11 @@ func show_summary(results: Array) -> void:
 	summary_box.add_child(UI.art(preload("res://assets/art/practice-complete.png"), 130))
 	var counts = {"good": 0, "ok": 0, "miss": 0, "unscored": 0}
 	for r in results: counts[Store.grade(r.feedback)] += 1
-	var parts: Array = []
-	for grade in ["good", "ok", "miss", "unscored"]:
-		if counts[grade] > 0: parts.append("%d %s" % [counts[grade], GRADES[grade][1]])
 	summary_box.add_child(UI.heading("本组完成"))
-	summary_box.add_child(UI.caption(" · ".join(parts)))
+	var figures: Array = []
+	for grade in ["good", "ok", "miss"]: figures.append([str(counts[grade]), GRADES[grade][1], GRADES[grade][2]])
+	if counts.unscored > 0: figures.append([str(counts.unscored), GRADES.unscored[1], GRADES.unscored[2]])
+	summary_box.add_child(UI.stat_row(figures))
 	for i in range(results.size()):
 		var r: Dictionary = results[i]
 		var g = GRADES[Store.grade(r.feedback)]
