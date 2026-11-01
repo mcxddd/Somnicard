@@ -20,9 +20,6 @@ var units
 var back: Button
 var history_page
 var analysis_view
-var help_page: VBoxContainer
-var help_text: RichTextLabel
-var help_copy: String
 var replay_page: HBoxContainer
 var table_view
 var slider: HSlider
@@ -97,27 +94,6 @@ func _ready() -> void:
 	history_page.add_theme_constant_override("separation", 14)
 	column.add_child(history_page)
 	history_page.build()
-	help_page = VBoxContainer.new()
-	help_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(help_page)
-	help_text = RichTextLabel.new()
-	help_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	help_text.add_theme_font_size_override("normal_font_size", 22)
-	help_text.add_theme_color_override("default_color", UI.TEXT)
-	help_text.text = "SOMNICARD " + str(ProjectSettings.get_setting("application/config/version")) + " · 德州扑克练习\n\n1. 主界面点击“开始新局”，选择 2–9 人和初始筹码，再配置电脑对手。你固定坐在下方；其余都是独立电脑。每手结算后点击“下一手”继续。\n\n2. BB 是大盲单位。本桌盲注为 5 / 10，1 BB = 10 筹码；右上角切换单位不会改变实际金额。“加到”指本轮总投入，不是额外投入。\n\n3. BB、底池比例与滑条只填写金额，点击加注后才提交。半池加注按跟注后的底池计算；全押默认需要再次确认，可在设置中关闭。\n\n4. 点击牌桌悬浮教练头像，在同一界面查看建议与原因，随时收起或直接行动；设置可关闭教练、自动提示或改变头像位置。设置中的对局教学与复盘教学分别开关，教学页也可即时切换。范围来自公开行动与经验似然。限定剩两人的河牌支持多尺度与有效全押的抽象 CFR，可主动进行精细分析并分段继续计算，展示参考比例、模型净值与误差；复盘比较实际选择，未覆盖尺寸不评分。其余场景提供经验建议；不是完整 GTO。\n\n5. 完成的牌局自动保存。从主界面“牌局复盘”或牌桌菜单进入历史，点击一手牌即可打开。可逐步回放、拖动时间轴、跳转下注轮次，或跳到“我的下个决策”。回放会在你的决策点暂停。\n\n6. 分析只使用当时自己的底牌、公共牌、公开行动和筹码。平局会按分池比例计入权益；有边池时只计算你有资格争夺的部分。输赢不等于操作质量。\n\n7. 当前桌在操作后自动保存，重启后可在主界面“恢复上次牌桌”，再点“继续”。牌桌菜单中的“返回主界面”会保留当前进度。后台会自动暂停。新开桌替换当前存档，已完成历史保留；卸载应用或清除数据可能删除记录。\n\n训练室：从主界面或牌桌“更多”进入，点“开始练习”即出 5 题，题目自动挑选：先复习之前偏离建议的局面，再按你最弱的主题出新局面。每题先作答，再看评级（好的选择 / 可以接受 / 偏离建议）、建议操作和完整理由；需要时可用自己的选择把这手打完，未知牌会重新发。点主题行只练这个主题；“练习记录”可以重练做过的题。复盘“工具”可收藏、备注、跳转决策或练习此处。本地备份在“设置 → 数据与备份”，导入导出是立即执行的文件操作，不需要保存设置。\n\n手机和电脑统一竖屏。底部“加注”打开金额面板，收起不会下注；“更多”包含设置、历史、记录。多人桌点座位查看详情，摊牌之前不公开对手底牌。复盘点击悬浮教练头像，在牌桌上展开分析；下方回放控制始终保留。\n\n设置：主界面“设置”或牌桌“更多 → 牌桌设置”。先选择分类，再修改具体选项；分类间返回保留草稿，点击“保存设置”才生效，“取消修改”放弃草稿。分为牌桌与操作、外观与声音、教练与教学、电脑对手、数据与备份五类。\n\n桌面快捷键：F 弃牌，空格过牌 / 跟注，R 输入金额，P 暂停；Esc / 安卓返回键返回上一层；主界面再次返回会确认退出。\n\n电脑实测：设置 → 电脑对手 → 查看本版已完成的本地实测，了解三档电脑在 21,312 手中的表现，结果不换算真人段位。\n\n当前范围：虚拟筹码、本地电脑对战、复盘与训练；没有账户或支付。多人连续牌局采用移动庄家的练习规则，不包含完整锦标赛死庄与盲注升级。\n\n引擎与许可\nGodot Engine — https://godotengine.org/license/\n源代码：https://github.com/godotengine/godot\n\n" + Engine.get_license_text()
-	help_page.add_child(help_text)
-	help_copy = help_text.text
-	help_page.add_child(UI.button("查看引擎第三方组件许可", func():
-		var lines: Array = ["Godot 第三方组件版权与许可"]
-		for component in Engine.get_copyright_info():
-			lines.append("\n" + component.name)
-			for part in component.parts:
-				lines.append("\n".join(part.copyright))
-				lines.append("License: " + part.license)
-		var licenses = Engine.get_license_info()
-		for name in licenses: lines.append("\n" + name + "\n" + licenses[name])
-		help_text.text = "\n".join(lines)
-		help_text.scroll_to_line(0)))
 	replay_page = HBoxContainer.new()
 	replay_page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	replay_page.add_theme_constant_override("separation", 16)
@@ -272,7 +248,6 @@ func open_replay(rebuilt: Dictionary, bb: bool) -> void:
 	units.select(1 if bb else 0)
 	frames = rebuilt.frames
 	history_page.hide()
-	help_page.hide()
 	replay_page.show()
 	back.show()
 	title.text = "%d 人桌 · 第 %d 手 · 复盘" % [rebuilt.record.starting_stacks.size(), rebuilt.record.hand]
@@ -291,7 +266,6 @@ func open_live(view: Dictionary, bb: bool) -> void:
 	units.select(1 if bb else 0)
 	frames = [{"view": view.duplicate(true), "event": {"kind": "decision", "seat": 0}, "decision": true}]
 	history_page.hide()
-	help_page.hide()
 	replay_page.show()
 	back.hide()
 	title.text = "当前决策 · 练习提示"
@@ -320,18 +294,6 @@ func back_action() -> void:
 func _toggle_coach() -> void:
 	_select_portrait_tab(not analysis_selected)
 	if analysis_selected and _hero_decision() and analysis_view.teaching_enabled() and analysis_view.analysis.is_empty(): analysis_view._analyze()
-
-func open_help(bb: bool) -> void:
-	open_history(bb)
-	history_page.hide()
-	replay_page.hide()
-	help_page.show()
-	help_text.text = help_copy
-	help_text.scroll_to_line(0)
-	title.text = "玩法帮助 · 关于"
-	portrait_tabs.hide()
-	analysis_panel.hide()
-	analysis_view.coach_avatar.hide()
 
 func set_units(bb: bool) -> void:
 	use_bb = bb

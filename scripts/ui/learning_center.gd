@@ -67,7 +67,7 @@ func _overview() -> void:
 	UI.clear(body)
 	title.text = "学习路线"
 	var progress = Academy.progress(store.data)
-	subtitle.text = "%d / %d 课 · %d / %d 个知识点\n按自己的节奏学，随时返回牌桌。" % [progress.lessons, Academy.LESSONS.size(), progress.questions, Academy.question_ids().size()]
+	subtitle.text = "按自己的节奏学，随时返回牌桌。"
 	var pending = Academy.missed(store.data)
 	body.add_child(UI.stat_row([["%d/%d" % [progress.lessons, Academy.LESSONS.size()], "已学完的课"], ["%d/%d" % [progress.questions, Academy.question_ids().size()], "掌握的知识点", UI.GOLD], [str(pending.size()), "待复习错题", UI.DANGER if not pending.is_empty() else UI.TEXT]]))
 	_text("从看懂一手牌，到讲清一个决定。", 25)

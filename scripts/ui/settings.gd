@@ -95,7 +95,7 @@ func _ready() -> void:
 	_add_option(2, "coach_detail", "提示内容", "简洁模式先给操作与关键理由，详细模式显示完整原因。", ["简洁", "详细"])
 	_add_option(2, "coach_side", "悬浮头像位置", "放在牌桌左下或右下，避开你的手牌和下注按钮。", ["左侧", "右侧"])
 	_add_toggle(2, "review_teaching", "复盘中的教学", "在自己的历史决策点显示分析入口。关闭后仍可回放、查看行动和结算。")
-	var scope_note = UI.label("两个开关独立保存。教学页也可以即时开关。\n\n数值分析在本地完成。2–9 人支持范围推断；CFR 仅覆盖限定的双人河牌抽象，不代表完整 GTO。\n\n先思考自己的选择，再揭示讲解，有助于区分决策质量与最后输赢。", 18, UI.MUTED)
+	var scope_note = UI.label("牌桌教练和复盘教学分开保存，复盘页里也能随时开关。建议怎么算、可靠到什么程度，见“帮助 → 教练与复盘”。", 18, UI.MUTED)
 	scope_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pages[2].add_child(scope_note)
 	_add_option(3, "difficulty", "默认电脑难度", "跟随默认的座位会一起更新；单独指定难度的座位保持原设置。下方可以逐个配置。", ["入门", "标准", "进阶"])

@@ -1,5 +1,5 @@
 extends VBoxContainer
-## Depends on host: _open_entry, practice_tools, practice_entry, _select_portrait_tab, analysis_view, record_id_label, _stop_play, live_mode, frames, back, help_page, replay_page, title, portrait_tabs, is_visible_in_tree, portrait, use_bb, training_store, add_child.
+## Depends on host: _open_entry, practice_tools, practice_entry, _select_portrait_tab, analysis_view, record_id_label, _stop_play, live_mode, frames, back, replay_page, title, portrait_tabs, is_visible_in_tree, portrait, use_bb, training_store, add_child.
 var host
 const UI = preload("res://scripts/ui/style.gd")
 const HistoryFilter = preload("res://scripts/poker/history_filter.gd")
@@ -86,7 +86,6 @@ func show_history() -> void:
 	host.frames = []
 	host.back.hide()
 	self.show()
-	host.help_page.hide()
 	host.replay_page.hide()
 	host.title.text = "历史牌局"
 	host.portrait_tabs.hide()

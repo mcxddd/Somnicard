@@ -103,4 +103,4 @@ func update_learning(data: Dictionary) -> void:
 	var pending = academy.missed(data)
 	var detail = "有 %d 道错题待复习" % pending.size() if not pending.is_empty() else "基础路线已完成，随时温习" if p.lessons == academy.LESSONS.size() else "接着学：" + academy.LESSONS[p.next].title
 	learning.set_lines("学习路线 · %d/%d 课" % [p.lessons, academy.LESSONS.size()], detail)
-	learning_note.text = "今日主题练习 %d/3 · %s" % [mini(p.today, 3), "今日目标已完成，休息一下也很好。" if p.today >= 3 else "先作答，再看教练。按自己的节奏来。"]
+	learning_note.text = "今天的 3 题目标完成了，休息一下也很好。" if p.today >= 3 else "今天已练 %d / 3 题，先作答，再看教练。" % p.today

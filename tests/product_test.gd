@@ -199,6 +199,6 @@ func _test_review_ui(ui) -> void:
 		for q in range(Academy.LESSONS[l].questions.size()): Academy.answer(store, l, q, Academy.LESSONS[l].questions[q].correct)
 	ui.learning_center._overview()
 	ui.home.update_learning(store.data)
-	verify(ui.learning_center.next_button.text == "进入主题训练" and ui.learning_center.subtitle.text.contains("60 / 60") and ui.home.learning.text.contains("基础路线已完成"), "fully completed curriculum offers training and completed home copy")
+	verify(ui.learning_center.next_button.text == "进入主题训练" and ui.learning_center.body.get_child(0).get_child(0).get_child(1).get_child(0).text == "60/60" and ui.home.learning.text.contains("基础路线已完成"), "fully completed curriculum offers training and completed home copy")
 	ui.modals.back()
 	ui.learning_center.store = original_store

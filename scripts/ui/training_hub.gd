@@ -5,6 +5,7 @@ const UI = preload("res://scripts/ui/style.gd")
 const History = preload("res://scripts/poker/history.gd")
 const Practice = preload("res://scripts/poker/practice.gd")
 const Store = preload("res://scripts/poker/training_store.gd")
+const TOPIC_NOTES = {"翻前入池": "翻牌前进不进池、用什么方式进", "面对下注": "对手下注后，跟注、弃牌还是加注", "主动下注": "没人下注时，要不要下注、下多少", "河牌判断": "最后一张牌后的价值下注与抓诈唬"}
 const TOPIC_ICONS = {"翻前入池": "topic-preflop", "面对下注": "topic-facing", "主动下注": "topic-betting", "河牌判断": "topic-river"}
 const GRADES = {"good": ["✓", "好的选择", Color("7cd7b7")], "ok": ["≈", "可以接受", Color("dec488")], "miss": ["✗", "偏离建议", Color("f2a3a9")], "unscored": ["·", "不评分", Color("a4b9b4")]}
 var host
@@ -52,7 +53,7 @@ func build() -> void:
 	topic_rows.add_theme_constant_override("separation", 8)
 	home_page.add_child(topic_rows)
 	home_page.add_child(UI.entry("练习记录", "按日期查看做过的题，可以再练一次", show_records, "history"))
-	home_page.add_child(UI.caption("练习结果不计入对局统计。建议来自本机模型：河牌限定双人抽象求解，其余为范围与价格估算，不是完整 GTO。"))
+	home_page.add_child(UI.caption("练习结果不计入对局统计。建议怎么算、可靠到什么程度，见“帮助 → 教练与复盘”。"))
 	records_page = VBoxContainer.new()
 	records_page.add_theme_constant_override("separation", 10)
 	add_child(records_page)
@@ -140,8 +141,8 @@ func refresh() -> void:
 	UI.clear(topic_rows)
 	for topic in Store.TOPICS:
 		var r: Dictionary = rates[topic]
-		var line = "还没练过"
-		if r.rate >= 0: line = "掌握 %d%% · 练过 %d 题" % [roundi(r.rate * 100), r.attempts]
+		var line: String = TOPIC_NOTES[topic]
+		if r.rate >= 0: line += "\n掌握 %d%% · 练过 %d 题" % [roundi(r.rate * 100), r.attempts]
 		var row = UI.entry(topic, line, func(): start_set(topic), TOPIC_ICONS[topic])
 		row.set_progress(r.rate)
 		topic_rows.add_child(row)
