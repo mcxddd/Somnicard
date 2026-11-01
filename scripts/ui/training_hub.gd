@@ -126,8 +126,8 @@ func refresh() -> void:
 				lowest = rates[topic].rate
 				weakest = topic
 		if due > 0: today_note.text = "其中 %d 题是之前做错、该复习的局面，其余按你最弱的主题挑选。" % mini(due, 2)
-		elif not weakest.is_empty(): today_note.text = "优先挑你最弱的主题：%s。题目来自你打过的牌局，不够时用内置局面。" % weakest
-		else: today_note.text = "先作答，再看建议和理由。题目来自你打过的牌局，不够时用内置局面。"
+		elif not weakest.is_empty(): today_note.text = "优先挑你最弱的主题：%s。题目尽量来自你打过的牌局。" % weakest
+		else: today_note.text = "先作答，再看建议和理由。题目尽量来自你打过的牌局。"
 		start_button.text = "再来一组" if not last_results.is_empty() else "开始练习"
 	UI.clear(overview)
 	var answered: int = store.data.attempts.size()

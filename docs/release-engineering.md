@@ -10,6 +10,13 @@ Android 原位更新必须保持包名和签名证书。旧试用版使用 `com.
 
 参考：[Android 应用签名](https://developer.android.com/studio/publish/app-signing)、[Godot Android 导出](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html)。
 
+## 2.1.2 发布记录（2026-11-02）
+
+- 训练室重做、统一界面规范与图标、数据可视化、帮助问答、首次打开引导与新插画；versionCode 30。
+- 官网与 [GitHub v2.1.2 Release](https://github.com/mcxddd/Somnicard/releases/tag/v2.1.2) 的 APK 相同：SHA-256 `025af3515a7bde952938a13c843a031ea46d0006548eaba036b4a412edd72c41`，53,639,296 字节。签名证书与 2.1.0 相同（`0914a276…09eb2`），可覆盖安装。
+- 验收：打包前 23 套回归通过；模拟器从 2.1.1 覆盖升级后保留上次牌桌、不显示引导；训练室开始练习、作答与结论卡正常；清空数据模拟新安装时出现三页引导，返回键可退出；运行日志无脚本错误。
+- 第一次构建后在模拟器上发现训练室首页说明的句号单独换行，缩短文案后重新构建；重建时首次资源导入又偶发失败一次，重试通过。
+
 ## 2.1.1 发布记录（2026-10-31）
 
 - 下注金额改用数字键盘、进阶电脑对手升级为 opponent-3、训练室与 main.gd 拆分；versionCode 29。
