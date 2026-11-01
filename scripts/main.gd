@@ -22,6 +22,8 @@ const Settings = preload("res://scripts/ui/settings.gd")
 const Confirmation = preload("res://scripts/ui/confirm.gd")
 const Home = preload("res://scripts/ui/home.gd")
 var home
+const Onboarding = preload("res://scripts/ui/onboarding.gd")
+var onboarding
 const Coach = preload("res://scripts/ui/coach.gd")
 const Training = preload("res://scripts/ui/training.gd")
 const TrainingStore = preload("res://scripts/poker/training_store.gd")
@@ -74,6 +76,7 @@ func _ready() -> void:
 	get_window().title = "Somnicard %s · 德州扑克练习" % ProjectSettings.get_setting("application/config/version")
 	smoke_mode = "--smoke-test" in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless"
 	_clear_retired_data()
+	var first_launch = not smoke_mode and "--capture-test" not in OS.get_cmdline_user_args() and Onboarding.needed(History.DIRECTORY)
 	_update_scale()
 	prefs.show_sidebar = not mobile_layout
 	_load_preferences()
@@ -86,6 +89,9 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	get_tree().quit_on_go_back = false
 	_open_home()
+	if first_launch:
+		onboarding.open()
+		modals.sync_focus()
 	if "--smoke-test" in OS.get_cmdline_user_args(): call_deferred("_smoke_test")
 
 func _build_ui() -> void:
@@ -145,6 +151,10 @@ func _build_product() -> void:
 		training.hub.start_set(TrainingStore.topic_name(topic)))
 	support_center = preload("res://scripts/ui/support_center.gd").new()
 	screen.safe_root.add_child(support_center)
+	onboarding = Onboarding.new()
+	onboarding.z_index = 40
+	screen.safe_root.add_child(onboarding)
+	onboarding.finished.connect(func(): modals.sync_focus())
 	support_center.closed.connect(_close_product)
 	support_center.destination.connect(func(name):
 		support_center.hide()

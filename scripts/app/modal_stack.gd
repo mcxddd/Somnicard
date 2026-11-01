@@ -7,6 +7,7 @@ var last_system_back_ms: int = -1000
 func setup(main):
 	host = main
 	layers = [
+		{"node": func(): return host.onboarding, "back": func(): host.onboarding.back_action(), "focus": func(): return host.onboarding.next_button},
 		{"node": func(): return host.confirmation, "back": func(): host.confirmation.cancel(), "focus": func(): return host.confirmation.cancel_button},
 		{"node": func(): return host.learning_center, "back": func(): host.learning_center.back_action(), "focus": func(): return host.learning_center.back_button},
 		{"node": func(): return host.support_center, "back": func(): host.support_center.back_action(), "focus": func(): return host.support_center.back_button},

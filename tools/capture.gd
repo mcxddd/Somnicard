@@ -62,6 +62,11 @@ func _capture() -> void:
 		while instance.review.history_page.scan_cursor >= 0: await process_frame
 		instance.review.history_page.filter_panel.show()
 	if "--help" in OS.get_cmdline_user_args(): instance._open_help()
+	if "--onboarding" in OS.get_cmdline_user_args():
+		instance.onboarding.open()
+		for arg in OS.get_cmdline_user_args():
+			if arg.begins_with("--onboarding-page="):
+				for i in range(int(arg.trim_prefix("--onboarding-page="))): instance.onboarding.advance()
 	if "--product-help" in OS.get_cmdline_user_args(): instance._open_product("help")
 	if "--academy" in OS.get_cmdline_user_args():
 		instance._open_product("academy")
