@@ -27,7 +27,7 @@ func setup(title_text: String, subtitle: String, icon_name: String, vertical: bo
 	row.add_theme_constant_override("separation", 8 if vertical else 14)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inset.add_child(row)
-	var picture = UI.icon(icon_name, 36 if vertical else 40)
+	var picture = UI.icon(icon_name, 44 if vertical else 40)
 	if picture != null:
 		picture.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if vertical: picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
