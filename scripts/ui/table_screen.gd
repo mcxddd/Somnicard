@@ -5,6 +5,8 @@ const UnitSwitch = preload("res://scripts/ui/unit_switch.gd")
 const TableView = preload("res://scripts/ui/table_view.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const Sheet = preload("res://scripts/ui/sheet.gd")
+const Segmented = preload("res://scripts/ui/segmented.gd")
+const Avatar = preload("res://scripts/ui/seat_avatar.gd")
 var table_view
 var header: Label
 var turn_label: Label
@@ -29,8 +31,9 @@ var quick_row: GridContainer
 var speed_picker: OptionButton
 var fast_fold: CheckBox
 var lobby: ColorRect
-var count_picker: OptionButton
-var depth_picker: OptionButton
+var count_picker
+var depth_picker
+var opponent_grid: GridContainer
 var lobby_note: Label
 var start_button: Button
 var cancel_button: Button
@@ -254,44 +257,38 @@ func build_lobby() -> void:
 	lobby_scroll.add_child(lobby_shell)
 	lobby_welcome = VBoxContainer.new()
 	lobby_shell.add_child(lobby_welcome)
-	lobby_welcome.add_child(UI.label("01   选择桌型", 22, UI.GOLD))
-	lobby_welcome.add_child(UI.label("人数包含你和电脑对手", 17, UI.MUTED))
+	lobby_welcome.add_child(UI.heading("01  人数"))
+	lobby_welcome.add_child(UI.caption("包含你自己。2 人是单挑，6 人是常见的短桌，9 人是满桌。"))
 	var col = VBoxContainer.new()
 	col.add_theme_constant_override("separation", 16)
 	lobby_column = col
 	lobby_shell.add_child(col)
-	var presets = row(12)
-	col.add_child(presets)
-	for count in [2, 6, 9]:
-		var button = UI.button("%d 人桌" % count, host._select_count.bind(count), UI.GREEN, 64)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		presets.add_child(button)
-		preset_buttons[count] = button
-	var custom = row(16)
-	col.add_child(custom)
-	custom.add_child(UI.label("任意人数", 18, UI.MUTED))
-	count_picker = OptionButton.new()
-	for count in range(2, 10): count_picker.add_item("%d 人 · 你 + %d 个电脑" % [count, count - 1])
-	count_picker.custom_minimum_size.y = 54
-	count_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Every count from 2 to 9 in one row; the common 2 / 6 / 9 keep their own handles.
+	count_picker = Segmented.new()
+	for count in range(2, 10): count_picker.add_item(str(count))
 	count_picker.item_selected.connect(func(index): host._select_count(index + 2))
-	custom.add_child(count_picker)
-	col.add_child(UI.label("02   初始筹码", 22, UI.GOLD))
-	depth_picker = OptionButton.new()
-	for bb in [50, 100, 200]: depth_picker.add_item("%d BB / 人" % bb)
+	col.add_child(count_picker)
+	for count in [2, 6, 9]: preset_buttons[count] = count_picker.buttons[count - 2]
+	col.add_child(UI.heading("02  初始筹码"))
+	depth_picker = Segmented.new()
+	for bb in [50, 100, 200]: depth_picker.add_item("%d BB" % bb)
 	depth_picker.select([50, 100, 200].find(host.starting_bb))
-	depth_picker.custom_minimum_size.y = 54
 	depth_picker.item_selected.connect(func(_i): host._update_table_summary())
 	col.add_child(depth_picker)
-	col.add_child(UI.label("03   电脑对手", 22, UI.GOLD))
+	col.add_child(UI.caption("筹码越深，翻牌后的决定越多；50 BB 更快分出胜负。"))
+	col.add_child(UI.heading("03  电脑对手"))
 	lobby_extras = VBoxContainer.new()
+	lobby_extras.add_theme_constant_override("separation", 8)
 	col.add_child(lobby_extras)
-	lobby_extras.add_child(UI.button("配置每位对手  ›", host._open_opponents, Color("243a40"), 58))
-	var hint = UI.label("每位电脑可单独设置难度和激进程度。
-教练与外观在主界面的“设置”中调整。", 17, UI.MUTED)
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(hint)
-	lobby_note = UI.label("", 17, UI.MUTED)
+	opponent_grid = GridContainer.new()
+	opponent_grid.columns = 4
+	opponent_grid.add_theme_constant_override("h_separation", 8)
+	opponent_grid.add_theme_constant_override("v_separation", 8)
+	lobby_extras.add_child(opponent_grid)
+	var configure = UI.link("逐个设置难度和风格 ›", host._open_opponents)
+	configure.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	lobby_extras.add_child(configure)
+	lobby_note = UI.caption("")
 	lobby_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(lobby_note)
 	lobby_buttons = VBoxContainer.new()
@@ -300,6 +297,36 @@ func build_lobby() -> void:
 	lobby_buttons.add_child(start_button)
 	host._select_count(host.selected_count)
 	lobby.hide()
+
+## The opponents who will sit at the table: portrait, name and their current level.
+func update_lobby_opponents(count: int) -> void:
+	if opponent_grid == null: return
+	UI.clear(opponent_grid)
+	var names = host.Names.normalize(host.seat_names)
+	for id in range(1, count):
+		var p = host.Profiles.resolve(host.opponent_profiles, id, host.difficulty)
+		var cell = UI.button(names[id - 1], host._open_opponents.bind(id), UI.CARD, 104)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.clip_text = true
+		cell.tooltip_text = "%s · %s · %s" % [names[id - 1], host.Profiles.LEVELS[p.difficulty], host.Profiles.STYLES[p.aggression]]
+		for color in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]: cell.add_theme_color_override(color, Color.TRANSPARENT)
+		var column = VBoxContainer.new()
+		column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		column.alignment = BoxContainer.ALIGNMENT_CENTER
+		column.add_theme_constant_override("separation", 2)
+		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(column)
+		var avatar = Avatar.new()
+		avatar.custom_minimum_size = Vector2(44, 44)
+		avatar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		avatar.setup(id, names[id - 1])
+		column.add_child(avatar)
+		for line in [[names[id - 1], UI.SIZE_CAPTION + 1, UI.TEXT], [host.Profiles.LEVELS[p.difficulty], UI.SIZE_CAPTION - 2, UI.MUTED]]:
+			var label = UI.label(line[0], line[1], line[2], true)
+			label.clip_text = true
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			column.add_child(label)
+		opponent_grid.add_child(cell)
 
 func build_sheets() -> void:
 	bet_sheet = Sheet.new()

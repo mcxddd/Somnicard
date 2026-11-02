@@ -140,8 +140,7 @@ func _restore_history_offset(generation: int, target: int) -> void:
 ## The full label (with the hand ID) stays in `text`, drawn transparent, for search and tests.
 func _history_card(record: Dictionary, label: String, callback: Callable) -> Button:
 	# One line of hidden text, so the button height comes from the visible layout.
-	var card = UI.button(label.replace("
-", " · "), callback, UI.CARD, 84)
+	var card = UI.button(label.replace("\n", " · "), callback, UI.CARD, 84)
 	card.mouse_filter = Control.MOUSE_FILTER_PASS
 	card.focus_mode = Control.FOCUS_NONE
 	card.tooltip_text = label
@@ -170,8 +169,7 @@ func _history_card(record: Dictionary, label: String, callback: Callable) -> But
 	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lines.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(lines)
-	var parts = label.split("
-")
+	var parts = label.split("\n")
 	var players = record.get("starting_stacks", []).size() if record.get("starting_stacks") is Array else 0
 	var heading = UI.label(("%d 人桌 · " % players if players > 0 else "") + ("第 %d 手" % int(record.hand) if History._integer(record.get("hand"), 1, 100000000) else "牌局"), UI.SIZE_BODY, UI.TEXT)
 	lines.add_child(heading)

@@ -238,14 +238,18 @@ func _return_text() -> String:
 
 func _update_table_summary() -> void:
 	var depth = [50, 100, 200][screen.depth_picker.selected]
-	screen.lobby_note.text = "%d 人桌 · 每人 %d BB · 盲注 5 / 10
-%s" % [selected_count, depth, "现有牌桌将被替换，开始前需要确认。" if game != null or (storage.enabled() and FileAccess.file_exists("user://session.json")) else "虚拟筹码 · 无前注 · 无抽水"]
+	var levels = {}
+	for id in range(1, selected_count):
+		var level = Profiles.LEVELS[Profiles.resolve(opponent_profiles, id, difficulty).difficulty]
+		levels[level] = levels.get(level, 0) + 1
+	var mix = "、".join(levels.keys().map(func(k): return "%s × %d" % [k, levels[k]]))
+	screen.lobby_note.text = "%d 人桌 · 每人 %d BB · 盲注 5 / 10 · 对手 %s
+%s" % [selected_count, depth, mix, "现有牌桌将被替换，开始前需要确认。" if game != null or (storage.enabled() and FileAccess.file_exists("user://session.json")) else "虚拟筹码 · 无前注 · 无抽水"]
 
 func _select_count(count: int) -> void:
 	selected_count = clampi(count, 2, 9)
 	screen.count_picker.select(selected_count - 2)
-	for key in screen.preset_buttons:
-		screen.preset_buttons[key].add_theme_stylebox_override("normal", UI.surface(UI.GREEN if key == selected_count else Color("243a40"), 8, 12, UI.GOLD if key == selected_count else Color.TRANSPARENT))
+	screen.update_lobby_opponents(selected_count)
 	screen.start_button.text = ("开始 %d 人桌" if game == null else "重开 %d 人桌") % selected_count
 	_update_table_summary()
 
@@ -695,6 +699,7 @@ func _apply_settings(values: Dictionary) -> void:
 
 func _close_settings() -> void:
 	if home.visible: _update_home()
+	if screen.lobby.visible: screen.update_lobby_opponents(selected_count)
 	modals.sync_focus()
 	_refresh()
 	_schedule_bot()
@@ -795,7 +800,8 @@ func _open_info(heading: String, message: String, opponent_id: int = -1) -> void
 func _seat_details(id: int) -> void:
 	if game == null or modals.is_open() or id < 0 or id >= game.seats.size(): return
 	var seat = game.view_for(0).seats[id]
-	_open_info(seat.name + " · 座位详情", screen.table_view.seat_nodes[id].panel.tooltip_text + "\n\n" + screen.table_view.seat_nodes[id].status.text + "\n底牌：" + (_cards_text(seat.hole) if not seat.hole.is_empty() else "未公开"), id)
+	var bio = Names.BIOS[id - 1] + "\n\n" if id > 0 else ""
+	_open_info(seat.name + " · 座位详情", bio + screen.table_view.seat_nodes[id].panel.tooltip_text + "\n\n" + screen.table_view.seat_nodes[id].status.text + "\n底牌：" + (_cards_text(seat.hole) if not seat.hole.is_empty() else "未公开"), id)
 	screen.info_sheet.preferred_height = 610
 	screen.info_sheet._layout()
 

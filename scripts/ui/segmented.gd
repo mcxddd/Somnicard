@@ -16,6 +16,8 @@ func add_item(text: String) -> void:
 	var button = UI.button(text, func(): _choose(index), UI.INSET, 48)
 	button.toggle_mode = true
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Share the row evenly; eight choices must still fit a phone.
+	button.custom_minimum_size.x = 0
 	button.add_theme_font_size_override("font_size", UI.SIZE_CAPTION + 2)
 	var chosen = UI.surface(UI.GREEN.darkened(0.15), 9, 12, UI.GREEN.lightened(0.3))
 	chosen.set_border_width_all(1)
