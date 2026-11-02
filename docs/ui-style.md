@@ -78,9 +78,9 @@
 | `settings-table`、`settings-look`、`settings-coach`、`settings-opponents`、`settings-data` | 设置的五个分类 |
 | `review-mistakes`、`lesson`、`lesson-done` | 学习路线的错题复习、未完成课程、已完成课程 |
 | `help` | 帮助与关于的问题列表（主题图标缺失时的替代） |
-| `help-start`、`help-table`、`help-coach`、`help-opponents`、`help-privacy`、`help-install`、`help-about` | 帮助的七个主题（待生成） |
+| `help-start`、`help-table`、`help-coach`、`help-opponents`、`help-privacy`、`help-install`、`help-about` | 帮助的七个主题 |
 | `home` | 牌桌菜单的“返回主界面”（待生成） |
 
 ## 电脑对手头像
 
-`scripts/ui/seat_avatar.gd`：座位 1–8 依次读取 `assets/art/avatars/` 下的 `xiaoxia`、`alan`、`milo`、`qinghe`、`noah`、`chengzi`、`ache`、`xingye`（.png），画在带各自主题色的圆环里；轮到该座位时圆环变金色。文件不存在时显示名字的第一个字。提示词见 `assets/art/source/round-3-prompts.md`。
+`scripts/ui/seat_avatar.gd`：座位 1–8 依次读取 `assets/art/avatars/` 下的 `xiaoxia`、`alan`、`milo`、`qinghe`、`noah`、`chengzi`、`ache`、`xingye`（.png），画在带各自主题色的圆环里（双人桌 44 像素，多人桌 28 像素）；轮到该座位时圆环变金色。文件不存在时显示名字的第一个字。运行时图片由 `tools/prepare_round3_art.py` 从 512 像素原图生成。提示词见 `assets/art/source/round-3-prompts.md`。

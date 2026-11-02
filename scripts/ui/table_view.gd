@@ -341,7 +341,7 @@ func _layout_portrait() -> void:
 		node.status.add_theme_font_size_override("font_size", 16 if hero else 14)
 		# The action dock already explains the human turn and outcome.
 		node.status.visible = not hero
-		if node.avatar != null: node.avatar.custom_minimum_size = Vector2(36, 36) if heads_up else Vector2(24, 24)
+		if node.avatar != null: node.avatar.custom_minimum_size = Vector2(44, 44) if heads_up else Vector2(28, 28)
 		node.stack.show()
 		node.stack.custom_minimum_size.x = 54 if not hero and not heads_up else 84
 		node.stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
