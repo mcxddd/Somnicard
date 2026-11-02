@@ -5,6 +5,7 @@ const UI = preload("res://scripts/ui/style.gd")
 const DOWNLOAD = "https://somnicard.nightricecake.com/"
 ## Help sections in a fixed order (the table's help button opens section 1).
 ## Each section: title, one-line summary, then [question, answer] pairs shown as expandable cards.
+const TOPIC_ICONS = ["help-start", "help-table", "help-coach", "help-opponents", "help-privacy", "help-install", "help-about"]
 const TOPICS = [
 	["开始使用", "先玩、先学，还是先练", [
 		["我该从哪里开始？", "已经熟悉规则：主界面点“开始新局”，选人数和筹码就能玩。\n刚接触德州：从学习路线第 1 课开始，每课 5 个局面，先选再看理由。\n想专门练决定：训练室点“开始练习”，每组 5 题。"],
@@ -100,8 +101,10 @@ func _overview() -> void:
 	body.add_child(UI.caption("选一个主题，点问题展开答案。"))
 	for i in range(TOPICS.size()):
 		var index = i
+		# Each topic has its own icon once the artwork exists; until then the shared one.
+		var icon_name = TOPIC_ICONS[i] if ResourceLoader.exists("res://assets/icons/%s.png" % TOPIC_ICONS[i]) else "help"
 		body.add_child(UI.entry(TOPICS[i][0], TOPICS[i][1], func():
-			if scroll.can_activate(): show_topic(index), "help"))
+			if scroll.can_activate(): show_topic(index), icon_name))
 	_button("引擎与第三方许可", _licenses)
 	_button("官网 · 下载与版本说明 ↗", func(): OS.shell_open(DOWNLOAD))
 	_button("复制诊断摘要", func():

@@ -30,7 +30,7 @@ Palette: #07111B, #F5EEDF, #227865, #E5C17A plus the single accent colour named 
 | `ache.png` | `Character: Ache, cool and aggressive. Accessory: dark rounded sunglasses pushed up onto the top edge of the card, eyes still closed crescents below. Accent colour crimson #E0697A. Confident smirk.` |
 | `xingye.png` | `Character: Xingye, night owl. Accessory: a floppy night cap with a small gold star at its tip. Accent colour deep indigo #5B6FC7. Sleepy little yawn mouth.` |
 
-## 二、帮助主题图标（7 个）
+## 二、帮助主题与菜单图标（8 个）
 
 放到 `assets/icons/source/`。共用部分直接复制 `assets/icons/source/generation-prompts.json` 里的 `shared_prompt`（和上一批图标一样），后面接下面的主题。
 
@@ -43,3 +43,4 @@ Palette: #07111B, #F5EEDF, #227865, #E5C17A plus the single accent colour named 
 | `help-privacy.png` | `Subject: a rounded shield with a simple padlock in the center; green accent on the lock shackle.` |
 | `help-install.png` | `Subject: a smartphone outline with a downward arrow entering its screen; green accent on the arrow.` |
 | `help-about.png` | `Subject: a speech bubble containing a small lowercase information i made of a dot and a short line, with the dot solid green.` |
+| `home.png` | `Subject: a simple house outline with a pitched roof and a small rounded door, the door solid green.` |

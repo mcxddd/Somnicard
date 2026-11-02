@@ -35,6 +35,20 @@
 - `UI.secondary()`：次要操作。
 - `UI.entry(标题, 说明, 回调, 图标名, 竖排)`：导航入口。左侧图标，右侧大标题加一行灰色说明，横排时最右边有箭头。按钮的 `text` 保留“标题 + 换行 + 说明”的纯文字，供无障碍和测试读取；需要更新内容时用 `set_lines()`。入口里的文字不自动换行，要分行就在说明里写换行符，过长时以省略号结尾；入口高度会随行数和进度条自动增加。
 
+## 选择与开关
+
+- 两到三个短选项用 `scripts/ui/segmented.gd`（并排的分段按钮），不用下拉框。它提供和下拉框相同的 `add_item`、`select`、`selected`、`item_selected`。
+- 开关用 `CheckButton` 配 `UI.switch_icon(开/关)`，放在文字右侧，竖屏时也不换行。
+- 设置仍然是“改好后点保存”：对手难度等改动会影响正在进行的牌桌，一次性保存才能让牌局记录里的对手变化只记一次。
+
+## 动效
+
+`UI.motion` 控制界面动效，跟随“牌局动效”设置，省电模式、无头测试和截图时关闭。
+
+- `UI.button()` 和入口行按下时缩小到 96%（`UI.press_feedback()`）。
+- 设置、复盘、训练室、学习路线、帮助和新建牌桌打开时淡入（`UI.fade_in()`）。
+- 底池增加、摊牌赢下底池时，底池数字和赢家座位轻跳一下（`UI.pop()`）。
+
 ## 数据展示
 
 - `UI.stat(数值, 标签, 颜色)`：一个大数字加一行小标签。
@@ -63,4 +77,10 @@
 | `history` | 训练室练习记录 |
 | `settings-table`、`settings-look`、`settings-coach`、`settings-opponents`、`settings-data` | 设置的五个分类 |
 | `review-mistakes`、`lesson`、`lesson-done` | 学习路线的错题复习、未完成课程、已完成课程 |
-| `help` | 帮助与关于的问题列表 |
+| `help` | 帮助与关于的问题列表（主题图标缺失时的替代） |
+| `help-start`、`help-table`、`help-coach`、`help-opponents`、`help-privacy`、`help-install`、`help-about` | 帮助的七个主题（待生成） |
+| `home` | 牌桌菜单的“返回主界面”（待生成） |
+
+## 电脑对手头像
+
+`scripts/ui/seat_avatar.gd`：座位 1–8 依次读取 `assets/art/avatars/` 下的 `xiaoxia`、`alan`、`milo`、`qinghe`、`noah`、`chengzi`、`ache`、`xingye`（.png），画在带各自主题色的圆环里；轮到该座位时圆环变金色。文件不存在时显示名字的第一个字。提示词见 `assets/art/source/round-3-prompts.md`。
