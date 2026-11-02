@@ -367,7 +367,12 @@ func _layout_portrait() -> void:
 		if not hero and positions[id - 1].x < 0.2: location.x = 4 + panel.size.x / 2
 		if not hero and positions[id - 1].x > 0.8: location.x = size.x - 4 - panel.size.x / 2
 		panel.position = (location - panel.size / 2).clamp(Vector2(4, 4), size - panel.size - Vector2(4, 4))
-	for card in board_row.get_children(): card.custom_minimum_size = Vector2(62, 88) if count == 2 else Vector2(44, 64)
+	# With side rails beside the board (7+ seats), fit the five cards into the gap between them.
+	var board_card = Vector2(62, 88) if count == 2 else Vector2(44, 64)
+	if count >= 7:
+		var width = clampf((size.x - 2 * (128 + 8) - 16) / 5.0 - 4, 32, 44)
+		board_card = Vector2(width, roundf(width * 64 / 44))
+	for card in board_row.get_children(): card.custom_minimum_size = board_card
 	board_row.add_theme_constant_override("separation", 4)
 	pot_label.configure("pot", 30)
 	center.size = Vector2(350, 200) if count == 2 else Vector2(248, 185)

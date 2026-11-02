@@ -16,6 +16,8 @@ var coach_after: bool = false
 var coach_auto: bool = false
 var coach_detail: int = 0
 var coach_side: int = 1
+## 0 small, 1 standard, 2 large: scales the whole interface, text and controls together.
+var text_size: int = 1
 
 func load(p: Dictionary) -> void:
 	sound_level = p.sound
@@ -35,6 +37,7 @@ func load(p: Dictionary) -> void:
 	coach_auto = p.coach_auto
 	coach_detail = p.coach_detail
 	coach_side = p.coach_side
+	text_size = p.get("text_size", 1)
 
 func assign(values: Dictionary) -> void:
 	sound_level = int(values.get("sound", 1))
@@ -54,9 +57,10 @@ func assign(values: Dictionary) -> void:
 	coach_auto = values.get("coach_auto", false)
 	coach_detail = values.get("coach_detail", 0)
 	coach_side = values.get("coach_side", 1)
+	text_size = values.get("text_size", 1)
 
 func values() -> Dictionary:
 	return {"sound": sound_level, "haptics": haptics_enabled, "performance": performance_mode, "bb": use_bb, "speed": speed_index, "fast_fold": fast_fold_enabled, "sidebar": show_sidebar,
 		"felt": felt_theme, "four_color": four_color, "motion": motion, "confirm_all_in": confirm_all_in,
 		"live_teaching": live_teaching, "review_teaching": review_teaching,
-		"coach_after": coach_after, "coach_auto": coach_auto, "coach_detail": coach_detail, "coach_side": coach_side}
+		"coach_after": coach_after, "coach_auto": coach_auto, "coach_detail": coach_detail, "coach_side": coach_side, "text_size": text_size}

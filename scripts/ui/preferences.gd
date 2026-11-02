@@ -2,7 +2,7 @@ extends RefCounted
 ## Backward-compatible, validated settings; gameplay state lives in session.gd.
 const Names = preload("res://scripts/poker/player_names.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
-const DEFAULTS = {"sound": 1, "haptics": false, "performance": 0, "bb": true, "speed": 1, "fast_fold": true, "sidebar": false, "felt": 0, "four_color": false, "motion": true, "confirm_all_in": true, "live_teaching": true, "review_teaching": true, "difficulty": 1, "coach_after": false, "coach_auto": false, "coach_detail": 0, "coach_side": 1}
+const DEFAULTS = {"sound": 1, "haptics": false, "performance": 0, "bb": true, "speed": 1, "fast_fold": true, "sidebar": false, "felt": 0, "four_color": false, "motion": true, "confirm_all_in": true, "live_teaching": true, "review_teaching": true, "difficulty": 1, "coach_after": false, "coach_auto": false, "coach_detail": 0, "coach_side": 1, "text_size": 1}
 
 static func load_values(path: String = "user://preferences.cfg", default_sidebar: bool = false) -> Dictionary:
 	var prefs = ConfigFile.new()
@@ -18,7 +18,7 @@ static func load_values(path: String = "user://preferences.cfg", default_sidebar
 		if DEFAULTS[key] is bool:
 			if candidate is bool: values[key] = candidate
 		elif candidate is int:
-			values[key] = clampi(candidate, 0, 2 if key in ["speed", "difficulty", "sound"] else 1)
+			values[key] = clampi(candidate, 0, 2 if key in ["speed", "difficulty", "sound", "text_size"] else 1)
 	var names = prefs.get_value("table", "seat_names", [])
 	if not prefs.has_section_key("table", "seat_names") and prefs.has_section_key("ai", "seats"):
 		var old = prefs.get_value("ai", "seats", [])

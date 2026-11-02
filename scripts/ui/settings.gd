@@ -83,6 +83,7 @@ func _ready() -> void:
 	var note = UI.label("重开牌桌始终需要确认。\n取消换桌不会改变筹码和初始人数；历史记录持续保留。\n\nEsc / 安卓返回键：返回上一层。\n切到后台：暂停牌局，回来后手动继续。", 19, UI.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pages[0].add_child(note)
+	_add_option(1, "text_size", "显示大小", "文字和按钮一起放大或缩小，排版保持不变。", ["小", "标准", "大"])
 	_add_option(1, "felt", "牌桌配色", "牌面和筹码保持清晰的对比。", ["经典墨绿", "午夜蓝"])
 	_add_option(1, "bb", "筹码显示单位", "1 BB = 10 筹码；输入与复盘同步切换。", ["筹码金额", "大盲 BB"])
 	_add_toggle(1, "four_color", "四色花色", "黑桃黑、红桃红、方块蓝、梅花绿。")

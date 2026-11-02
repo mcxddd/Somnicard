@@ -15,6 +15,11 @@ func _capture() -> void:
 	var motion_frame = -1.0
 	var capture_lobby = "--home" in OS.get_cmdline_user_args()
 	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--text-size="):
+			instance.prefs.text_size = int(arg.trim_prefix("--text-size="))
+			instance._update_scale()
+			await process_frame
+	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--capture-state="):
 			target = arg.trim_prefix("--capture-state=")
 		if arg.begins_with("--players="): players = int(arg.trim_prefix("--players="))

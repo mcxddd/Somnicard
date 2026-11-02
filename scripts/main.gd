@@ -81,6 +81,7 @@ func _ready() -> void:
 	_update_scale()
 	prefs.show_sidebar = not mobile_layout
 	_load_preferences()
+	_update_scale()
 	_build_ui()
 	modals.setup(self)
 	layout_ready = true
@@ -735,6 +736,7 @@ func _apply_settings(values: Dictionary) -> void:
 	training.case_page.table_view.set_preferences(prefs.felt_theme, prefs.four_color, prefs.motion and prefs.performance_mode == 0)
 	review.set_units(prefs.use_bb)
 	_save_preferences()
+	_resize_ui()
 	settings.hide()
 	_close_settings()
 
@@ -800,7 +802,8 @@ func _smoke_test() -> void:
 
 func _update_scale() -> void:
 	var window = get_window()
-	var target = Vector2i(540, 960)
+	# A smaller logical surface draws everything larger on the same screen.
+	var target = [Vector2i(590, 1049), Vector2i(540, 960), Vector2i(510, 907)][clampi(prefs.text_size, 0, 2)]
 	if window.content_scale_size != target: window.content_scale_size = target
 
 func _resize_ui() -> void:
