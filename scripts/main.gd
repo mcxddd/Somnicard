@@ -88,6 +88,8 @@ func _ready() -> void:
 	screen.arrange()
 	get_tree().auto_accept_quit = false
 	get_tree().quit_on_go_back = false
+	for page in [settings, review, training, learning_center, support_center, screen.lobby]:
+		page.visibility_changed.connect(func(): UI.fade_in(page))
 	_open_home()
 	if first_launch:
 		onboarding.open()
@@ -167,6 +169,8 @@ func _build_product() -> void:
 func _apply_feedback_preferences() -> void:
 	if feedback_player != null: feedback_player.configure({"sound": prefs.sound_level, "haptics": prefs.haptics_enabled})
 	if not smoke_mode: Engine.max_fps = 30 if prefs.performance_mode == 1 else 60
+	# Tests measure layout, so interface motion stays off in headless runs.
+	UI.motion = prefs.motion and prefs.performance_mode == 0 and not smoke_mode and "--capture-test" not in OS.get_cmdline_user_args()
 
 func _open_product(name: String) -> void:
 	bot_timer.stop()

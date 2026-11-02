@@ -19,6 +19,9 @@ const SIZE_TITLE = 28
 const SIZE_HEADING = 21
 const SIZE_BODY = 19
 const SIZE_CAPTION = 15
+## Interface motion (press feedback, page fades). Main turns it off with the
+## "牌局动效" preference and in power-saving mode.
+static var motion: bool = true
 
 static func surface(color: Color, radius: int = 12, padding: int = 12, border := Color.TRANSPARENT) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -208,10 +211,38 @@ static func button(text: String, callback: Callable, color := Color("243a40"), h
 		style.set_border_width_all(1)
 		node.add_theme_stylebox_override(state, style)
 	node.add_theme_stylebox_override("focus", surface(Color.TRANSPARENT, 8, 0, GOLD))
+	press_feedback(node)
 	node.add_theme_color_override("font_color", TEXT)
 	node.add_theme_color_override("font_hover_color", Color.WHITE)
 	node.add_theme_color_override("font_disabled_color", Color("657a7c"))
 	return node
+
+## Shrink slightly while held, so a tap visibly lands.
+static func press_feedback(node: Control) -> void:
+	node.button_down.connect(func(): _press(node, 0.96))
+	node.button_up.connect(func(): _press(node, 1.0))
+
+static func _press(node: Control, to: float) -> void:
+	if not node.is_inside_tree(): return
+	node.pivot_offset = node.size / 2
+	if not motion:
+		node.scale = Vector2.ONE
+		return
+	node.create_tween().tween_property(node, "scale", Vector2(to, to), 0.08)
+
+## Fade a page in when it appears.
+static func fade_in(node: CanvasItem) -> void:
+	if not motion or not node.is_inside_tree() or not node.visible: return
+	node.modulate.a = 0.0
+	node.create_tween().tween_property(node, "modulate:a", 1.0, 0.16)
+
+## A short bounce, for a number or seat that just changed in your favour.
+static func pop(node: Control, amount: float = 1.08) -> void:
+	if not motion or not node.is_inside_tree(): return
+	node.pivot_offset = node.size / 2
+	var tween = node.create_tween()
+	tween.tween_property(node, "scale", Vector2(amount, amount), 0.09)
+	tween.tween_property(node, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 static func money(chips: int, bb: int, use_bb: bool) -> String:
 	if not use_bb: return str(chips)

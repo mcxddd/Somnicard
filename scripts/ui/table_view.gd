@@ -160,7 +160,9 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 			if view.result.ranks.has(seat.id): node.panel.tooltip_text += "\n牌型：" + view.result.ranks[seat.id].name
 	phase_label.text = {"preflop": "翻牌前", "flop": "翻牌", "turn": "转牌", "river": "河牌", "complete": "本手结束"}.get(view.phase, "")
 	pot_label.caption = "总底池" if view.phase != "complete" else "已分配"
+	var pot_before = pot_label.amount
 	pot_label.set_amount(view.pot if view.phase != "complete" else view.result.pot, view.big_blind, use_bb)
+	if animate and not new_hand and view.phase != "complete" and pot_label.amount > pot_before: UI.pop(pot_label, 1.06)
 	for index in range(5):
 		var card = board_row.get_child(index)
 		card.motion = motion
@@ -203,6 +205,7 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		if new_phase and view.phase == "complete":
 			for id in view.result.payouts:
 				if view.result.payouts[id] > 0:
+					UI.pop(seat_nodes[id].panel, 1.05)
 					motion_layer.chips("payout", pot_label, seat_nodes[id].panel, 0.4, 0.28 if not collecting.is_empty() else 0.0)
 		motion_layer.set_actor(seat_nodes[view.actor].panel if view.phase != "complete" and view.actor >= 0 else null, paused)
 
