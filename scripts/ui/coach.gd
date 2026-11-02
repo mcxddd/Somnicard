@@ -13,6 +13,7 @@ var avatar: Button
 var panel: PanelContainer
 var headline: Label
 var metrics: Label
+var figures: HBoxContainer
 var reason: Label
 var progress: ProgressBar
 var scroll: ScrollContainer
@@ -33,19 +34,23 @@ func _ready() -> void:
 	avatar = Avatar.new()
 	avatar.pressed.connect(toggle)
 	add_child(avatar)
-	panel = UI.panel(Color("152f36"), 18, 14)
+	panel = UI.panel(UI.CARD, 18, 14)
 	add_child(panel)
 	var col = VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 10)
 	panel.add_child(col)
+	# Header: who is talking and a way out. Settings and the full analysis sit at the bottom.
 	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
 	col.add_child(row)
-	var title = UI.label("教练 · 离线近似", 18, UI.GOLD)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var title = UI.label("教练建议", UI.SIZE_BODY, UI.GOLD)
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(title)
-	row.add_child(UI.button("设置", func(): settings_requested.emit(), Color("243a40"), 44))
-	row.add_child(UI.button("详解", func(): details_requested.emit(), Color("243a40"), 44))
-	row.add_child(UI.button("收起", collapse, Color("243a40"), 44))
+	var scope = UI.label("离线近似", UI.SIZE_CAPTION, UI.MUTED)
+	scope.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scope.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(scope)
+	row.add_child(_link("收起", collapse))
 	scroll = TouchScroll.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -66,18 +71,33 @@ func _ready() -> void:
 	headline = UI.label("轮到你时提供建议", 24, UI.TEXT)
 	headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	headline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	headline.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	decision.add_child(headline)
-	metrics = UI.label("", 17, UI.GOLD)
-	metrics.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	figures = HBoxContainer.new()
+	figures.add_theme_constant_override("separation", 8)
+	content.add_child(figures)
+	metrics = UI.caption("")
 	content.add_child(metrics)
-	progress = ProgressBar.new()
-	progress.custom_minimum_size.y = 8
-	progress.show_percentage = false
+	progress = UI.progress(0)
 	content.add_child(progress)
-	reason = UI.label("", 17, UI.MUTED)
-	reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reason = UI.body("")
+	reason.add_theme_font_size_override("font_size", UI.SIZE_BODY - 2)
+	reason.add_theme_color_override("font_color", UI.TEXT.darkened(0.12))
 	content.add_child(reason)
+	var links = HBoxContainer.new()
+	links.add_theme_constant_override("separation", 8)
+	col.add_child(links)
+	var details = _link("完整分析 ›", func(): details_requested.emit())
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	links.add_child(details)
+	links.add_child(_link("教练设置", func(): settings_requested.emit()))
 	panel.hide()
+
+## A quiet text button for secondary actions inside the panel.
+func _link(text: String, callback: Callable) -> Button:
+	var node = UI.button(text, callback, UI.INSET, 44)
+	node.add_theme_font_size_override("font_size", UI.SIZE_CAPTION + 1)
+	return node
 
 func configure(values: Dictionary) -> void:
 	detailed = values.get("coach_detail", 0) == 1
@@ -110,7 +130,7 @@ func place(table_rect: Rect2, dock_y: float, board_bottom: float) -> void:
 	avatar.position = Vector2(table_rect.position.x + 4 if left_side else table_rect.end.x - 76, table_rect.end.y - 82)
 	avatar.size = Vector2(72, 78)
 	# Bound the sheet below the real board; long explanations scroll inside it.
-	panel.size = Vector2(size.x - 24, minf(300 if detailed else 216, maxf(180, dock_y - board_bottom - 16)))
+	panel.size = Vector2(size.x - 24, minf(340 if detailed else 290, maxf(180, dock_y - board_bottom - 16)))
 	panel.position = Vector2(12, maxf(table_rect.position.y, dock_y - panel.size.y - 8))
 
 func toggle() -> void:
@@ -153,20 +173,29 @@ func _render() -> void:
 	if avatar != null: avatar.thinking = job != null
 	if headline == null or not expanded: return
 	progress.visible = job != null
+	UI.clear(figures)
+	figures.hide()
+	metrics.show()
 	if job != null:
 		headline.text = "正在分析你的决策…"
 		metrics.text = job.progress_text()
 		reason.text = "只使用你的底牌与已公开的信息。可以收起或直接行动。"
-		progress.value = 100.0 * job.samples / job.target
+		progress.value = float(job.samples) / job.target
 	elif analysis.is_empty() or analysis.has("error"):
 		headline.text = "轮到你时提供建议"
 		metrics.text = ""
+		metrics.hide()
 		reason.text = analysis.get("error", "你也可以随时在设置中关闭教练或调整提示方式。")
 	else:
 		headline.text = "建议" + {"fold": "弃牌", "check": "过牌", "call": "跟注", "raise": "加注到 "}.get(analysis.action, "")
 		if analysis.action == "raise": headline.text += UI.money(analysis.amount, view.big_blind, use_bb)
 		if analysis.action == "call": headline.text += " " + UI.money(analysis.cost, view.big_blind, use_bb)
-		metrics.text = "预计分池份额 %.0f%% · 跟注门槛 %.0f%%" % [analysis.pot_equity * 100, analysis.odds * 100] if analysis.cost > 0 else "预计胜率 %.0f%% · 平局 %.0f%%" % [analysis.win * 100, analysis.tie * 100]
-		progress.value = analysis.pot_equity * 100
+		# Key numbers as figures; the caption under them says how firm the estimate is.
+		var items = [["%.0f%%" % (analysis.pot_equity * 100), "预计分池份额", UI.GOLD]]
+		if analysis.cost > 0: items.append(["%.0f%%" % (analysis.odds * 100), "跟注回本门槛", UI.TEXT])
+		else: items.append(["%.0f%%" % (analysis.win * 100), "预计胜率", UI.TEXT])
+		for item in items: figures.add_child(UI.stat(item[0], item[1], item[2]))
+		figures.show()
 		var teaching = Teaching.explain(view, analysis, use_bb)
-		reason.text = teaching.status + "\n" + teaching.summary + ("\n\n" + teaching.context + "\n\n" + teaching.focus if detailed else "")
+		metrics.text = teaching.status
+		reason.text = teaching.summary + ("\n\n" + teaching.context + "\n\n" + teaching.focus if detailed else "")

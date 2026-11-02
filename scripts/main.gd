@@ -452,9 +452,14 @@ func _update_controls(view: Dictionary) -> void:
 		screen.call_button.text = "过牌" if legal.check else ("跟注\n" if portrait else "跟注 ") + _money(legal.call_amount)
 		if legal.call and legal.call_amount == view.seats[0].stack: screen.call_button.text = ("跟注全押\n" if portrait else "跟注全押 ") + _money(legal.call_amount)
 		screen.all_in_button.text = "全押 " + _money(view.seats[0].stack)
+		# Show the cheapest legal raise so the player knows the price before opening sizing.
+		var verb = "下注" if view.current_bet == 0 else "加注"
+		if not legal.get("raise", false): screen.bet_open_button.text = verb
+		elif legal.max_raise_to < legal.min_raise_to: screen.bet_open_button.text = "全押\n" + _money(legal.max_raise_to)
+		else: screen.bet_open_button.text = verb + ("\n最少 " if view.current_bet == 0 else "\n最少到 ") + _money(legal.min_raise_to)
 		bet.sync(view)
 		for i in range(screen.quick_buttons.size()):
-			screen.quick_buttons[i].visible = i == 0 or (i in [1, 2, 3] if view.board.is_empty() else i in [5, 6, 7])
+			screen.quick_buttons[i].visible = i in [0, 2, 3, 4] if view.board.is_empty() else i >= 5
 	else:
 		screen.amount_note.text = "等待当前玩家行动 · 快捷按钮仅填入金额，点击加注后才提交"
 

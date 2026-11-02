@@ -9,6 +9,9 @@ const Badge = preload("res://scripts/ui/seat_badge.gd")
 const Money = preload("res://scripts/ui/money_display.gd")
 const BetMarker = preload("res://scripts/ui/bet_marker.gd")
 const Outcome = preload("res://scripts/ui/outcome.gd")
+const Avatar = preload("res://scripts/ui/seat_avatar.gd")
+## Status chip colours: [fill, text]. Raises stand out; folds recede.
+const CHIPS = {"加注": ["5a4524", "f2d79d"], "全押": ["5c2f39", "f6c1c7"], "跟注": ["1c4a40", "a9e6d2"], "过牌": ["22363d", "c9d3d1"], "弃牌": ["1a262b", "7b8d8c"], "思考中": ["4a3f24", "f2d79d"], "已暂停": ["2a3236", "c9d3d1"]}
 var last_result_key: String = ""
 var result_tween: Tween
 const POSITIONS = {
@@ -99,10 +102,16 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		var node = seat_nodes[seat.id]
 		var active = view.actor == seat.id
 		var won = view.phase == "complete" and view.result.payouts.get(seat.id, 0) > 0
-		var border = UI.GOLD if active else Color("50b898") if won else Color.TRANSPARENT
-		var style = UI.surface(Color("203b38") if active else Color("10262c"), 10, 6, border)
-		style.set_border_width_all(1 if active or won else 0)
+		var border = UI.GOLD if active else UI.SUCCESS if won else Color("2a4048")
+		var style = UI.surface(Color("1f3a37") if active else Color("0f242a"), 12, 6, border)
+		style.set_border_width_all(2 if active or won else 1)
+		if active or won:
+			style.shadow_color = Color(border, 0.28)
+			style.shadow_size = 8
 		node.panel.add_theme_stylebox_override("panel", style)
+		if node.avatar != null:
+			if node.avatar.initial != seat.name.left(1): node.avatar.setup(seat.id, seat.name)
+			node.avatar.active = active
 		node.panel.modulate.a = 0.55 if seat.folded or not seat.in_hand else 1.0
 		node.name.text = "你" if seat.id == 0 else seat.name
 		node.name.add_theme_color_override("font_color", UI.GOLD if active else UI.TEXT)
@@ -133,7 +142,17 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		elif last_actions.has(seat.id) and last_actions[seat.id].phase == view.phase:
 			status = {"fold": "弃牌", "check": "过牌", "call": "跟注", "raise": "加注"}[last_actions[seat.id].action]
 		node.status.text = status
-		node.status.add_theme_color_override("font_color", UI.GOLD if active else Color("7cd7b7") if won else UI.MUTED)
+		var chip = CHIPS.get(status, [])
+		if view.phase == "complete": chip = ["1c4a40", "a9e6d2"] if won else ["1a262b", "c9d3d1"]
+		if chip.is_empty() or status.is_empty():
+			node.status.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+			node.status.add_theme_color_override("font_color", UI.MUTED)
+		else:
+			var pill = UI.surface(Color(chip[0]), 9, 0)
+			pill.content_margin_left = 8
+			pill.content_margin_right = 8
+			node.status.add_theme_stylebox_override("normal", pill)
+			node.status.add_theme_color_override("font_color", Color(chip[1]))
 		# No hidden cards are stored in UI metadata or tooltips.
 		node.panel.tooltip_text = "%s%s\n剩余筹码 %s · 本轮投入 %s" % [seat.name, " · " + seat.get("style", "") if seat.has("style") else "", UI.money(seat.stack, view.big_blind, use_bb), UI.money(seat.street_bet, view.big_blind, use_bb)]
 		if view.phase == "complete":
@@ -208,6 +227,11 @@ func _make_seat() -> Dictionary:
 	var top = HBoxContainer.new()
 	top.add_theme_constant_override("separation", 4)
 	col.add_child(top)
+	var avatar = null
+	if id > 0:
+		avatar = Avatar.new()
+		avatar.custom_minimum_size = Vector2(24, 24)
+		top.add_child(avatar)
 	var badge = Badge.new()
 	badge.custom_minimum_size = Vector2(24, 24)
 	top.add_child(badge)
@@ -231,12 +255,13 @@ func _make_seat() -> Dictionary:
 	var stack = Money.new()
 	row.add_child(stack)
 	var status = UI.label("", 14, UI.MUTED, true)
+	# A short chip, sized to its text; clip_text would collapse it to nothing.
 	status.custom_minimum_size.y = 20
-	status.clip_text = true
+	status.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.add_child(status)
 	# Let a tap anywhere in the seat reach its panel, including labels and cards.
 	_pass_input(col)
-	return {"panel": panel, "name": name_label, "cards": cards, "stack": stack, "status": status, "badge": badge, "blind": blind, "bet": bet}
+	return {"panel": panel, "name": name_label, "cards": cards, "stack": stack, "status": status, "badge": badge, "blind": blind, "bet": bet, "avatar": avatar}
 
 func _pass_input(node: Control) -> void:
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -313,6 +338,7 @@ func _layout_portrait() -> void:
 		node.status.add_theme_font_size_override("font_size", 16 if hero else 14)
 		# The action dock already explains the human turn and outcome.
 		node.status.visible = not hero
+		if node.avatar != null: node.avatar.custom_minimum_size = Vector2(36, 36) if heads_up else Vector2(24, 24)
 		node.stack.show()
 		node.stack.custom_minimum_size.x = 54 if not hero and not heads_up else 84
 		node.stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -417,7 +443,10 @@ func _draw() -> void:
 	for y in range(-int(inner.y) + 3, int(inner.y) - 3, 7):
 		var span = inner.x * sqrt(maxf(0, 1.0 - pow(float(y) / inner.y, 2)))
 		draw_line(middle + Vector2(-span + 2, y), middle + Vector2(span - 2, y), Color(0.65, 0.83, 0.72, 0.018), 1)
+	for i in range(6):
+		draw_polyline(_oval(middle, radii * (0.95 - i * 0.012)), Color(0, 0, 0, 0.07 - i * 0.01), 6.0, true)
 	draw_polyline(_oval(middle, radii * 0.955), Color("54735f"), 1.0, true)
+	draw_polyline(_oval(middle, radii * 0.985), Color(0.95, 0.85, 0.6, 0.22), 1.0, true)
 	var font = get_theme_default_font()
 	var brand = "S O M N I C A R D"
 	var label_size = font.get_string_size(brand, HORIZONTAL_ALIGNMENT_LEFT, -1, 11)

@@ -38,7 +38,7 @@ func _draw() -> void:
 	var small = size.x < 46
 	if card_id == -2:
 		# Undealt community cards are guides, not five competing solid panels.
-		var empty = UI.surface(Color.TRANSPARENT, 5, 0, Color(0.50, 0.68, 0.62, 0.20))
+		var empty = UI.surface(Color(0, 0, 0, 0.16), 6, 0, Color(0.50, 0.68, 0.62, 0.22))
 		empty.set_border_width_all(1)
 		draw_style_box(empty, rect)
 		return

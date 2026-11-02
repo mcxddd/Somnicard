@@ -136,35 +136,51 @@ func build_table() -> void:
 	turn_label = UI.label("选择桌型，开始练习", 20, UI.GOLD)
 	turn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.add_child(turn_label)
+	# One large editable amount between −1 BB and +1 BB; tapping it opens the digit pad.
 	sizing_row = row(10)
 	controls.add_child(sizing_row)
-	sizing_row.add_child(UI.label("本轮加到", 17, UI.MUTED))
-	amount_input = SpinBox.new()
-	amount_input.custom_minimum_size = Vector2(134, 46)
-	amount_input.value_changed.connect(host.bet.amount_changed)
-	sizing_row.add_child(amount_input)
-	minus_button = UI.button("−1 BB", host.bet.adjust_bb.bind(-1), Color("243a40"), 46)
-	plus_button = UI.button("+1 BB", host.bet.adjust_bb.bind(1), Color("243a40"), 46)
+	minus_button = UI.button("−", host.bet.adjust_bb.bind(-1), Color("1d343e"), 64)
+	plus_button = UI.button("+", host.bet.adjust_bb.bind(1), Color("1d343e"), 64)
+	for button in [minus_button, plus_button]:
+		button.custom_minimum_size.x = 64
+		button.add_theme_font_size_override("font_size", 30)
+	minus_button.tooltip_text = "减少 1 BB"
+	plus_button.tooltip_text = "增加 1 BB"
 	sizing_row.add_child(minus_button)
+	amount_input = SpinBox.new()
+	amount_input.custom_minimum_size = Vector2(134, 64)
+	amount_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	amount_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	amount_input.value_changed.connect(host.bet.amount_changed)
+	# The ± buttons and slider replace the tiny desktop spin arrows.
+	var blank = ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
+	for icon_name in ["updown", "up", "up_hover", "up_pressed", "up_disabled", "down", "down_hover", "down_pressed", "down_disabled"]:
+		amount_input.add_theme_icon_override(icon_name, blank)
+	var field: LineEdit = amount_input.get_line_edit()
+	field.add_theme_font_size_override("font_size", 30)
+	field.add_theme_color_override("font_color", UI.GOLD)
+	sizing_row.add_child(amount_input)
+	sizing_row.add_child(plus_button)
 	amount_slider = HSlider.new()
-	amount_slider.custom_minimum_size = Vector2(110, 46)
+	amount_slider.custom_minimum_size = Vector2(110, 52)
 	amount_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	amount_slider.value_changed.connect(func(value): host.bet.set_target(int(value)))
-	sizing_row.add_child(amount_slider)
-	sizing_row.add_child(plus_button)
-	amount_note = UI.label("", 16, UI.MUTED)
+	controls.add_child(amount_slider)
+	amount_note = UI.label("", UI.SIZE_CAPTION + 1, UI.MUTED, true)
 	amount_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.add_child(amount_note)
 	quick_row = GridContainer.new()
-	quick_row.columns = 8
-	quick_row.add_theme_constant_override("h_separation", 7)
-	quick_row.add_theme_constant_override("v_separation", 10)
+	quick_row.columns = 4
+	quick_row.add_theme_constant_override("h_separation", 8)
+	quick_row.add_theme_constant_override("v_separation", 8)
 	controls.add_child(quick_row)
+	# Indices are stable: 0 minimum, 1–4 preflop BB sizes, 5–8 pot fractions.
 	add_quick("最小", host.bet.quick_minimum)
 	for bb in [2.0, 2.5, 3.0, 4.0]:
 		add_quick(("%.1f" % bb).trim_suffix(".0") + " BB", host.bet.quick_bb.bind(bb))
-	for pair in [["⅓ 底池", 1.0 / 3.0], ["½ 底池", 0.5], ["满池", 1.0]]:
+	for pair in [["⅓ 池", 1.0 / 3.0], ["½ 池", 0.5], ["满池", 1.0], ["⅔ 池", 2.0 / 3.0]]:
 		add_quick(pair[0], host.bet.quick_pot.bind(pair[1]))
+	quick_row.move_child(quick_buttons[8], quick_buttons[7].get_index())
 	actions = row(10)
 	controls.add_child(actions)
 	fold_button = UI.button("弃牌", func(): host._human_action("fold"), Color("2e3b42"), 56)
@@ -298,14 +314,24 @@ func build_sheets() -> void:
 	sheet_units.item_selected.connect(host._unit_changed)
 	bet_sheet.content.add_child(sheet_units)
 	sheet_units.hide()
-	var hint = UI.label("加到 = 本轮总投入；选择金额后点下方确认。", 16, UI.MUTED)
+	var hint = UI.caption("“加到”是你本轮的总投入。选好金额后，点下方按钮确认。")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bet_sheet.content.add_child(hint)
 	menu_sheet = Sheet.new()
 	safe_root.add_child(menu_sheet)
 	menu_sheet.closed.connect(host._close_sheet)
-	for pair in [["牌桌设置", host._open_settings], ["新建牌桌", host._open_lobby], ["历史牌局与复盘", host._open_history], ["训练室", host._open_training], ["玩法帮助", host._open_help], ["本手行动记录", host._toggle_sidebar], ["返回主界面 · 保留牌桌", host._open_home]]:
-		menu_sheet.content.add_child(UI.button(pair[0], func(): menu_sheet.close(); pair[1].call(), Color("243a40"), 56))
+	menu_sheet.content.add_theme_constant_override("separation", 8)
+	for item in [["牌桌设置", "settings-table", host._open_settings], ["新建牌桌", "topic-preflop", host._open_lobby], ["历史牌局与复盘", "review", host._open_history], ["训练室", "train", host._open_training], ["玩法帮助", "help", host._open_help], ["本手行动记录", "lesson", host._toggle_sidebar], ["返回主界面 · 保留牌桌", "home", host._open_home]]:
+		var entry = UI.entry(item[0], "", func(): menu_sheet.close(); item[2].call(), item[1])
+		entry.base_height = 62
+		menu_sheet.content.add_child(entry)
+	# The display unit is a table preference, not a per-hand control, so it lives here.
+	var unit_caption = UI.label("金额显示", UI.SIZE_BODY, UI.MUTED)
+	unit_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	unit_caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	menu_sheet.footer.add_child(unit_caption)
+	unit_picker.reparent(menu_sheet.footer)
+	menu_sheet.preferred_height = 700
 	info_sheet = Sheet.new()
 	info_sheet.touch_scroll = true
 	safe_root.add_child(info_sheet)
@@ -332,8 +358,8 @@ func row(separation: int) -> HBoxContainer:
 	return row
 
 func add_quick(text: String, callback: Callable) -> void:
-	var button = UI.button(text, callback, Color("20383e"), 56)
-	button.add_theme_font_size_override("font_size", 16)
+	var button = UI.button(text, callback, Color("1d343e"), 52)
+	button.add_theme_font_size_override("font_size", 18)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.tooltip_text = "仅填入本轮下注总额；必要时调整到合法范围，之后点击加注确认。"
 	quick_buttons.append(button)
@@ -369,14 +395,12 @@ func arrange() -> void:
 	move(header, top, 0)
 	advice_button.hide()
 	move(sizing_row, bet_sheet.content, 0)
-	move(amount_note, bet_sheet.content, 1)
-	move(quick_row, bet_sheet.content, 2)
-	move(amount_slider, bet_sheet.content, 3)
+	move(amount_slider, bet_sheet.content, 1)
+	move(amount_note, bet_sheet.content, 2)
+	move(quick_row, bet_sheet.content, 3)
 	move(all_in_button, bet_sheet.footer, 0)
 	move(raise_button, bet_sheet.footer, 1)
 	quick_row.columns = 4
-	minus_button.hide()
-	plus_button.hide()
 	bet_open_button.visible = host.game == null or host.game.phase != "complete"
 	for button in [fold_button, call_button, bet_open_button, raise_button, all_in_button]: button.custom_minimum_size.y = 72
 	sidebar.hide()

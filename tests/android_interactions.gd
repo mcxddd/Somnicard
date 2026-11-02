@@ -127,9 +127,11 @@ func _ready() -> void:
 	verify(ui.game.seats.size() == 6 and not ui.home.visible and not ui.screen.lobby.visible, "table started by touch")
 	var total = ui.game.chip_total()
 	var before_events = ui.game.events.size()
+	await tap(ui.screen.more_button, "open table menu for units")
 	await tap(ui.screen.unit_picker.buttons[0], "show chip amount")
 	verify(not ui.prefs.use_bb, "amount unit selected")
 	await tap(ui.screen.unit_picker.buttons[1], "show BB")
+	await tap(ui.screen.menu_sheet.close_button, "close table menu")
 	verify(ui.prefs.use_bb and ui.game.events.size() == before_events and ui.game.chip_total() == total, "unit switching preserves game")
 	# Repeated seat configuration must not stack controls or lose target.
 	for repeat in range(4):
@@ -152,7 +154,9 @@ func _ready() -> void:
 	await tap(ui.screen.quick_buttons[2], "select 2.5 BB sizing")
 	verify(ui.bet.selected_raise == 25, "quick size sets 25 chips")
 	await tap(ui.screen.bet_sheet.close_button, "close sizing without placing bet")
-	await tap(ui.screen.unit_picker.buttons[0], "switch amount at table header")
+	await tap(ui.screen.more_button, "open table menu")
+	await tap(ui.screen.unit_picker.buttons[0], "switch amount in table menu")
+	await tap(ui.screen.menu_sheet.close_button, "close table menu after units")
 	await tap(ui.screen.bet_open_button, "reopen sizing in chip amounts")
 	verify(ui.bet.selected_raise == 25 and not ui.prefs.use_bb, "unit conversion keeps raise amount")
 	await tap(ui.screen.all_in_button, "request all-in")

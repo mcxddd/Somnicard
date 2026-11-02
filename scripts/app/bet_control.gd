@@ -78,6 +78,11 @@ func sync_amount() -> void:
 	screen.amount_slider.set_block_signals(false)
 	screen.raise_button.text = ("下注 " if game.current_bet == 0 else "加注到 ") + host._money(selected_raise)
 	screen.amount_note.text = "本次再投入 " + host._money(maxi(0, selected_raise - game.seats[0].street_bet))
+	# After the flop, sizes are thought of as a share of the pot (counted after calling).
+	var view = game.view_for(0)
+	var base = view.pot + legal.get("to_call", 0)
+	if not view.board.is_empty() and base > 0:
+		screen.amount_note.text += " · 约底池的 %d%%" % roundi(100.0 * (selected_raise - view.current_bet) / base)
 	if not legal.raise:
 		screen.amount_note.text = "当前不可加注；请跟注、过牌或弃牌。"
 		screen.raise_button.text = "不可加注"

@@ -51,12 +51,26 @@ static func make_theme(mobile: bool) -> Theme:
 	result.set_stylebox("panel", "PopupMenu", surface(PANEL, 10, 12, BORDER))
 	result.set_stylebox("hover", "PopupMenu", surface(GREEN.darkened(0.3), 6, 10))
 	result.set_constant("v_separation", "PopupMenu", 20)
-	result.set_stylebox("slider", "HSlider", surface(Color("30424b"), 3, 3))
-	result.set_stylebox("grabber_area", "HSlider", surface(GOLD.darkened(0.2), 3, 3))
-	result.set_stylebox("grabber_area_highlight", "HSlider", surface(GOLD, 3, 3))
+	result.set_stylebox("slider", "HSlider", surface(Color("30424b"), 5, 5))
+	result.set_stylebox("grabber_area", "HSlider", surface(GOLD.darkened(0.2), 5, 5))
+	result.set_stylebox("grabber_area_highlight", "HSlider", surface(GOLD, 5, 5))
+	# A thumb-sized round grabber; the default one is a few pixels wide.
+	for state in ["grabber", "grabber_highlight"]:
+		result.set_icon(state, "HSlider", _knob(30, GOLD if state == "grabber" else GOLD.lightened(0.2)))
 	result.set_stylebox("panel", "TooltipPanel", surface(PANEL, 8, 12, BORDER))
 	result.set_color("font_color", "TooltipLabel", TEXT)
 	return result
+
+static func _knob(diameter: int, color: Color) -> ImageTexture:
+	var image = Image.create(diameter, diameter, false, Image.FORMAT_RGBA8)
+	var middle = (diameter - 1) / 2.0
+	for y in range(diameter):
+		for x in range(diameter):
+			var distance = Vector2(x - middle, y - middle).length()
+			var edge = clampf(middle - distance + 0.5, 0, 1)
+			var fill = color if distance < middle - 3 else BACKGROUND.lightened(0.85)
+			image.set_pixel(x, y, Color(fill, edge))
+	return ImageTexture.create_from_image(image)
 
 static func panel(color: Color, radius: int = 12, padding: int = 12) -> PanelContainer:
 	var node := PanelContainer.new()
