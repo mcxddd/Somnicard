@@ -135,6 +135,9 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 		if not seat.in_hand: status = "已出局"
 		elif view.phase == "complete":
 			status = Outcome.net_text(view, seat.id, use_bb)
+			if view.result.ranks.has(seat.id):
+				var amount = Outcome.net(view, seat.id)
+				status = view.result.ranks[seat.id].name + " " + ("+" if amount > 0 else "") + UI.money(amount, view.big_blind, use_bb)
 		elif seat.folded: status = "已弃牌"
 		elif seat.stack == 0: status = "全押"
 		elif active:
@@ -163,10 +166,20 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 	var pot_before = pot_label.amount
 	pot_label.set_amount(view.pot if view.phase != "complete" else view.result.pot, view.big_blind, use_bb)
 	if animate and not new_hand and view.phase != "complete" and pot_label.amount > pot_before: UI.pop(pot_label, 1.06)
+	var winning: Dictionary = {}
+	if view.phase == "complete" and view.result.get("showdown", false):
+		for id in view.result.ranks:
+			if view.result.payouts.get(id, 0) > 0:
+				for c in view.result.ranks[id].cards: winning[int(c)] = true
 	for index in range(5):
 		var card = board_row.get_child(index)
 		card.motion = motion
 		card.set_card(view.board[index] if index < view.board.size() else -2, four_color)
+		card.highlight = index < view.board.size() and winning.has(int(view.board[index]))
+	for seat in view.seats:
+		var won_seat = view.result.get("payouts", {}).get(seat.id, 0) > 0 if view.phase == "complete" else false
+		for card in seat_nodes[seat.id].cards:
+			card.highlight = won_seat and card.card_id >= 0 and winning.has(card.card_id)
 	result_label.text = ""
 	if view.phase == "complete":
 		result_label.text = Outcome.summary(view)
@@ -354,7 +367,7 @@ func _layout_portrait() -> void:
 		if not hero and positions[id - 1].x < 0.2: location.x = 4 + panel.size.x / 2
 		if not hero and positions[id - 1].x > 0.8: location.x = size.x - 4 - panel.size.x / 2
 		panel.position = (location - panel.size / 2).clamp(Vector2(4, 4), size - panel.size - Vector2(4, 4))
-	for card in board_row.get_children(): card.custom_minimum_size = Vector2(58, 80) if count == 2 else Vector2(44, 64)
+	for card in board_row.get_children(): card.custom_minimum_size = Vector2(62, 88) if count == 2 else Vector2(44, 64)
 	board_row.add_theme_constant_override("separation", 4)
 	pot_label.configure("pot", 30)
 	center.size = Vector2(350, 200) if count == 2 else Vector2(248, 185)

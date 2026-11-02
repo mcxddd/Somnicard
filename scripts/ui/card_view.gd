@@ -9,6 +9,12 @@ var four_color: bool = false
 var motion: bool = true
 var reveal: float = 1.0
 var animation: Tween
+## Gold outline for a card that is part of the winning five at showdown.
+var highlight: bool = false:
+	set(value):
+		if highlight == value: return
+		highlight = value
+		queue_redraw()
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -51,6 +57,10 @@ func _draw() -> void:
 	if card_id == -1:
 		draw_texture_rect(BACK, rect, false)
 		return
+	if highlight:
+		var ring = UI.surface(Color.TRANSPARENT, 5 if small else 8, 0, UI.GOLD)
+		ring.set_border_width_all(3)
+		draw_style_box(ring, rect.grow(1))
 	var color = ink()
 	var rank = RANKS[card_id % 13]
 	var suit = SUITS[int(card_id / 13)]

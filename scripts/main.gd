@@ -446,11 +446,12 @@ func _refresh() -> void:
 	screen.table_view.update_table(view, prefs.use_bb, paused or modals.is_open())
 	if done:
 		storage.save_record()
-		screen.turn_label.text = "你 · " + screen.table_view.Outcome.net_text(view, 0, prefs.use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
+		var hand_name = view.result.ranks[0].name + " · " if view.result.showdown and view.result.ranks.has(0) else ""
+		screen.turn_label.text = "你 · " + hand_name + screen.table_view.Outcome.net_text(view, 0, prefs.use_bb) + " · " + ("摊牌结束" if view.result.showdown else "本手结束")
 		if storage.save_status.contains("失败"): screen.turn_label.text += "\n" + storage.save_status
 	elif paused or modals.is_open(): screen.turn_label.text = "牌局已暂停"
 	elif view.seats[0].folded: screen.turn_label.text = "你已弃牌 · 正在观看其余玩家" + ("（快进）" if screen.fast_fold.button_pressed else "")
-	else: screen.turn_label.text = "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
+	else: screen.turn_label.text = _last_action_text(view) + "轮到你行动" if view.actor == 0 else "%s 准备行动…" % view.seats[view.actor].name
 	_update_controls(view)
 	coach.sync(view, prefs.use_bb, prefs.live_teaching and (not prefs.coach_after or done), not paused and not modals.is_open())
 	screen.update_explanation(view)
@@ -458,6 +459,14 @@ func _refresh() -> void:
 	storage.save_session()
 	if storage.session_save_error: screen.turn_label.text += " · 当前进度保存失败，请检查存储空间"
 	if settings_status != "": screen.turn_label.text += " · " + settings_status
+
+## "小夏 加注到 3 BB，" — the action you are answering, so the table needs no log.
+func _last_action_text(view: Dictionary) -> String:
+	for i in range(view.events.size() - 1, -1, -1):
+		var event = view.events[i]
+		if event.kind == "street": return ""
+		if event.kind == "action" and event.seat != 0: return screen._event_text(event) + "，"
+	return ""
 
 func _update_controls(view: Dictionary) -> void:
 	var legal = view.legal
