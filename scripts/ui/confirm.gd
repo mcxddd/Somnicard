@@ -32,8 +32,8 @@ func _ready() -> void:
 	row = BoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	col.add_child(row)
-	cancel_button = UI.button("取消，保留当前状态", cancel, Color("263540"), 54)
-	accept_button = UI.button("确认", func(): hide(); accepted.emit(), Color("8c6938"), 54)
+	cancel_button = UI.outline("取消，保留当前状态", cancel, 54)
+	accept_button = UI.button("确认", func(): hide(); accepted.emit(), UI.ACTION_RAISE, 54)
 	for button in [cancel_button, accept_button]:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(button)

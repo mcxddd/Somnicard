@@ -31,7 +31,7 @@ func _ready() -> void:
 	margin.add_child(column)
 	var header = HBoxContainer.new()
 	column.add_child(header)
-	back_button = UI.button("‹ 返回", back_action)
+	back_button = UI.outline("‹ 返回", back_action)
 	header.add_child(back_button)
 	title = UI.label("学习路线", 28, UI.GOLD)
 	header.add_child(title)
@@ -174,7 +174,7 @@ func _next() -> void:
 			_text("下一步可以做一组「%s」练习：先选择操作，再查看教练建议。结果可能有模型误差，重点是说清自己的理由。" % topic)
 			body.add_child(UI.button("练习 · " + topic, func():
 				if scroll.can_activate(): practice_requested.emit(topic), UI.GREEN, 66))
-			body.add_child(UI.button("返回学习路线", _overview, Color("243a40"), 60))
+			body.add_child(UI.outline("返回学习路线", _overview, 60))
 			next_button.disabled = true
 			next_button.text = "本课已完成"
 			scroll.reset_scroll()

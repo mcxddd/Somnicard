@@ -25,7 +25,7 @@ func _ready() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	heading.add_child(title)
-	close_button = UI.button("收起", close)
+	close_button = UI.outline("收起", close)
 	heading.add_child(close_button)
 	scroll = preload("res://scripts/ui/touch_scroll.gd").new() if touch_scroll else ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

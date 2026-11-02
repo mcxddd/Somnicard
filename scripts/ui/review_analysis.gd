@@ -69,7 +69,7 @@ func build() -> void:
 		analysis_scroll.reset_scroll()
 		_render_details(), UI.INSET, 44)
 	overlay_heading.add_child(detail_toggle)
-	overlay_close = UI.button("收起", func(): host._select_portrait_tab(false), UI.INSET, 44)
+	overlay_close = UI.outline("收起", func(): host._select_portrait_tab(false), 44)
 	overlay_heading.add_child(overlay_close)
 	coach_avatar = CoachAvatar.new()
 	coach_avatar.pressed.connect(host._toggle_coach)

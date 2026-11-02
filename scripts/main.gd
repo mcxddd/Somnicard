@@ -405,6 +405,8 @@ func _refresh() -> void:
 	screen.header.text = "%d 人桌 · 第 %d 手" % [player_count, view.hand]
 	screen.header.tooltip_text = "ID " + History.hand_id(game.record_state())
 	screen.pause_button.text = "继续" if paused else "暂停"
+	screen.pause_button.glyph = "play" if paused else "pause"
+	screen.pause_button.tooltip_text = screen.pause_button.text
 	screen.table_view.update_table(view, prefs.use_bb, paused or modals.is_open())
 	if done:
 		storage.save_record()
@@ -496,6 +498,11 @@ func _save_preferences() -> void:
 		if home.visible: home.status.text = settings_status
 		elif screen.lobby.visible: screen.lobby_note.text += "\n" + settings_status
 		else: screen.turn_label.text += " · " + settings_status
+
+func _input(event: InputEvent) -> void:
+	# Keyboard and gamepad navigation show the focus ring; pointer input hides it.
+	if event is InputEventKey or event is InputEventJoypadButton: UI.show_focus(true)
+	elif event is InputEventMouseButton or event is InputEventScreenTouch: UI.show_focus(false)
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo: return

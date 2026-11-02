@@ -36,7 +36,7 @@ func _ready() -> void:
 	var head = HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)
 	col.add_child(head)
-	close_button = UI.button("‹ 返回", back_action)
+	close_button = UI.outline("‹ 返回", back_action)
 	head.add_child(close_button)
 	var heading = UI.label("训练室", 24, UI.GOLD)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL

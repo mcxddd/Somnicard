@@ -118,9 +118,9 @@ func build() -> void:
 	body.add_child(branch_review_button)
 	action_row = HBoxContainer.new()
 	add_child(action_row)
-	fold = UI.button("弃牌", submit.bind("fold"))
-	call = UI.button("过牌", submit.bind("check_call"), UI.GREEN)
-	raise = UI.button("加注", _press_raise)
+	fold = UI.outline("弃牌", submit.bind("fold"))
+	call = UI.button("过牌", submit.bind("check_call"), UI.ACTION_CALL)
+	raise = UI.button("加注", _press_raise, UI.ACTION_RAISE)
 	for b in [fold, call, raise]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.custom_minimum_size.y = 56
@@ -129,9 +129,8 @@ func build() -> void:
 	add_child(next_button)
 
 func _link(text: String, action: Callable) -> Button:
-	var link = UI.button(text, action, Color("10252d"), 44)
+	var link = UI.link(text, action)
 	link.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	link.add_theme_color_override("font_color", UI.GOLD)
 	return link
 
 func start(items: Array) -> void:

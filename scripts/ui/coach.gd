@@ -95,9 +95,7 @@ func _ready() -> void:
 
 ## A quiet text button for secondary actions inside the panel.
 func _link(text: String, callback: Callable) -> Button:
-	var node = UI.button(text, callback, UI.INSET, 44)
-	node.add_theme_font_size_override("font_size", UI.SIZE_CAPTION + 1)
-	return node
+	return UI.outline(text, callback, UI.BUTTON_S) if text == "收起" else UI.link(text, callback)
 
 func configure(values: Dictionary) -> void:
 	detailed = values.get("coach_detail", 0) == 1

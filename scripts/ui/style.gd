@@ -131,6 +131,20 @@ static func primary(text: String, callback: Callable, height: int = 60) -> Butto
 static func secondary(text: String, callback: Callable, height: int = 52) -> Button:
 	return button(text, callback, Color("1d343e"), height)
 
+## Square icon button drawn in code (see icon_button.gd): pause, play, more, close, back.
+static func icon_button(glyph: String, text: String, callback: Callable, size: int = BUTTON_S) -> Button:
+	var node = load("res://scripts/ui/icon_button.gd").new()
+	node.text = text
+	node.glyph = glyph
+	node.tooltip_text = text
+	node.custom_minimum_size = Vector2(size, size)
+	node.pressed.connect(callback)
+	paint(node, Color("1d343e"))
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
+		node.add_theme_color_override(state, Color.TRANSPARENT)
+	press_feedback(node)
+	return node
+
 ## A navigation row: optional icon, title, one line of supporting text and a chevron.
 static func entry(title_text: String, subtitle: String, callback: Callable, icon_name: String = "", vertical: bool = false) -> Button:
 	var node = load("res://scripts/ui/entry_button.gd").new()
@@ -197,25 +211,90 @@ static func label(text: String, size: int = 18, color := TEXT, centered: bool = 
 		node.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return node
 
-static func button(text: String, callback: Callable, color := Color("243a40"), height: int = 48) -> Button:
+## Button sizes. Any requested height snaps to one of these, except the large
+## table action buttons (64 and above), so a screen never mixes many sizes.
+const BUTTON_S = 44
+const BUTTON_M = 50
+const BUTTON_L = 58
+const BUTTON_RADIUS = 12
+## Table actions: call is the bright green, raise a light gold with dark text, all-in red.
+const ACTION_CALL = Color("2a8f78")
+const ACTION_RAISE = Color("d9b36a")
+const ACTION_ALL_IN = Color("b84f5d")
+
+static func _snap_height(height: int) -> int:
+	if height >= 64: return height
+	if height < 47: return BUTTON_S
+	if height < 54: return BUTTON_M
+	return BUTTON_L
+
+## Solid button. GREEN gives the primary style; other fills are secondary.
+## A thicker darker bottom edge gives depth; pressing sinks it and shifts the text.
+static func button(text: String, callback: Callable, color := Color("1d343e"), height: int = 48) -> Button:
 	var node := Button.new()
 	node.text = text
+	height = _snap_height(height)
 	node.custom_minimum_size = Vector2(64, height)
 	node.pressed.connect(callback)
+	paint(node, color)
+	node.add_theme_font_size_override("font_size", 16 if height == BUTTON_S else 18 if height == BUTTON_M else 20)
+	press_feedback(node)
+	return node
+
+## (Re)style a button as a solid fill. Light fills get dark text.
+static func paint(node: Button, color: Color) -> void:
+	var light = color.get_luminance() > 0.5
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var fill = color
-		if state == "hover": fill = color.lightened(0.15)
-		if state == "pressed": fill = color.lightened(0.06)
-		if state == "disabled": fill = Color("17292d")
-		var style = surface(fill, 9, 12, fill.lightened(0.14) if state != "disabled" else Color.TRANSPARENT)
+		if state == "hover": fill = color.lightened(0.07)
+		if state == "pressed": fill = color.darkened(0.08)
+		if state == "disabled": fill = color.lerp(BACKGROUND, 0.6)
+		var style = surface(fill, BUTTON_RADIUS, 12)
+		style.border_color = fill.darkened(0.45)
+		style.border_width_bottom = 0 if state == "disabled" else 1 if state == "pressed" else 3
+		if state == "pressed": style.content_margin_top += 2
+		node.add_theme_stylebox_override(state, style)
+	_focus(node)
+	var ink = BACKGROUND if light else TEXT
+	node.add_theme_color_override("font_color", ink)
+	node.add_theme_color_override("font_hover_color", ink if light else Color.WHITE)
+	node.add_theme_color_override("font_pressed_color", ink)
+	node.add_theme_color_override("font_focus_color", ink)
+	node.add_theme_color_override("font_disabled_color", MUTED.darkened(0.35))
+
+## Transparent with a thin border: back, close and cancel.
+static func outline(text: String, callback: Callable, height: int = 48) -> Button:
+	var node = button(text, callback, PANEL, height)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var style = surface(Color(1, 1, 1, [0.02, 0.06, 0.1, 0.0][["normal", "hover", "pressed", "disabled"].find(state)]), BUTTON_RADIUS, 12, BORDER.lightened(0.15) if state != "disabled" else BORDER.darkened(0.2))
 		style.set_border_width_all(1)
 		node.add_theme_stylebox_override(state, style)
-	node.add_theme_stylebox_override("focus", surface(Color.TRANSPARENT, 8, 0, GOLD))
-	press_feedback(node)
 	node.add_theme_color_override("font_color", TEXT)
-	node.add_theme_color_override("font_hover_color", Color.WHITE)
-	node.add_theme_color_override("font_disabled_color", Color("657a7c"))
+	node.add_theme_color_override("font_pressed_color", TEXT)
+	node.add_theme_color_override("font_focus_color", TEXT)
 	return node
+
+## Text only, for small inline actions such as "完整分析 ›".
+static func link(text: String, callback: Callable) -> Button:
+	var node = button(text, callback, PANEL, BUTTON_S)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		node.add_theme_stylebox_override(state, surface(Color(1, 1, 1, 0.06) if state == "pressed" else Color.TRANSPARENT, BUTTON_RADIUS, 8))
+	for state in ["font_color", "font_pressed_color", "font_focus_color"]: node.add_theme_color_override(state, SUCCESS)
+	node.add_theme_color_override("font_hover_color", SUCCESS.lightened(0.2))
+	return node
+
+## One shared focus ring for every button. It is only visible after keyboard input;
+## a tap or click hides it again, so touch users never see a stray outline.
+static var _ring: StyleBoxFlat
+
+static func _focus(node: Control) -> void:
+	if _ring == null:
+		_ring = surface(Color.TRANSPARENT, BUTTON_RADIUS, 0, Color(GOLD, 0.0))
+		_ring.set_border_width_all(2)
+	node.add_theme_stylebox_override("focus", _ring)
+
+static func show_focus(visible: bool) -> void:
+	if _ring != null and (_ring.border_color.a > 0) != visible: _ring.border_color = Color(GOLD, 1.0 if visible else 0.0)
 
 ## Shrink slightly while held, so a tap visibly lands.
 static func press_feedback(node: Control) -> void:

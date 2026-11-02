@@ -19,7 +19,7 @@ func setup(title_text: String, subtitle: String, icon_name: String, vertical: bo
 		var style = UI.surface(fill, 14, 0, Color("2a4048"))
 		style.set_border_width_all(1)
 		add_theme_stylebox_override(state, style)
-	add_theme_stylebox_override("focus", UI.surface(Color.TRANSPARENT, 14, 0, UI.GOLD))
+	UI._focus(self)
 	UI.press_feedback(self)
 	for color in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
 		add_theme_color_override(color, Color.TRANSPARENT)

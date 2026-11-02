@@ -61,7 +61,7 @@ func _ready() -> void:
 	margin.add_child(column)
 	var header = HBoxContainer.new()
 	column.add_child(header)
-	back_button = UI.button("‹ 返回", back_action)
+	back_button = UI.outline("‹ 返回", back_action)
 	header.add_child(back_button)
 	title = UI.label("帮助与关于", 27, UI.GOLD)
 	header.add_child(title)

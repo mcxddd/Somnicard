@@ -44,7 +44,7 @@ func _ready() -> void:
 	var header = HBoxContainer.new()
 	header.add_theme_constant_override("separation", 12)
 	column.add_child(header)
-	back_button = UI.button("‹ 返回", back_action)
+	back_button = UI.outline("‹ 返回", back_action)
 	header.add_child(back_button)
 	heading = UI.label("设置", 28, UI.GOLD)
 	header.add_child(heading)
@@ -118,7 +118,7 @@ func _ready() -> void:
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
-	cancel_button = UI.button("取消", cancel)
+	cancel_button = UI.outline("取消", cancel)
 	footer.add_child(cancel_button)
 	apply_button = UI.button("保存设置", func(): applied.emit(values()), UI.GREEN)
 	apply_button.custom_minimum_size.x = 180
@@ -162,8 +162,9 @@ func _add_toggle(page: int, key: String, title: String, hint: String) -> void:
 	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	toggle.add_theme_icon_override("checked", UI.switch_icon(true))
 	toggle.add_theme_icon_override("unchecked", UI.switch_icon(false))
-	for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
-		toggle.add_theme_stylebox_override(state, StyleBoxEmpty.new() if state != "focus" else UI.surface(Color.TRANSPARENT, 16, 0, UI.GOLD))
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		toggle.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	UI._focus(toggle)
 	toggle.toggled.connect(func(_value): _style_toggle(toggle); _changed())
 	row.add_child(toggle)
 	controls[key] = toggle

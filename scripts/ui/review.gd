@@ -73,7 +73,7 @@ func _ready() -> void:
 	header = HBoxContainer.new()
 	header.add_theme_constant_override("separation", 12)
 	column.add_child(header)
-	back = UI.button("‹ 历史列表", func(): history_page.show_history())
+	back = UI.outline("‹ 历史列表", func(): history_page.show_history())
 	header.add_child(back)
 	title = UI.label("牌局复盘", 26, UI.TEXT)
 	title.clip_text = true
@@ -86,7 +86,7 @@ func _ready() -> void:
 	units.custom_minimum_size = Vector2(110, 48)
 	units.item_selected.connect(func(value): set_units(value == 1); units_changed.emit(use_bb))
 	header.add_child(units)
-	close_button = UI.button("返回练习", close)
+	close_button = UI.outline("返回练习", close)
 	header.add_child(close_button)
 	history_page = preload("res://scripts/ui/review_history.gd").new()
 	history_page.host = self
