@@ -1,10 +1,11 @@
 extends VBoxContainer
-## Depends on host: _open_entry, practice_tools, practice_entry, _select_portrait_tab, analysis_view, record_id_label, _stop_play, live_mode, frames, back, replay_page, title, portrait_tabs, is_visible_in_tree, portrait, use_bb, training_store, add_child.
+## Depends on host: _open_entry, practice_tools, practice_entry, _select_portrait_tab, analysis_view, record_id_label, _stop_play, live_mode, frames, back, replay_page, title, portrait_tabs, is_visible_in_tree, portrait, use_bb, units, training_store, add_child.
 var host
 const UI = preload("res://scripts/ui/style.gd")
 const HistoryFilter = preload("res://scripts/poker/history_filter.gd")
 const History = preload("res://scripts/poker/history.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
+const CardView = preload("res://scripts/ui/card_view.gd")
 const PAGE_SIZE = 25
 var page: int = 0
 var filenames: Array = []
@@ -85,6 +86,7 @@ func show_history() -> void:
 	host.live_mode = false
 	host.frames = []
 	host.back.hide()
+	host.units.show()
 	self.show()
 	host.replay_page.hide()
 	host.title.text = "历史牌局"
@@ -115,17 +117,11 @@ func _fill_history() -> void:
 		else: label += "  · 无法读取"
 		history_list.add_item(label)
 		var entry_index = entries.size() - 1
-		var card = UI.button(label, func():
+		var card = _history_card(loaded.get("record", {}), label, func():
 			if history_scroll.can_activate():
 				list_offset = history_scroll.scroll_vertical
 				history_list.select(entry_index)
-				host._open_entry(entry_index), Color("17313a"), 136)
-		card.mouse_filter = Control.MOUSE_FILTER_PASS
-		card.focus_mode = Control.FOCUS_NONE
-		card.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		card.add_theme_font_size_override("font_size", 20)
-		card.clip_text = true
-		card.tooltip_text = label
+				host._open_entry(entry_index))
 		history_cards.add_child(card)
 	history_restore_generation += 1
 	_restore_history_offset.call_deferred(history_restore_generation, list_offset)
@@ -139,6 +135,77 @@ func _restore_history_offset(generation: int, target: int) -> void:
 	await get_tree().process_frame
 	if generation == history_restore_generation and host.is_visible_in_tree() and self.visible and history_scroll.pointer == -2:
 		history_scroll.reset_scroll(target)
+
+## One hand in the list: your two cards, table and time, and the result in colour.
+## The full label (with the hand ID) stays in `text`, drawn transparent, for search and tests.
+func _history_card(record: Dictionary, label: String, callback: Callable) -> Button:
+	# One line of hidden text, so the button height comes from the visible layout.
+	var card = UI.button(label.replace("
+", " · "), callback, UI.CARD, 84)
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	card.focus_mode = Control.FOCUS_NONE
+	card.tooltip_text = label
+	card.clip_text = true
+	for color in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		card.add_theme_color_override(color, Color.TRANSPARENT)
+	var inset = MarginContainer.new()
+	inset.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for edge in ["left", "right", "top", "bottom"]: inset.add_theme_constant_override("margin_" + edge, 12)
+	card.add_child(inset)
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	inset.add_child(row)
+	var hole = HistoryFilter.hero_hole(record) if not record.is_empty() else []
+	var cards = HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 3)
+	cards.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(cards)
+	for i in range(2):
+		var face = CardView.new()
+		face.custom_minimum_size = Vector2(36, 50)
+		face.motion = false
+		cards.add_child(face)
+		face.set_card(hole[i] if hole.size() == 2 else -1, false, false)
+	var lines = VBoxContainer.new()
+	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lines.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(lines)
+	var parts = label.split("
+")
+	var players = record.get("starting_stacks", []).size() if record.get("starting_stacks") is Array else 0
+	var heading = UI.label(("%d 人桌 · " % players if players > 0 else "") + ("第 %d 手" % int(record.hand) if History._integer(record.get("hand"), 1, 100000000) else "牌局"), UI.SIZE_BODY, UI.TEXT)
+	lines.add_child(heading)
+	var detail = [_short_date(str(record.get("saved_at", parts[0] if parts.size() > 0 else "")))]
+	if record.get("events") is Array and record.events.any(func(e): return e is Dictionary and e.get("kind") == "finish" and e.get("showdown") == true): detail.append("摊牌")
+	if host.training_store != null and not record.is_empty():
+		var m = host.training_store.mark(History.hand_id(record))
+		if m.star: detail.append("★ 收藏")
+		if m.pending: detail.append("待复习")
+	if record.is_empty(): detail = ["无法读取"]
+	lines.add_child(UI.label(" · ".join(detail.filter(func(d): return not d.is_empty())), UI.SIZE_CAPTION, UI.MUTED))
+	var net_text = ""
+	for part in parts:
+		if part.begins_with("净变化 "): net_text = part.trim_prefix("净变化 ")
+	if not net_text.is_empty():
+		var tint = UI.SUCCESS if net_text.begins_with("+") else UI.TEXT if net_text.begins_with("0") else UI.DANGER
+		var result = UI.label(net_text, UI.SIZE_HEADING, tint)
+		result.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(result)
+	for node in [inset, row, cards, lines]: _pass(node)
+	return card
+
+func _pass(node: Control) -> void:
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for child in node.get_children():
+		if child is Control: child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+## "2026-11-02 23:34:38" → "今天 23:34" or "11-02 23:34".
+func _short_date(stamp: String) -> String:
+	if stamp.length() < 16 or not stamp.substr(0, 4).is_valid_int(): return stamp.left(16)
+	var day = stamp.left(10)
+	var clock = stamp.substr(11, 5)
+	if day == Time.get_date_string_from_system(): return "今天 " + clock
+	return stamp.substr(5, 5) + " " + clock
 
 func _record_label(record: Dictionary, filename: String) -> String:
 	if not record.get("starting_stacks") is Array: return filename + " · 格式待校验"

@@ -131,7 +131,7 @@ func _ready() -> void:
 	for text in PHASES.values(): street.add_item(text)
 	street.item_selected.connect(_jump_street)
 	transport.add_child(street)
-	var panel = UI.panel(Color("142b32"), 16, 16)
+	var panel = UI.panel(UI.CARD, 18, 14)
 	analysis_panel = panel
 	panel.custom_minimum_size.x = 326
 	add_child(panel)
@@ -202,6 +202,8 @@ func _build_practice_tools() -> void:
 			_select_portrait_tab(true)
 			if analysis_view.teaching_enabled(): analysis_view._analyze())
 	practice_tools.add_child(points_picker)
+	# The hand ID is reference detail; it lives with the tools rather than under the title.
+	record_id_label.reparent(practice_tools)
 	practice_tools.hide()
 	notes = Notes.new()
 	add_child(notes)
@@ -242,10 +244,12 @@ func open_replay(rebuilt: Dictionary, bb: bool) -> void:
 			points_picker.add_item("%s · %s" % [PHASES[p.view.phase], " / ".join(p.tags) if not p.tags.is_empty() else p.topic])
 	if training_store != null: training_store.seen(History.hand_id(current_record))
 	analysis_view.expanded_details = false
-	record_id_label.text = "ID " + History.hand_id(rebuilt.record)
+	record_id_label.text = "牌局 ID " + History.hand_id(rebuilt.record)
 	record_id_label.show()
 	use_bb = bb
 	units.select(1 if bb else 0)
+	# The replay header keeps only list, tools and return; units follow the table menu.
+	units.hide()
 	frames = rebuilt.frames
 	history_page.hide()
 	replay_page.show()
@@ -264,6 +268,7 @@ func open_live(view: Dictionary, bb: bool) -> void:
 	record_id_label.hide()
 	use_bb = bb
 	units.select(1 if bb else 0)
+	units.hide()
 	frames = [{"view": view.duplicate(true), "event": {"kind": "decision", "seat": 0}, "decision": true}]
 	history_page.hide()
 	replay_page.show()

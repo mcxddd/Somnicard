@@ -60,15 +60,16 @@ var comparison_index = 0
 func build() -> void:
 	var overlay_heading = HBoxContainer.new()
 	self.add_child(overlay_heading)
-	var overlay_title = UI.label("牌桌教练 · 近似", 18, UI.GOLD)
+	overlay_heading.add_theme_constant_override("separation", 8)
+	var overlay_title = UI.label("教练分析", UI.SIZE_BODY, UI.GOLD)
 	overlay_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	overlay_heading.add_child(overlay_title)
 	detail_toggle = UI.button("详解", func():
 		expanded_details = not expanded_details
 		analysis_scroll.reset_scroll()
-		_render_details(), Color("243a40"), 44)
+		_render_details(), UI.INSET, 44)
 	overlay_heading.add_child(detail_toggle)
-	overlay_close = UI.button("收起", func(): host._select_portrait_tab(false), Color("243a40"), 44)
+	overlay_close = UI.button("收起", func(): host._select_portrait_tab(false), UI.INSET, 44)
 	overlay_heading.add_child(overlay_close)
 	coach_avatar = CoachAvatar.new()
 	coach_avatar.pressed.connect(host._toggle_coach)
@@ -130,6 +131,7 @@ func build() -> void:
 	overlay_heading.move_child(teaching_toggle, 1)
 	teaching_toggle.size_flags_horizontal = Control.SIZE_FILL
 	teaching_toggle.custom_minimum_size.y = 44
+	for button in [teaching_toggle, detail_toggle, overlay_close]: button.add_theme_font_size_override("font_size", UI.SIZE_CAPTION + 1)
 	teaching_row.hide()
 	method_label = UI.label("范围推断 · 离线教学", 16, UI.MUTED)
 	method_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

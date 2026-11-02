@@ -67,3 +67,23 @@ static func select(items: Array, filters: Dictionary, today: String) -> Array:
 		if sorting == 2 and a.net * b.big_blind != b.net * a.big_blind: return a.net * b.big_blind < b.net * a.big_blind
 		return a.file > b.file)
 	return found.map(func(item): return item.file)
+
+## The human's two hole cards, re-derived from the saved deck and deal order; [] if unknown.
+static func hero_hole(record: Dictionary) -> Array:
+	var deck = record.get("deck")
+	var stacks = record.get("starting_stacks")
+	var events = record.get("events")
+	if not deck is Array or not stacks is Array or not events is Array or events.is_empty(): return []
+	var start = events[0]
+	if not start is Dictionary or start.get("kind") != "start" or not History._integer(start.get("button"), 0, stacks.size() - 1): return []
+	var funded: Array = []
+	for i in range(stacks.size()):
+		if History._integer(stacks[i], 1, 1000000000): funded.append(i)
+	if 0 not in funded: return []
+	# Cards go out one at a time clockwise from the seat after the button, twice round.
+	var after = funded.filter(func(i): return i > int(start.button)) + funded.filter(func(i): return i <= int(start.button))
+	var slot = after.find(0)
+	if deck.size() <= slot + funded.size(): return []
+	var cards = [deck[slot], deck[slot + funded.size()]]
+	if not cards.all(func(c): return History._integer(c, 0, 51)): return []
+	return [int(cards[0]), int(cards[1])]
