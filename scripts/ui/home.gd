@@ -11,6 +11,7 @@ var scroll
 var entries: Dictionary = {}
 var learning
 var learning_note: Label
+var recent: VBoxContainer
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -78,6 +79,10 @@ func _ready() -> void:
 			if scroll.can_activate(): destination.emit(id), spec[3], true)
 		paths.add_child(button)
 		entries[id] = button
+	# Filled by update_recent(): how the last hands and practice went.
+	recent = VBoxContainer.new()
+	recent.add_theme_constant_override("separation", 8)
+	body.add_child(recent)
 	status = UI.caption("虚拟筹码 · 记录保存在本机")
 	body.add_child(status)
 	var utility = HBoxContainer.new()
@@ -96,6 +101,25 @@ func update_session(active: bool, saved: bool, detail: String) -> void:
 	new_table.visible = active or saved
 	session_note.text = detail if active else "上次牌桌已保存在本机，恢复后保持暂停。" if saved else "2–9 人电脑对战 · 对手强度可调"
 	status.text = "当前牌桌已保留，回到牌桌后继续。" if active else "虚拟筹码 · 记录保存在本机"
+
+## summary: {hands, net_bb, vpip, mastery (-1 when unknown), streak}.
+func update_recent(summary: Dictionary) -> void:
+	UI.clear(recent)
+	recent.add_child(UI.heading("最近表现"))
+	var hands: int = summary.get("hands", 0)
+	if hands == 0 and summary.get("mastery", -1.0) < 0:
+		recent.add_child(UI.caption("打完几手、做几道训练题后，这里会显示你最近的表现。"))
+		return
+	var net: float = summary.get("net_bb", 0.0)
+	var items: Array = []
+	if hands > 0:
+		items.append(["%+.1f" % net, "近 %d 手 BB" % hands, UI.SUCCESS if net > 0 else UI.DANGER if net < 0 else UI.TEXT])
+		items.append(["%.0f%%" % (100.0 * summary.get("vpip", 0.0)), "主动入池"])
+	var mastery: float = summary.get("mastery", -1.0)
+	items.append(["%.0f%%" % (100 * mastery) if mastery >= 0 else "—", "训练掌握率"])
+	recent.add_child(UI.stat_row(items))
+	var streak: int = summary.get("streak", 0)
+	recent.add_child(UI.caption("已连续 %d 天打牌或练习，保持节奏。" % streak if streak >= 2 else "今天也来练一手吧。" if streak == 0 else "今天已经练过了。"))
 
 func update_learning(data: Dictionary) -> void:
 	var academy = preload("res://scripts/product/academy.gd")

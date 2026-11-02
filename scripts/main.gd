@@ -16,6 +16,7 @@ const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
 const LocalBot = preload("res://scripts/poker/local_bot.gd")
 const UI = preload("res://scripts/ui/style.gd")
 const History = preload("res://scripts/poker/history.gd")
+const HistoryFilter = preload("res://scripts/poker/history_filter.gd")
 const Review = preload("res://scripts/ui/review.gd")
 const Session = preload("res://scripts/poker/session.gd")
 const Settings = preload("res://scripts/ui/settings.gd")
@@ -223,8 +224,39 @@ func _update_home() -> void:
 	var detail = "%d 人桌 · 第 %d 手 · %s" % [player_count, game.hand_number, PHASES.get(game.phase, "准备中")] if game != null else ""
 	home.update_session(game != null, storage.enabled() and FileAccess.file_exists("user://session.json"), detail)
 	if training_store != null: home.update_learning(training_store.data)
+	home.update_recent(_recent_summary())
 	if not settings_status.is_empty(): home.status.text = settings_status
 	if storage.session_save_error: home.status.text = "当前牌桌保存失败，请检查存储空间。"
+
+## The last 30 saved hands, training mastery and the run of active days, for the home card.
+func _recent_summary() -> Dictionary:
+	var out = {"hands": 0, "net_bb": 0.0, "vpip": 0.0, "mastery": -1.0, "streak": 0}
+	var days = {}
+	if storage.enabled():
+		var vpip = 0
+		for file in History.files().slice(0, 30):
+			var item = HistoryFilter.summary(History.read_record(History.DIRECTORY.path_join(file)), file)
+			if not item.valid_result: continue
+			out.hands += 1
+			out.net_bb += float(item.net) / item.big_blind
+			vpip += int(item.vpip)
+			if not item.day.is_empty(): days[item.day] = true
+		if out.hands > 0: out.vpip = float(vpip) / out.hands
+	if training_store != null:
+		var kept = 0
+		var scored = 0
+		for topic in training_store.mastery().values():
+			kept += topic.kept
+			scored += topic.scored
+		if scored > 0: out.mastery = float(kept) / scored
+		for attempt in training_store.data.get("attempts", []): days[str(attempt.get("date", "")).left(10)] = true
+	# Count back from today; a streak still stands if the last active day was yesterday.
+	var day = Time.get_unix_time_from_system() + Time.get_time_zone_from_system().bias * 60
+	if not days.has(Time.get_date_string_from_unix_time(int(day))): day -= 86400
+	while days.has(Time.get_date_string_from_unix_time(int(day))):
+		out.streak += 1
+		day -= 86400
+	return out
 
 func _continue_table() -> void:
 	if game == null: return

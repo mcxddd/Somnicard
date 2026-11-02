@@ -61,6 +61,7 @@ func _capture() -> void:
 		instance._open_history()
 		while instance.review.history_page.scan_cursor >= 0: await process_frame
 		if "--filters" in OS.get_cmdline_user_args(): instance.review.history_page.filter_sheet.open("筛选牌局")
+	if "--home-recent" in OS.get_cmdline_user_args(): instance.home.update_recent({"hands": 30, "net_bb": 12.5, "vpip": 0.27, "mastery": 0.72, "streak": 4})
 	if "--help" in OS.get_cmdline_user_args(): instance._open_help()
 	if "--onboarding" in OS.get_cmdline_user_args():
 		instance.onboarding.open()
