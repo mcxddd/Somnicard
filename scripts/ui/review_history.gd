@@ -6,6 +6,7 @@ const HistoryFilter = preload("res://scripts/poker/history_filter.gd")
 const History = preload("res://scripts/poker/history.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const CardView = preload("res://scripts/ui/card_view.gd")
+const Segmented = preload("res://scripts/ui/segmented.gd")
 const PAGE_SIZE = 25
 var page: int = 0
 var filenames: Array = []
@@ -29,6 +30,9 @@ var scan_cursor: int = -1
 var search: LineEdit
 var filter_button: Button
 var filter_panel: VBoxContainer
+var filter_sheet
+var active_row: HBoxContainer
+var active_label: Label
 var filters: Dictionary = {}
 var filter_timer: Timer
 var reset_filters: Button
@@ -239,38 +243,59 @@ func _build_history_filters() -> void:
 	search.custom_minimum_size.y = 48
 	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(search)
-	filter_button = UI.button("筛选", func(): filter_panel.visible = not filter_panel.visible)
+	filter_button = UI.outline("筛选", func(): filter_sheet.open("筛选牌局"))
 	row.add_child(filter_button)
+	# The active conditions in one line under the search box, with a one-tap clear.
+	active_row = HBoxContainer.new()
+	active_row.add_theme_constant_override("separation", 8)
+	self.add_child(active_row)
+	self.move_child(active_row, 1)
+	active_label = UI.caption("")
+	active_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	active_row.add_child(active_label)
+	active_row.add_child(UI.link("清除", _reset_history_filters))
+	active_row.hide()
+	filter_sheet = preload("res://scripts/ui/sheet.gd").new()
+	filter_sheet.preferred_height = 760
+	host.add_child(filter_sheet)
 	filter_panel = VBoxContainer.new()
-	filter_panel.add_theme_constant_override("separation", 8)
-	self.add_child(filter_panel)
-	self.move_child(filter_panel, 1)
-	var grid = GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	filter_panel.add_child(grid)
+	filter_panel.add_theme_constant_override("separation", 6)
+	filter_sheet.content.add_child(filter_panel)
+	# Short labels: each group is a row of chips, "全部" first.
 	var labels = {
-		"players": ["人数：全部", "2 人桌", "3 人桌", "4 人桌", "5 人桌", "6 人桌", "7 人桌", "8 人桌", "9 人桌"],
-		"result": ["结果：全部", "净赢", "净输", "不输不赢"],
-		"days": ["时间：全部", "今天", "近 7 天", "近 30 天"],
-		"ending": ["结束：全部", "有摊牌", "无摊牌"],
-		"action": ["我的行动：全部", "我曾全押", "我曾加注"],
-		"sort": ["排序：最近", "底池最大（BB）", "亏损最多（BB）"],
-		"saved": ["标记：全部", "已收藏", "待复习"],
-		"tag": ["标签：全部"] + preload("res://scripts/poker/training_store.gd").TAGS}
+		"players": ["人数", ["全部", "2", "3", "4", "5", "6", "7", "8", "9"]],
+		"result": ["结果", ["全部", "净赢", "净输", "持平"]],
+		"days": ["时间", ["全部", "今天", "近 7 天", "近 30 天"]],
+		"ending": ["结束方式", ["全部", "有摊牌", "无摊牌"]],
+		"action": ["我的行动", ["全部", "全押过", "加注过"]],
+		"saved": ["标记", ["全部", "已收藏", "待复习"]],
+		"tag": ["标签", ["全部"] + preload("res://scripts/poker/training_store.gd").TAGS],
+		"sort": ["排序", ["最近", "底池最大", "亏损最多"]]}
 	for key in labels:
-		var picker = OptionButton.new()
-		picker.custom_minimum_size = Vector2(0, 48)
-		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		picker.fit_to_longest_item = false
-		for label in labels[key]: picker.add_item(label)
+		filter_panel.add_child(UI.label(labels[key][0], UI.SIZE_CAPTION, UI.MUTED))
+		var picker = Segmented.new()
+		for label in labels[key][1]: picker.add_item(label)
 		filters[key] = picker
-		grid.add_child(picker)
+		filter_panel.add_child(picker)
 		picker.item_selected.connect(func(_value): _filters_changed())
-	reset_filters = UI.button("重置全部条件", _reset_history_filters)
-	filter_panel.add_child(reset_filters)
-	filter_panel.hide()
+	# Six tags do not fit one row; let the tag chips wrap onto a second line.
+	var tag_picker = filters.tag
+	var tag_flow = HFlowContainer.new()
+	tag_flow.add_theme_constant_override("h_separation", 4)
+	tag_flow.add_theme_constant_override("v_separation", 4)
+	filter_panel.add_child(tag_flow)
+	filter_panel.move_child(tag_flow, tag_picker.get_index())
+	for button in tag_picker.buttons:
+		button.size_flags_horizontal = Control.SIZE_FILL
+		button.reparent(tag_flow)
+	tag_picker.hide()
+	reset_filters = UI.outline("重置全部条件", _reset_history_filters)
+	reset_filters.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	filter_sheet.footer.add_child(reset_filters)
+	var done = UI.button("查看结果", func(): filter_sheet.close(), UI.GREEN)
+	done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	filter_sheet.footer.add_child(done)
 	filter_timer = Timer.new()
 	filter_timer.one_shot = true
 	filter_timer.wait_time = 0.18
@@ -297,10 +322,14 @@ func _filters_changed() -> void:
 	page = 0
 	list_offset = 0
 	history_scroll.reset_scroll()
-	var count = 0
+	var chosen: Array = []
 	for key in filters:
-		if filters[key].selected > 0: count += 1
-	filter_button.text = "筛选" + (" · %d" % count if count > 0 else "")
+		if filters[key].selected > 0:
+			var text = filters[key].get_item_text(filters[key].selected)
+			chosen.append(text + " 人桌" if key == "players" else text)
+	filter_button.text = "筛选" + (" · %d" % chosen.size() if not chosen.is_empty() else "")
+	active_label.text = "已筛选：" + " · ".join(chosen)
+	active_row.visible = not chosen.is_empty()
 	if scan_cursor < 0: _apply_history_filter()
 
 func _scan_history() -> void:

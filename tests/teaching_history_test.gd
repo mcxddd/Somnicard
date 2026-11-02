@@ -133,7 +133,7 @@ func _run() -> void:
 	while review.history_page.scan_cursor >= 0: await process_frame
 	await settle()
 	verify(review.history_page.filters.result.selected == 2 and review.history_page.history_scroll.scroll_vertical == 200, "return preserves filter and list position: selected=%d scroll=%d stored=%d" % [review.history_page.filters.result.selected, review.history_page.history_scroll.scroll_vertical, review.history_page.list_offset])
-	review.history_page.filter_panel.show()
+	review.history_page.filter_button.pressed.emit()
 	await settle()
 	verify(root.get_visible_rect().encloses(review.history_page.reset_filters.get_global_rect()) and root.get_visible_rect().encloses(review.history_page.next_page.get_global_rect()), "expanded filters and paging fit small portrait")
 	review.close()

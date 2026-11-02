@@ -60,7 +60,7 @@ func _capture() -> void:
 			instance.History.save(record, "%d.json" % (1900000000 - i), instance.review.history_page.history_directory)
 		instance._open_history()
 		while instance.review.history_page.scan_cursor >= 0: await process_frame
-		instance.review.history_page.filter_panel.show()
+		if "--filters" in OS.get_cmdline_user_args(): instance.review.history_page.filter_sheet.open("筛选牌局")
 	if "--help" in OS.get_cmdline_user_args(): instance._open_help()
 	if "--onboarding" in OS.get_cmdline_user_args():
 		instance.onboarding.open()
