@@ -6,6 +6,7 @@ const UI = preload("res://scripts/ui/style.gd")
 const TouchScroll = preload("res://scripts/ui/touch_scroll.gd")
 const OpponentEditor = preload("res://scripts/ui/opponent_editor.gd")
 const DataPage = preload("res://scripts/ui/data_settings.gd")
+const Segmented = preload("res://scripts/ui/segmented.gd")
 var evidence_page
 const CATEGORIES = ["牌桌与操作", "外观与声音", "教练与教学", "电脑对手", "数据与备份"]
 var index_page: VBoxContainer
@@ -107,7 +108,7 @@ func _ready() -> void:
 	pages[3].add_child(evidence_page)
 	data_page = DataPage.new()
 	pages[4].add_child(data_page)
-	summary = UI.label("", 16, UI.GOLD)
+	summary = UI.caption("")
 	column.add_child(summary)
 	var footer = HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 12)
@@ -128,7 +129,8 @@ func _ready() -> void:
 	hide()
 
 func _add_row(page: int, title: String, hint: String) -> BoxContainer:
-	var panel = UI.panel(Color("101c26"), 10, 12)
+	var panel = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UI.surface(UI.CARD, 14, 14))
 	pages[page].add_child(panel)
 	var row = BoxContainer.new()
 	rows.append(row)
@@ -137,15 +139,14 @@ func _add_row(page: int, title: String, hint: String) -> BoxContainer:
 	var labels = VBoxContainer.new()
 	labels.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(labels)
-	labels.add_child(UI.label(title, 20, UI.TEXT))
-	var description = UI.label(hint, 16, UI.MUTED)
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	labels.add_child(description)
+	labels.add_child(UI.label(title, UI.SIZE_BODY + 1, UI.TEXT))
+	labels.add_child(UI.caption(hint))
 	return row
 
 func _add_option(page: int, key: String, title: String, hint: String, choices: Array) -> void:
 	var row = _add_row(page, title, hint)
-	var picker = OptionButton.new()
+	# Two or three short choices are shown side by side instead of behind a popup.
+	var picker = Segmented.new()
 	for choice in choices: picker.add_item(choice)
 	picker.custom_minimum_size = Vector2(170, 48)
 	picker.item_selected.connect(func(_value): _changed())
@@ -154,17 +155,21 @@ func _add_option(page: int, key: String, title: String, hint: String, choices: A
 
 func _add_toggle(page: int, key: String, title: String, hint: String) -> void:
 	var row = _add_row(page, title, hint)
-	var toggle = UI.button("", func(): pass)
-	toggle.toggle_mode = true
-	toggle.custom_minimum_size = Vector2(170, 48)
+	# A switch sits beside its text even in portrait, so this row never stacks.
+	rows.erase(row)
+	var toggle = CheckButton.new()
+	toggle.custom_minimum_size = Vector2(72, 48)
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.add_theme_icon_override("checked", UI.switch_icon(true))
+	toggle.add_theme_icon_override("unchecked", UI.switch_icon(false))
+	for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+		toggle.add_theme_stylebox_override(state, StyleBoxEmpty.new() if state != "focus" else UI.surface(Color.TRANSPARENT, 16, 0, UI.GOLD))
 	toggle.toggled.connect(func(_value): _style_toggle(toggle); _changed())
 	row.add_child(toggle)
 	controls[key] = toggle
 
 func _style_toggle(toggle: Button) -> void:
-	toggle.text = "已开启  ✓" if toggle.button_pressed else "已关闭  —"
-	toggle.add_theme_stylebox_override("normal", UI.surface(UI.GREEN.darkened(0.2) if toggle.button_pressed else Color("263540"), 8, 12))
-	toggle.add_theme_stylebox_override("pressed", UI.surface(UI.GREEN.darkened(0.2), 8, 12))
+	toggle.tooltip_text = "已开启" if toggle.button_pressed else "已关闭"
 
 func _select_page(index: int) -> void:
 	current_page = index
@@ -196,7 +201,7 @@ func _fill(data: Dictionary) -> void:
 	opponent_editor.fill(data.get("opponents", []), player_count, int(data.get("difficulty", 1)))
 	for key in controls:
 		var control = controls[key]
-		if control is OptionButton: control.select(int(data.get(key, DEFAULTS[key])))
+		if control is Segmented: control.select(int(data.get(key, DEFAULTS[key])))
 		else:
 			control.set_pressed_no_signal(bool(data.get(key, DEFAULTS[key])))
 			_style_toggle(control)
@@ -205,7 +210,7 @@ func values() -> Dictionary:
 	var out: Dictionary = {}
 	for key in controls:
 		var control = controls[key]
-		out[key] = control.selected if control is OptionButton else control.button_pressed
+		out[key] = control.selected if control is Segmented else control.button_pressed
 	out["opponents"] = opponent_editor.profiles.duplicate(true)
 	out["seat_names"] = opponent_editor.seat_names.duplicate()
 	out.bb = bool(out.bb)

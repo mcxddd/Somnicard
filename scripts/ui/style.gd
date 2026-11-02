@@ -72,6 +72,23 @@ static func _knob(diameter: int, color: Color) -> ImageTexture:
 			image.set_pixel(x, y, Color(fill, edge))
 	return ImageTexture.create_from_image(image)
 
+## A 56×32 on/off switch for CheckButton: green track with the knob right when on.
+static func switch_icon(on: bool) -> ImageTexture:
+	var w = 56
+	var h = 32
+	var image = Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var track = GREEN.lightened(0.1) if on else Color("2c3f47")
+	var knob_x = w - h / 2.0 if on else h / 2.0
+	for y in range(h):
+		for x in range(w):
+			var px = Vector2(x + 0.5, y + 0.5)
+			var nearest = Vector2(clampf(px.x, h / 2.0, w - h / 2.0), h / 2.0)
+			var inside = clampf(h / 2.0 - px.distance_to(nearest) + 0.5, 0, 1)
+			var knob = clampf(h / 2.0 - 4 - px.distance_to(Vector2(knob_x, h / 2.0)) + 0.5, 0, 1)
+			var color = track.lerp(TEXT, knob)
+			image.set_pixel(x, y, Color(color, inside))
+	return ImageTexture.create_from_image(image)
+
 static func panel(color: Color, radius: int = 12, padding: int = 12) -> PanelContainer:
 	var node := PanelContainer.new()
 	var style = surface(color, radius, padding, Color("30434a"))
