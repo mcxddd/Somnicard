@@ -57,7 +57,7 @@ func _ready() -> void:
 	inner.add_child(UI.title("每一手，都更明白"))
 	inner.add_child(UI.caption("自由对战 · 即时教练 · 回到关键决定"))
 	inner.add_child(UI.art(preload("res://assets/art/home-hero.png"), 150))
-	session_note = UI.caption("2–9 人电脑对战 · 对手强度可调")
+	session_note = UI.caption("2–6 人电脑对战 · 对手强度可调")
 	inner.add_child(session_note)
 	primary = UI.primary("开始新局  →", func(): destination.emit("play"), 64)
 	inner.add_child(primary)
@@ -99,7 +99,7 @@ func _ready() -> void:
 func update_session(active: bool, saved: bool, detail: String) -> void:
 	primary.text = "继续对局  →" if active else "恢复上次牌桌  →" if saved else "开始新局  →"
 	new_table.visible = active or saved
-	session_note.text = detail if active else "上次牌桌已保存在本机，恢复后保持暂停。" if saved else "2–9 人电脑对战 · 对手强度可调"
+	session_note.text = detail if active else "上次牌桌已保存在本机，恢复后保持暂停。" if saved else "2–6 人电脑对战 · 对手强度可调"
 	status.text = "当前牌桌已保留，回到牌桌后继续。" if active else "虚拟筹码 · 记录保存在本机"
 
 ## summary: {hands, net_bb, vpip, mastery (-1 when unknown), streak}.

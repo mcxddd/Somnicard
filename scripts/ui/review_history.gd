@@ -264,7 +264,7 @@ func _build_history_filters() -> void:
 	filter_sheet.content.add_child(filter_panel)
 	# Short labels: each group is a row of chips, "全部" first.
 	var labels = {
-		"players": ["人数", ["全部", "2", "3", "4", "5", "6", "7", "8", "9"]],
+		"players": ["人数", ["全部", "2", "3", "4", "5", "6"]],
 		"result": ["结果", ["全部", "净赢", "净输", "持平"]],
 		"days": ["时间", ["全部", "今天", "近 7 天", "近 30 天"]],
 		"ending": ["结束方式", ["全部", "有摊牌", "无摊牌"]],

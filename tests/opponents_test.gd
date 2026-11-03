@@ -29,7 +29,7 @@ func run() -> void:
 	DirAccess.remove_absolute(path)
 	# All levels/styles, arbitrary table sizes, short unequal stacks: no illegal
 	# amounts, omniscient reads, mutation, or money creation.
-	for players in range(2, 10):
+	for players in range(2, 7):
 		for level in range(3):
 			var stacks: Array = []
 			for id in range(players): stacks.append([35, 70, 130, 270][id % 4])
@@ -81,32 +81,32 @@ func run() -> void:
 	root.add_child(ui)
 	ui.smoke_mode = true
 	_test_seat_sheet(ui)
-	ui._start_table(9)
-	ui._open_opponents(8)
+	ui._start_table(6)
+	ui._open_opponents(5)
 	var editor = ui.settings.opponent_editor
-	verify(editor.selected == 8 and editor.count == 9, "direct edit eighth opponent")
+	verify(editor.selected == 5 and editor.count == 6, "direct edit fifth opponent")
 	editor.level.item_selected.emit(3)
 	editor.aggression.item_selected.emit(2)
-	verify(ui.bots[8].difficulty == 1 and ui.bots[8].style == 0, "draft never changes running bots")
+	verify(ui.bots[5].difficulty == 1 and ui.bots[5].style == 0, "draft never changes running bots")
 	ui.settings.cancel()
-	ui._open_opponents(8)
+	ui._open_opponents(5)
 	verify(editor.level.selected == 0 and editor.aggression.selected == 0, "cancel discards opponent draft")
 	editor.level.item_selected.emit(3)
 	editor.aggression.item_selected.emit(2)
 	ui.settings.apply_button.pressed.emit()
-	verify(ui.bots[8].difficulty == 2 and ui.bots[8].style == 2 and ui.bots[1].difficulty == 1, "apply edits only chosen opponent")
+	verify(ui.bots[5].difficulty == 2 and ui.bots[5].style == 2 and ui.bots[1].difficulty == 1, "apply edits only chosen opponent")
 	var values = ui._settings_values()
 	values.difficulty = 0
 	ui._apply_settings(values)
-	verify(ui.bots[1].difficulty == 0 and ui.bots[8].difficulty == 2, "global default respects explicit overrides")
+	verify(ui.bots[1].difficulty == 0 and ui.bots[5].difficulty == 2, "global default respects explicit overrides")
 	ui._start_table(2)
-	ui._start_table(9)
-	verify(ui.bots[8].difficulty == 2 and ui.bots[8].style == 2, "seat configuration survives downsizing table")
+	ui._start_table(6)
+	verify(ui.bots[5].difficulty == 2 and ui.bots[5].style == 2, "seat configuration survives downsizing table")
 	var folder = "user://opponent-session-%d" % Time.get_ticks_usec()
-	verify(Session.save(ui.game, "123-456", 100, -1, folder, Profiles.snapshot(ui.opponent_profiles, 9, 0), ui.opponent_changes, ui.opponent_profiles, 0) == OK, "save session with per-seat snapshot")
+	verify(Session.save(ui.game, "123-456", 100, -1, folder, Profiles.snapshot(ui.opponent_profiles, 6, 0), ui.opponent_changes, ui.opponent_profiles, 0) == OK, "save session with per-seat snapshot")
 	var restored = Session.restore(folder + "/session.json")
-	verify(not restored.has("error") and restored.record.opponents[7].difficulty == 2 and restored.record.opponents[0].difficulty == 0, "resume preserves resolved settings")
-	verify(restored.record.opponent_settings.profiles[0].difficulty == -1 and restored.record.opponent_settings.profiles[7].difficulty == 2, "resume keeps default inheritance and inactive-seat configuration")
+	verify(not restored.has("error") and restored.record.opponents[4].difficulty == 2 and restored.record.opponents[0].difficulty == 0, "resume preserves resolved settings")
+	verify(restored.record.opponent_settings.profiles[0].difficulty == -1 and restored.record.opponent_settings.profiles[4].difficulty == 2, "resume keeps default inheritance and inactive-seat configuration")
 	DirAccess.remove_absolute(folder + "/session.json")
 	DirAccess.remove_absolute(folder)
 	ui._open_opponents(1)
@@ -116,8 +116,8 @@ func run() -> void:
 		var rect = ui.settings.get_global_rect()
 		verify(rect.encloses(ui.settings.apply_button.get_global_rect()), "apply button remains reachable in portrait")
 		verify(rect.encloses(ui.settings.back_button.get_global_rect()), "settings category return remains reachable")
-	editor.roster.get_child(6).pressed.emit()
-	verify(editor.selected == 7, "roster button edits its own seat")
+	editor.roster.get_child(3).pressed.emit()
+	verify(editor.selected == 4, "roster button edits its own seat")
 	root.size = Vector2i(360, 640)
 	for frame in range(6): await process_frame
 	var scroll = ui.settings.scroll
@@ -138,17 +138,17 @@ func run() -> void:
 	release.button_index = MOUSE_BUTTON_LEFT
 	release.position = start - Vector2(0, 140)
 	root.push_input(release, true)
-	verify(scroll.scroll_vertical > 0 and editor.selected == 7, "upward drag scrolls settings without choosing a seat")
+	verify(scroll.scroll_vertical > 0 and editor.selected == 4, "upward drag scrolls settings without choosing a seat")
 	ui.settings.cancel()
 	ui._open_training()
 	var fixture = Practice.fixtures()[2]
 	var rebuilt = ui.History.replay(fixture)
 	var point = Practice.points(rebuilt)[0].point
-	fixture["opponent_changes"] = [{"event": 0, "profiles": Profiles.snapshot(ui.opponent_profiles, 9, 1)}]
+	fixture["opponent_changes"] = [{"event": 0, "profiles": Profiles.snapshot(ui.opponent_profiles, 6, 1)}]
 	ui.training.open_case(fixture, point)
-	verify(ui.training.case_page.bots[8].difficulty == 2 and ui.training.case_page.bots[8].style == 2, "training uses archived opponent configuration")
+	verify(ui.training.case_page.bots[5].difficulty == 2 and ui.training.case_page.bots[5].style == 2, "training uses archived opponent configuration")
 	ui.training.case_page._persist()
-	verify(ui.training.store.data.session.opponents[7].difficulty == 2, "training continuation saves configuration")
+	verify(ui.training.store.data.session.opponents[4].difficulty == 2, "training continuation saves configuration")
 	ui.queue_free()
 	await process_frame
 	print("OPPONENT_TESTS: %d checks, %d failures" % [checks, failures])

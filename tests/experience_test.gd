@@ -66,7 +66,7 @@ func _run() -> void:
 	# New-table editing and confirmation have independent cancel paths.
 	var old_game = ui.game
 	ui._open_lobby()
-	ui._select_count(9)
+	ui._select_count(6)
 	ui.screen.depth_picker.select(2)
 	ui.screen.start_button.pressed.emit()
 	verify(ui.confirmation.visible and ui.game == old_game, "reset waits for confirmation")
@@ -140,7 +140,7 @@ func _run() -> void:
 	ui._next_hand()
 	ui.confirmation.accept_button.pressed.emit()
 	verify(ui.game.phase == "preflop" and ui.game.chip_total() == ui.starting_bb * 20, "confirmed refill starts fresh table")
-	ui._start_table(9)
+	ui._start_table(6)
 	ui.smoke_mode = false
 	ui.prefs.speed_index = 2
 	ui._schedule_bot()
@@ -154,7 +154,7 @@ func _run() -> void:
 	ui.bot_timer.stop()
 	ui.smoke_mode = true
 	# Larger card artwork remains inside every seat, with no hidden card metadata.
-	for count in [2, 6, 9]:
+	for count in [2, 4, 6]:
 		ui._start_table(count)
 		await process_frame
 		await process_frame
@@ -185,7 +185,7 @@ func _test_preferences() -> void:
 	old.set_value("table", "depth", 200)
 	old.save(path)
 	var loaded = Preferences.load_values(path, true)
-	verify(not loaded.bb and loaded.speed == 2 and loaded.players == 9 and loaded.depth == 200, "old v1 preferences migrate")
+	verify(not loaded.bb and loaded.speed == 2 and loaded.players == 6 and loaded.depth == 200, "old v1 preferences migrate")
 	verify(loaded.confirm_all_in and loaded.sidebar, "new settings receive defaults")
 	loaded.felt = 1
 	loaded.four_color = true

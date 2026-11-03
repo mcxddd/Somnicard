@@ -88,7 +88,7 @@ func _run() -> void:
 	ui._apply_settings(settings)
 	# Each level completes legal multiway games, conserving chips and using only its cards.
 	for level in range(3):
-		for players in [2, 6, 9]:
+		for players in [2, 4, 6]:
 			var stacks: Array = []
 			stacks.resize(players)
 			stacks.fill(150)

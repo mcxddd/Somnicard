@@ -14,7 +14,7 @@ func verify(ok: bool, label: String) -> void:
 func normalized(value): return JSON.parse_string(JSON.stringify(value))
 func run() -> void:
 	rng.seed = 23111049
-	for count in range(2, 10):
+	for count in range(2, 7):
 		for trial in range(64):
 			var stacks: Array = []
 			for id in range(count): stacks.append(rng.randi_range(1, 2000) if trial % 3 else [1, 5, 9, 10, 11, 19, 100, 1000, 2000][rng.randi_range(0, 8)])

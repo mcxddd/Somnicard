@@ -24,14 +24,14 @@ func run() -> void:
 				verify(root.get_visible_rect().grow(1).encloses(control.get_global_rect()), "category controls remain inside portrait viewport")
 	ui.settings.cancel()
 	# Reopening seat configuration must never grow the overlay tree.
-	ui._start_table(9)
+	ui._start_table(6)
 	var initial_nodes = ui.screen.info_sheet.content.get_child_count()
 	for i in range(24):
-		ui._seat_details(i % 8 + 1)
+		ui._seat_details(i % 5 + 1)
 		ui.screen.info_opponent_button.pressed.emit()
 		ui.settings.cancel()
 		verify(ui.screen.info_sheet.content.get_child_count() == initial_nodes, "repeated seat configuration does not accumulate widgets")
-		verify(ui.settings.opponent_editor.selected == i % 8 + 1, "seat configuration retains its intended target")
+		verify(ui.settings.opponent_editor.selected == i % 5 + 1, "seat configuration retains its intended target")
 	# Training uses a shorter table than normal play; wagers must not cover public cards.
 	ui.training.history_directory = "user://audit-empty-history"
 	ui._open_training()
@@ -50,7 +50,7 @@ func run() -> void:
 					bet_rect.position += seat.bet.global_position
 					for card in table.board_row.get_children():
 						if card.card_id >= 0: verify(not bet_rect.intersects(card.get_global_rect()), "training wager must not cover community cards: %s seats=%d seat=%d bet=%s board=%s table=%s" % [dimensions, table.seat_nodes.size(), table.seat_nodes.find(seat), bet_rect, card.get_global_rect(), table.size])
-		for count in range(2, 10):
+		for count in range(2, 7):
 			var stacks: Array = []
 			stacks.resize(count); stacks.fill(1000)
 			var sample = ui.Table.new(stacks, 5, 10, 4311 + count)

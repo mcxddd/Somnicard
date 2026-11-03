@@ -280,7 +280,7 @@ func _update_table_summary() -> void:
 %s" % [selected_count, depth, mix, "现有牌桌将被替换，开始前需要确认。" if game != null or (storage.enabled() and FileAccess.file_exists("user://session.json")) else "虚拟筹码 · 无前注 · 无抽水"]
 
 func _select_count(count: int) -> void:
-	selected_count = clampi(count, 2, 9)
+	selected_count = clampi(count, 2, Table.MAX_SEATS)
 	screen.count_picker.select(selected_count - 2)
 	screen.update_lobby_opponents(selected_count)
 	screen.start_button.text = ("开始 %d 人桌" if game == null else "重开 %d 人桌") % selected_count
@@ -326,7 +326,7 @@ func _apply_new_table(count: int, depth: int) -> void:
 func _start_table(count: int) -> void:
 	bot_timer.stop()
 	modals.restore_background()
-	player_count = clampi(count, 2, 9)
+	player_count = clampi(count, 2, Table.MAX_SEATS)
 	last_table_count = player_count
 	selected_count = player_count
 	paused = false

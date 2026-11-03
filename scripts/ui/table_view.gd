@@ -19,10 +19,7 @@ const POSITIONS = {
 	3: [Vector2(0.23, 0.20), Vector2(0.77, 0.20)],
 	4: [Vector2(0.10, 0.44), Vector2(0.50, 0.13), Vector2(0.90, 0.44)],
 	5: [Vector2(0.10, 0.48), Vector2(0.33, 0.13), Vector2(0.67, 0.13), Vector2(0.90, 0.48)],
-	6: [Vector2(0.10, 0.55), Vector2(0.25, 0.13), Vector2(0.50, 0.13), Vector2(0.75, 0.13), Vector2(0.90, 0.55)],
-	7: [Vector2(0.10, 0.69), Vector2(0.10, 0.34), Vector2(0.34, 0.13), Vector2(0.66, 0.13), Vector2(0.90, 0.34), Vector2(0.90, 0.69)],
-	8: [Vector2(0.10, 0.69), Vector2(0.10, 0.34), Vector2(0.30, 0.13), Vector2(0.50, 0.13), Vector2(0.70, 0.13), Vector2(0.90, 0.34), Vector2(0.90, 0.69)],
-	9: [Vector2(0.10, 0.69), Vector2(0.10, 0.35), Vector2(0.20, 0.12), Vector2(0.40, 0.12), Vector2(0.60, 0.12), Vector2(0.80, 0.12), Vector2(0.90, 0.35), Vector2(0.90, 0.69)]}
+	6: [Vector2(0.10, 0.55), Vector2(0.25, 0.13), Vector2(0.50, 0.13), Vector2(0.75, 0.13), Vector2(0.90, 0.55)]}
 var seat_nodes: Array = []
 var center: VBoxContainer
 var phase_label: Label
@@ -329,22 +326,8 @@ func _layout_portrait() -> void:
 		positions = [Vector2(0.14, 0.48), Vector2(0.5, 0.10), Vector2(0.86, 0.48)]
 	elif count == 5:
 		positions = [Vector2(0.14, 0.55), Vector2(0.29, 0.10), Vector2(0.71, 0.10), Vector2(0.86, 0.55)]
-	elif count == 6:
-		positions = [Vector2(0.14, 0.62), Vector2(0.14, 0.27), Vector2(0.5, 0.10), Vector2(0.86, 0.27), Vector2(0.86, 0.62)]
-	elif count == 8:
-		positions = [Vector2(0.14, 0.65), Vector2(0.14, 0.30), Vector2(0.21, 0.10), Vector2(0.5, 0.10), Vector2(0.79, 0.10), Vector2(0.86, 0.30), Vector2(0.86, 0.65)]
-		if size.y < 660:
-			# Preserve a wager lane under the three top seats on the training table.
-			positions[1].y = 0.34
-			positions[5].y = 0.34
 	else:
-		# Clockwise order, with two top seats and paired side rails for full tables.
-		var left_count = int((count - 3) / 2)
-		var right_count = count - 3 - left_count
-		for i in range(left_count): positions.append(Vector2(0.14, 0.68 - i * (0.42 / maxf(1, left_count - 1))))
-		positions.append(Vector2(0.29, 0.10))
-		positions.append(Vector2(0.71, 0.10))
-		for i in range(right_count): positions.append(Vector2(0.86, 0.26 + i * (0.42 / maxf(1, right_count - 1))))
+		positions = [Vector2(0.14, 0.62), Vector2(0.14, 0.27), Vector2(0.5, 0.10), Vector2(0.86, 0.27), Vector2(0.86, 0.62)]
 	for id in range(count):
 		var node = seat_nodes[id]
 		var hero = id == 0
@@ -367,11 +350,7 @@ func _layout_portrait() -> void:
 		if not hero and positions[id - 1].x < 0.2: location.x = 4 + panel.size.x / 2
 		if not hero and positions[id - 1].x > 0.8: location.x = size.x - 4 - panel.size.x / 2
 		panel.position = (location - panel.size / 2).clamp(Vector2(4, 4), size - panel.size - Vector2(4, 4))
-	# With side rails beside the board (7+ seats), fit the five cards into the gap between them.
 	var board_card = Vector2(62, 88) if count == 2 else Vector2(44, 64)
-	if count >= 7:
-		var width = clampf((size.x - 2 * (128 + 8) - 16) / 5.0 - 4, 32, 44)
-		board_card = Vector2(width, roundf(width * 64 / 44))
 	for card in board_row.get_children(): card.custom_minimum_size = board_card
 	board_row.add_theme_constant_override("separation", 4)
 	pot_label.configure("pot", 30)
@@ -389,7 +368,6 @@ func _layout_bets() -> void:
 		if id == 0: at = Vector2(size.x / 2 - 52, rect.position.y - 30)
 		elif seat_nodes.size() == 2 or rect.get_center().y < size.y * 0.20:
 			at = Vector2(rect.get_center().x - 52, rect.end.y + 4)
-			if seat_nodes.size() in [7, 9]: at.x = clampf(at.x, 135, size.x - 239)
 		elif size.y >= 660:
 			# On the normal portrait surface each wager belongs just below its seat.
 			# Leave the entire centre lane to the shared cards and pot.

@@ -24,7 +24,7 @@ func _run() -> void:
 	for resolution in [Vector2i(360, 640), Vector2i(412, 915)]:
 		root.size = resolution
 		await settle()
-		for count in range(2, 10):
+		for count in range(2, 7):
 			ui._start_table(count)
 			verify(ui.game.button == 0 and ui.game.small_blind_seat == (0 if count == 2 else 1) and ui.game.big_blind_seat == (1 if count == 2 else 2), "initial button and blinds " + str(count))
 			verify(ui.game.actor == (0 if count == 2 else 3 % count), "preflop first actor " + str(count))

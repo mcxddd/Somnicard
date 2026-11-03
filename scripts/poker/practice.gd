@@ -123,7 +123,7 @@ static func fixtures() -> Array:
 	var out: Array = []
 	for i in range(8):
 		var stacks: Array = []
-		for seat in range([2, 6, 9][i % 3]): stacks.append(500)
+		for seat in range([2, 4, 6][i % 3]): stacks.append(500)
 		var g = Table.new(stacks, 5, 10, 8300 + i)
 		g.start_hand(0)
 		var raised = {}

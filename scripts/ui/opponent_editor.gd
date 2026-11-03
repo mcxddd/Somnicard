@@ -28,11 +28,11 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 12)
 	add_child(UI.caption("点一位对手，再设置决策能力和风格。减少人数时，暂时离桌的座位配置仍会保留。"))
 	roster = GridContainer.new()
-	roster.columns = 4
+	roster.columns = 5
 	roster.add_theme_constant_override("h_separation", 10)
 	roster.add_theme_constant_override("v_separation", 10)
 	add_child(roster)
-	for id in range(1, 9):
+	for id in range(1, 6):
 		var button = UI.button("", func():
 			var parent_scroll = get_parent().get_parent().get_parent()
 			if not parent_scroll.has_method("can_activate") or parent_scroll.can_activate(): select(id), UI.CARD, 96)
@@ -111,7 +111,7 @@ func _option(title: String, choices: Array):
 
 func fill(raw: Variant, players: int, fallback: int) -> void:
 	profiles = Profiles.normalize(raw)
-	count = clampi(players, 2, 9)
+	count = clampi(players, 2, 6)
 	default_level = clampi(fallback, 0, 2)
 	selected = clampi(selected, 1, count - 1)
 	if is_node_ready(): _render()
@@ -121,7 +121,7 @@ func select(id: int) -> void:
 	_render()
 
 func _render() -> void:
-	for id in range(1, 9):
+	for id in range(1, 6):
 		var button = roster.get_child(id - 1)
 		button.visible = id < count
 		var p = Profiles.resolve(profiles, id, default_level)

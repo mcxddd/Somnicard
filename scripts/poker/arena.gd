@@ -18,7 +18,7 @@ var post_bets = 0
 var post_calls = 0
 var plan: Array = []
 
-static func schedule(blocks: int, counts: Array = [2, 6, 9], depths: Array = [50, 100, 200]) -> Array:
+static func schedule(blocks: int, counts: Array = [2, 4, 6], depths: Array = [50, 100, 200]) -> Array:
 	var out: Array = []
 	for block in range(blocks):
 		for depth in depths:
@@ -28,8 +28,8 @@ static func schedule(blocks: int, counts: Array = [2, 6, 9], depths: Array = [50
 
 func start(params: Dictionary) -> void:
 	pause()
-	var clean = {"level": clampi(int(params.get("level", 1)), 0, 2), "style": clampi(int(params.get("style", 0)), 0, 2), "blocks": clampi(int(params.get("blocks", 16)), 2, 1024), "seed": int(params.get("seed", 11102601)), "counts": params.get("counts", [2, 6, 9]), "depths": params.get("depths", [50, 100, 200])}
-	if not clean.counts is Array or not clean.depths is Array or not clean.counts.all(func(n): return n in [2, 6, 9]) or not clean.depths.all(func(n): return n in [50, 100, 200]):
+	var clean = {"level": clampi(int(params.get("level", 1)), 0, 2), "style": clampi(int(params.get("style", 0)), 0, 2), "blocks": clampi(int(params.get("blocks", 16)), 2, 1024), "seed": int(params.get("seed", 11102601)), "counts": params.get("counts", [2, 4, 6]), "depths": params.get("depths", [50, 100, 200])}
+	if not clean.counts is Array or not clean.depths is Array or not clean.counts.all(func(n): return n in [2, 4, 6]) or not clean.depths.all(func(n): return n in [50, 100, 200]):
 		status = "评测配置无效"; changed.emit(); return
 	data = {"schema": VERSION, "params": clean, "cursor": 0, "results": {}, "behavior": {}, "latencies": [], "decisions": 0, "valid_decisions": 0}
 	plan = schedule(clean.blocks, clean.counts, clean.depths)
@@ -69,7 +69,7 @@ func load_saved() -> bool:
 	var p: Dictionary = saved.params
 	if p.get("online", false) != false: return false
 	if not History._integer(p.get("blocks"), 2, 1024) or not p.get("counts") is Array or not p.get("depths") is Array: return false
-	if not p.counts.all(func(n): return History._integer(n, 2, 9) and int(n) in [2, 6, 9]) or not p.depths.all(func(n): return History._integer(n, 50, 200) and int(n) in [50, 100, 200]): return false
+	if not p.counts.all(func(n): return History._integer(n, 2, 6) and int(n) in [2, 4, 6]) or not p.depths.all(func(n): return History._integer(n, 50, 200) and int(n) in [50, 100, 200]): return false
 	if p.counts.is_empty() or p.counts.size() > 3 or p.depths.is_empty() or p.depths.size() > 3: return false
 	if p.counts.any(func(n): return p.counts.count(n) != 1) or p.depths.any(func(n): return p.depths.count(n) != 1): return false
 	p.counts = p.counts.map(func(n): return int(n))

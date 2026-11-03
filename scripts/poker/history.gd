@@ -53,7 +53,7 @@ static func replay(record: Dictionary, require_complete: bool = true) -> Diction
 	var stacks = record.get("starting_stacks")
 	var deck = record.get("deck")
 	var events = record.get("events")
-	if not stacks is Array or stacks.size() < 2 or stacks.size() > 9: return {"error": "座位数据无效"}
+	if not stacks is Array or stacks.size() < 2 or stacks.size() > Table.MAX_SEATS: return {"error": "座位数据无效"}
 	for chips in stacks:
 		if not _integer(chips, 0, 100000000): return {"error": "筹码数据无效"}
 	if not _integer(record.get("small_blind"), 1, 1000000) or not _integer(record.get("big_blind"), 1, 1000000): return {"error": "盲注数据无效"}

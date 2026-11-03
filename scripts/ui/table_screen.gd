@@ -258,17 +258,17 @@ func build_lobby() -> void:
 	lobby_welcome = VBoxContainer.new()
 	lobby_shell.add_child(lobby_welcome)
 	lobby_welcome.add_child(UI.heading("01  人数"))
-	lobby_welcome.add_child(UI.caption("包含你自己。2 人是单挑，6 人是常见的短桌，9 人是满桌。"))
+	lobby_welcome.add_child(UI.caption("包含你自己。2 人是单挑，6 人是常见的短桌。"))
 	var col = VBoxContainer.new()
 	col.add_theme_constant_override("separation", 16)
 	lobby_column = col
 	lobby_shell.add_child(col)
-	# Every count from 2 to 9 in one row; the common 2 / 6 / 9 keep their own handles.
+	# Every count from 2 to 6 in one row; heads-up and six-max keep their own handles.
 	count_picker = Segmented.new()
-	for count in range(2, 10): count_picker.add_item(str(count))
+	for count in range(2, 7): count_picker.add_item("%d 人" % count)
 	count_picker.item_selected.connect(func(index): host._select_count(index + 2))
 	col.add_child(count_picker)
-	for count in [2, 6, 9]: preset_buttons[count] = count_picker.buttons[count - 2]
+	for count in [2, 6]: preset_buttons[count] = count_picker.buttons[count - 2]
 	col.add_child(UI.heading("02  初始筹码"))
 	depth_picker = Segmented.new()
 	for bb in [50, 100, 200]: depth_picker.add_item("%d BB" % bb)
@@ -281,7 +281,7 @@ func build_lobby() -> void:
 	lobby_extras.add_theme_constant_override("separation", 8)
 	col.add_child(lobby_extras)
 	opponent_grid = GridContainer.new()
-	opponent_grid.columns = 4
+	opponent_grid.columns = 5
 	opponent_grid.add_theme_constant_override("h_separation", 8)
 	opponent_grid.add_theme_constant_override("v_separation", 8)
 	lobby_extras.add_child(opponent_grid)

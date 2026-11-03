@@ -50,7 +50,7 @@ func _capture() -> void:
 	if "--history-demo" in OS.get_cmdline_user_args():
 		instance.review.history_page.history_directory = "res://.local/capture-hands"
 		for i in range(12):
-			var count: int = [2, 6, 9][i % 3]
+			var count: int = [2, 4, 6][i % 3]
 			var stacks: Array = []
 			for seat in range(count): stacks.append(1000)
 			var sample = instance.Table.new(stacks, 5, 10, 114 + i)

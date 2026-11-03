@@ -33,7 +33,7 @@ func _ready() -> void:
 	ui.bot_timer.stop()
 	ui._open_home()
 	await shot("home")
-	for count in range(2, 10):
+	for count in range(2, 7):
 		ui._start_table(count)
 		ui.bot_timer.stop()
 		verify(ui.game.seats.size() == count, "table size %d" % count)
@@ -46,11 +46,11 @@ func _ready() -> void:
 			verify(ui.game.act(actor, "check" if legal.check else "call") == "", "legal street action")
 			verify(ui.game.chip_total() == total, "chip conservation")
 			ui._refresh(); ui.bot_timer.stop()
-			if count in [2, 6, 9] and ui.game.phase == "flop" and ui.game.actor == 0: await shot("%d-flop" % count)
+			if count in [2, 4, 6] and ui.game.phase == "flop" and ui.game.actor == 0: await shot("%d-flop" % count)
 			moves += 1
 		verify(ui.game.phase == "complete" and ui.game.result.showdown, "all streets and showdown")
 		verify(not History.replay(ui.game.completed_record()).has("error"), "completed history replay")
-		if count in [2, 6, 9]: await shot("%d-showdown" % count)
+		if count in [2, 4, 6]: await shot("%d-showdown" % count)
 	ui._review_current_hand()
 	await shot("review")
 	ui.review.seek(3)

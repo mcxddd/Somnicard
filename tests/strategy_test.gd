@@ -81,7 +81,7 @@ func _range_tests() -> void:
 		accepted += 1
 		if draw[0] == [0, 1]: first += 1
 	verify(absf(float(first) / accepted - 0.64 / 0.68) < 0.02, "joint posterior matches analytic conditional distribution")
-	for count in [2, 6, 9]:
+	for count in [2, 4, 6]:
 		var stacks: Array = []
 		stacks.resize(count)
 		stacks.fill(1000)

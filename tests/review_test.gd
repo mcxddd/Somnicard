@@ -44,7 +44,7 @@ func _run() -> void:
 	for cards in [[12, 0, 1, 2, 3, 26, 27], [12, 25, 38, 11, 24, 37, 0], [8, 9, 10, 11, 12, 25, 38], [12, 25, 38, 51, 11, 24, 37]]:
 		verify(Fast.score(cards) == Eval.evaluate(cards).score, "wheel, double trips, royal and quads")
 	var fixture
-	for count in range(2, 10):
+	for count in range(2, 7):
 		for run in range(3):
 			var stacks = []
 			stacks.resize(count)
@@ -117,7 +117,7 @@ func _run() -> void:
 	verify(calculate(view, 300) == calculate(changed, 300), "hidden and future information do not affect estimate")
 	var state = Advisor.information(changed)
 	verify(not state.has("deck") and not state.seats[1].has("hole") and not state.has("result") and not state.has("events"), "allow-list removes leaked raw fields")
-	game = Table.new([1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000], 5, 10, 9)
+	game = Table.new([1000, 1000, 1000, 1000, 1000, 1000], 5, 10, 9)
 	game.start_hand(0)
 	while game.actor != 0: game.act(game.actor, "call")
 	view = game.view_for(0)
@@ -125,7 +125,7 @@ func _run() -> void:
 	view.phase = "river"
 	view.seats[0].hole = [0, 1]
 	result = calculate(view, 100)
-	verify(is_equal_approx(result.equity, 1.0 / 9) and result.win == 0 and result.tie == 1, "nine-way board royal tie splits equity")
+	verify(is_equal_approx(result.equity, 1.0 / 6) and result.win == 0 and result.tie == 1, "six-way board royal tie splits equity")
 	var full_started = Time.get_ticks_msec()
 	calculate(view)
 	print("ADVICE_BENCHMARK: HU6000+checks=%d ms; 9-way1600=%d ms" % [full_started - started, Time.get_ticks_msec() - full_started])

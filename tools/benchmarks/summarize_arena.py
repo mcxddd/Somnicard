@@ -17,7 +17,8 @@ raw = json.loads((root / f'.local/arena-{version}.json').read_text(encoding='utf
 reports = raw['reports']
 assert len(reports) == 9 and all(r['completed'] for r in reports.values())
 total = sum(sum(int(b['hands']) for blocks in r['block_returns'].values() for b in blocks.values()) for r in reports.values())
-assert total == 21312
+# Balanced: 128 blocks × 3 depths × 2/4/6 seats per level; skewed styles: 32 blocks × 6 seats.
+assert total == 3 * 128 * 3 * (2 + 4 + 6) + 6 * 32 * 6
 paired = {}
 for group in reports['level1-style0']['groups']:
     def values(level):

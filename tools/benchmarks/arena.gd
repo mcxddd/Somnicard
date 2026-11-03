@@ -14,7 +14,7 @@ func run() -> void:
 			arena.path = ""
 			root.add_child(arena)
 			arena.set_process(false)
-			arena.start({"level": level, "style": style, "blocks": blocks if style == 0 else mini(32, blocks), "counts": [2, 6, 9] if style == 0 else [9], "depths": [50, 100, 200] if style == 0 else [100], "seed": 11102601})
+			arena.start({"level": level, "style": style, "blocks": blocks if style == 0 else mini(32, blocks), "counts": [2, 4, 6] if style == 0 else [6], "depths": [50, 100, 200] if style == 0 else [100], "seed": 11102601})
 			var checkpoint = -1
 			while arena.running:
 				for step in range(300):

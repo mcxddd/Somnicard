@@ -8,7 +8,7 @@ func verify(ok: bool, message: String) -> void:
 	checks += 1
 	if not ok: failures += 1; printerr("FAIL: " + message)
 func run() -> void:
-	var game = Table.new([1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000], 5, 10, 112)
+	var game = Table.new([1000, 1000, 1000, 1000, 1000, 1000], 5, 10, 112)
 	game.start_hand(0)
 	var names = []
 	for seat in game.seats:
@@ -18,7 +18,7 @@ func run() -> void:
 	root.add_child(ui)
 	ui.smoke_mode = true
 	verify(not quit_on_go_back, "Android back does not automatically terminate the SceneTree")
-	ui._start_table(9)
+	ui._start_table(6)
 	ui._open_settings()
 	ui.settings._select_page(3)
 	ui._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)

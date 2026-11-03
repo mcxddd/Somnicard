@@ -5,6 +5,8 @@ extends RefCounted
 const Evaluator = preload("res://scripts/poker/evaluator.gd")
 const PlayerNames = preload("res://scripts/poker/player_names.gd")
 const STREETS = ["preflop", "flop", "turn", "river"]
+## Six-max at most: every solver, chart and layout targets 2–6 seats.
+const MAX_SEATS = 6
 var seats: Array = []
 var small_blind: int = 5
 var big_blind: int = 10
@@ -29,7 +31,7 @@ var _starting_stacks: Array = []
 var _rng := RandomNumberGenerator.new()
 
 func _init(stacks: Array = [1000, 1000], sb: int = 5, bb: int = 10, random_seed: int = -1) -> void:
-	assert(stacks.size() >= 2 and stacks.size() <= 9)
+	assert(stacks.size() >= 2 and stacks.size() <= MAX_SEATS)
 	assert(sb > 0 and bb >= sb)
 	small_blind = sb
 	big_blind = bb

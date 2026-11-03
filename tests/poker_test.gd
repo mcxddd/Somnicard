@@ -203,7 +203,7 @@ func _simulations() -> void:
 	var action_rng := RandomNumberGenerator.new()
 	action_rng.seed = 10001
 	var hands = 0
-	for count in range(2, 10):
+	for count in range(2, 7):
 		for sample in range(30):
 			var stacks = []
 			for seat in range(count):
@@ -229,7 +229,7 @@ func _simulations() -> void:
 				verify(t.chip_total() == total, "chips conserved after each action")
 				verify(t.seats.all(func(s): return s.stack >= 0 and s.total_bet >= 0), "stacks never negative")
 				steps += 1
-			verify(t.phase == "complete", "2-9 seat hand terminates")
+			verify(t.phase == "complete", "2-6 seat hand terminates")
 			var dealt = t.board.duplicate()
 			for seat in t.seats:
 				dealt.append_array(seat.hole)
@@ -239,7 +239,7 @@ func _simulations() -> void:
 			verify(unique.size() == dealt.size(), "no duplicate dealt cards")
 			hands += 1
 	# Exercise the actual bot contract across consecutive hands, including bust-outs.
-	for count in [2, 6, 9]:
+	for count in [2, 4, 6]:
 		var stacks = []
 		stacks.resize(count)
 		stacks.fill(200)
@@ -255,4 +255,4 @@ func _simulations() -> void:
 				steps += 1
 			verify(t.phase == "complete" and t.chip_total() == count * 200, "bot game terminates and conserves chips")
 			hands += 1
-	print("SIMULATED_HANDS: %d (2-9 seats)" % hands)
+	print("SIMULATED_HANDS: %d (2-6 seats)" % hands)

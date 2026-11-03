@@ -21,19 +21,19 @@ func _published_summary() -> String:
 	if not FileAccess.file_exists(path): return "评测数据缺失"
 	var evidence = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not evidence is Dictionary: return "评测数据缺失"
-	var lines: Array = ["%s · 已完成 %s 手\n三档均衡：各桌型/深度 128 个独立牌序块；两种偏向风格：9 人 / 100 BB，各 32 块。" % [str(evidence.version), int(evidence.hands)], "\n均衡风格净收益 BB/100（括号为 95% 区间）："]
+	var lines: Array = ["%s · 已完成 %s 手\n三档均衡：各桌型/深度 128 个独立牌序块；两种偏向风格：6 人 / 100 BB，各 32 块。" % [str(evidence.version), int(evidence.hands)], "\n均衡风格净收益 BB/100（括号为 95% 区间）："]
 	for level_id in range(3):
 		lines.append("\n" + ["入门", "标准", "进阶"][level_id])
 		var r: Dictionary = evidence.reports["level%d-style0" % level_id]
 		for depth in [50, 100, 200]:
-			for count in [2, 6, 9]:
+			for count in [2, 4, 6]:
 				var group = "%d人/%dBB" % [count, depth]
 				var g: Dictionary = r.groups[group]
 				lines.append("%s：%+.1f [%+.1f, %+.1f]" % [group, g.bb100, g.low, g.high])
-	lines.append("\n风格实测（9 人 / 100 BB · VPIP / PFR）：")
+	lines.append("\n风格实测（6 人 / 100 BB · VPIP / PFR）：")
 	for level_id in range(3):
 		for style_id in range(3):
-			var b: Dictionary = evidence.reports["level%d-style%d" % [level_id, style_id]].groups["9人/100BB"].behavior
+			var b: Dictionary = evidence.reports["level%d-style%d" % [level_id, style_id]].groups["6人/100BB"].behavior
 			lines.append("%s · %s：%.1f%% / %.1f%%" % [["入门", "标准", "进阶"][level_id], ["均衡", "偏被动", "偏激进"][style_id], 100.0 * int(b.vpip) / int(b.hands), 100.0 * int(b.pfr) / int(b.hands)])
 	# Summarise the paired advanced-minus-standard intervals instead of a fixed verdict.
 	var above = 0

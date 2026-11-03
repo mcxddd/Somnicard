@@ -21,12 +21,12 @@ func _run() -> void:
 	verify(ui.home.visible and not ui.screen.lobby.visible and ui.game == null, "initial home does not start hidden game")
 	ui._open_lobby()
 	verify(ui.screen.fold_button.focus_mode == Control.FOCUS_NONE and ui.screen.start_button.has_focus(), "lobby traps keyboard focus")
-	for count in [2, 6, 9]:
+	for count in [2, 6]:
 		ui.screen.preset_buttons[count].pressed.emit()
 		verify(ui.selected_count == count and ui.screen.count_picker.selected == count - 2, "preset synchronizes custom count")
 	# Every count must be selectable through the actual dropdown, not just an API.
 	var completed_hands = 0
-	for count in range(2, 10):
+	for count in range(2, 7):
 		ui._open_lobby()
 		ui.screen.count_picker.select(count - 2)
 		ui.screen.count_picker.item_selected.emit(count - 2)
@@ -60,7 +60,7 @@ func _run() -> void:
 	var old_game = ui.game
 	var before = ui.game.view_for(0)
 	ui._open_lobby()
-	ui._select_count(9)
+	ui._select_count(6)
 	ui._bot_step()
 	ui._human_action("fold")
 	ui._next_hand()
@@ -126,8 +126,8 @@ func _run() -> void:
 	ui.screen.raise_button.pressed.emit()
 	if ui.confirmation.visible: ui.confirmation.accept_button.pressed.emit()
 	verify(ui.game.seats[0].stack == 0, "short all-in preset submits legally")
-	# Start a real 9-seat timer chain, then verify modal cancellation resumes it.
-	ui._start_table(9)
+	# Start a real 6-seat timer chain, then verify modal cancellation resumes it.
+	ui._start_table(6)
 	ui.smoke_mode = false
 	ui.prefs.speed_index = 2
 	ui._schedule_bot()
@@ -142,12 +142,12 @@ func _run() -> void:
 	ui.smoke_mode = true
 	# Confirm chosen depth is used for ALL players, and a table reset is explicit.
 	ui._open_lobby()
-	ui._select_count(9)
+	ui._select_count(6)
 	ui.screen.depth_picker.select(2)
 	ui.screen.start_button.pressed.emit()
 	verify(ui.confirmation.visible, "table reset requires confirmation")
 	ui.confirmation.accept_button.pressed.emit()
-	verify(ui.game.chip_total() == 18000 and ui.starting_bb == 200, "200 BB table starts correct total")
+	verify(ui.game.chip_total() == 12000 and ui.starting_bb == 200, "200 BB table starts correct total")
 	print("MULTIPLAYER_UI: %d hands, %d checks, %d failures" % [completed_hands, checks, failures])
 	quit(0 if failures == 0 else 1)
 

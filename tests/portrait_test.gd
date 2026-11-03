@@ -46,7 +46,7 @@ func _run() -> void:
 		await settle()
 		fits(ui.screen.lobby_panel, "lobby panel fits")
 		ui._close_lobby()
-		for count in range(2, 10):
+		for count in range(2, 7):
 			ui._start_table(count)
 			await settle()
 			geometry(ui.screen.table_view, str(resolution) + " " + str(count))
@@ -106,7 +106,7 @@ func _run() -> void:
 		ui._seat_details(1)
 		verify(ui.screen.info_sheet.visible and ui.screen.info_text.text.contains("未公开"), "tap seat reveals public data only")
 		ui.modals.back()
-		ui._start_table(9)
+		ui._start_table(6)
 		while ui.game.phase != "complete":
 			var legal = ui.game.legal_actions(ui.game.actor)
 			ui.game.act(ui.game.actor, "check" if legal.check else "call")
@@ -159,7 +159,7 @@ func _run() -> void:
 			verify(ui.support_center.visible and ui.support_center.topic == -1, "table help back first returns to help categories")
 			ui.modals.back()
 	# Complete actual portrait games through the same action buttons as the player.
-	for count in [2, 6, 9]:
+	for count in [2, 4, 6]:
 		ui._start_table(count)
 		var total = ui.game.chip_total()
 		var moves = 0

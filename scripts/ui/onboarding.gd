@@ -53,7 +53,7 @@ func _welcome() -> VBoxContainer:
 
 func _paths() -> VBoxContainer:
 	var box = _page("", "从哪里开始？", "按你现在的情况选一个，之后随时可以换。")
-	for spec in [["learn", "刚接触德州", "学习路线：12 课，每课 5 个局面，先选再看理由"], ["settings-table", "已经会玩", "开始新局：2–9 人，对手强度可以调"], ["train", "想打得更好", "训练室：每组 5 题，先作答，再看评级和理由"]]:
+	for spec in [["learn", "刚接触德州", "学习路线：12 课，每课 5 个局面，先选再看理由"], ["settings-table", "已经会玩", "开始新局：2–6 人，对手强度可以调"], ["train", "想打得更好", "训练室：每组 5 题，先作答，再看评级和理由"]]:
 		var card = UI.card("inset")
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 14)

@@ -26,7 +26,7 @@ static func load_values(path: String = "user://preferences.cfg", default_sidebar
 	values.seat_names = Names.normalize(names)
 	values.opponents = Profiles.normalize(prefs.get_value("table", "opponents", []))
 	var count = prefs.get_value("table", "players", 2)
-	if count is int: values.players = clampi(count, 2, 9)
+	if count is int: values.players = clampi(count, 2, 6)
 	var depth = prefs.get_value("table", "depth", 100)
 	if depth is int and depth in [50, 100, 200]: values.depth = depth
 	return values

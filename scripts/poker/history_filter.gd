@@ -7,8 +7,8 @@ static func summary(loaded: Dictionary, filename: String) -> Dictionary:
 	if not loaded.get("record") is Dictionary: return out
 	var record: Dictionary = loaded.record
 	var stacks = record.get("starting_stacks")
-	if stacks is Array and stacks.size() >= 2 and stacks.size() <= 9: out.players = stacks.size()
-	if History._integer(record.get("hand"), 1, 100000000) and History._integer(record.get("button"), 0, 8) and History._integer(record.get("small_blind"), 1, 1000000) and History._integer(record.get("big_blind"), 1, 1000000) and record.get("deck") is Array and record.deck.size() == 52 and out.players > 0:
+	if stacks is Array and stacks.size() >= 2 and stacks.size() <= 6: out.players = stacks.size()
+	if History._integer(record.get("hand"), 1, 100000000) and History._integer(record.get("button"), 0, 5) and History._integer(record.get("small_blind"), 1, 1000000) and History._integer(record.get("big_blind"), 1, 1000000) and record.get("deck") is Array and record.deck.size() == 52 and out.players > 0:
 		out.id = History.hand_id(record)
 	var result = record.get("result")
 	if result is Dictionary and result.get("payouts") is Dictionary and result.get("contributions") is Array and not result.contributions.is_empty():
