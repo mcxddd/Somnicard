@@ -12,7 +12,8 @@ static func compare(view: Dictionary, analysis: Dictionary, action: String, amou
 		var best = -INF
 		for option in s.get("frequencies", []):
 			if option.has("ev"): best = maxf(best, float(option.ev))
-			if option.action == action and (action != "raise" or option.amount == amount): selected = option
+			# Preflop chart sizes are a ladder, not exact amounts: any raise matches the chart raise.
+			if option.action == action and (action != "raise" or option.amount == amount or s.get("kind", "") == "preflop"): selected = option
 		if selected.is_empty(): return {"label": "未覆盖此尺度", "text": "你的下注尺寸不在这次求解的行动树中，不能据此判断优劣。可对照表中尺寸，再重打这个局面。", "scored": false}
 		var label = "参考混合打法" if selected.frequency >= 0.05 else "低频选择"
 		var text = "这次模型给该操作 %.1f%% 的参考比例；低频不等于绝不能采用。" % (selected.frequency * 100)
@@ -35,5 +36,7 @@ static func compare(view: Dictionary, analysis: Dictionary, action: String, amou
 static func status(analysis: Dictionary) -> String:
 	var strategy: Dictionary = analysis.get("strategy", {})
 	if strategy.get("budget_limited", false): return "计算达到时间预算 · 先采用经验建议"
+	if strategy.get("kind", "") == "preflop": return "翻牌前 100 BB 近似均衡 · 预先求解"
+	if strategy.get("kind", "") == "pushfold": return "短筹码全押均衡 · 预先求解" + ("" if strategy.spot.exact else "（多人为近似）")
 	if strategy.get("supported", false): return "河牌抽象策略 · 已达模型内目标" if strategy.get("converged", false) else "河牌求解未达目标 · 先采用经验建议"
 	return "经验建议 · 此局面未运行 GTO 求解"

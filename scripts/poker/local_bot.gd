@@ -5,7 +5,9 @@ const Ranges = preload("res://scripts/poker/range_model.gd")
 const Rank = preload("res://scripts/poker/fast_rank.gd")
 const Sizing = preload("res://scripts/ui/bet_sizing.gd")
 const Profiles = preload("res://scripts/poker/opponent_profiles.gd")
-const VERSION = "opponent-3"
+const Pushfold = preload("res://scripts/poker/pushfold.gd")
+const Chart = preload("res://scripts/poker/preflop_chart.gd")
+const VERSION = "opponent-4"
 var samples: Array = []
 var rng := RandomNumberGenerator.new()
 var style: int = 0
@@ -79,6 +81,14 @@ func _in_position(view: Dictionary) -> bool:
 func _preflop(view: Dictionary) -> Dictionary:
 	var l: Dictionary = view.legal
 	var own: Dictionary = view.seats[view.actor]
+	# Advanced plays the solved push/fold equilibrium whenever the spot is in the table.
+	if difficulty == 2:
+		var spot = Pushfold.lookup(view, view.actor, own.hole)
+		if not spot.is_empty():
+			if rng.randf() >= spot.frequency: return {"action": "check" if l.check else "fold"}
+			return {"action": "call"} if spot.facing else _raise(l.max_raise_to)
+		var chart = Chart.strategy(view, view.actor, own.hole)
+		if not chart.is_empty(): return _from_chart(chart.frequencies, l, view.big_blind)
 	var strength = Ranges.preflop_strength(own.hole)
 	var position = Ranges.position(view, view.actor)
 	var active = view.seats.filter(func(s): return s.in_hand and not s.folded).size()
@@ -124,6 +134,29 @@ func _preflop(view: Dictionary) -> Dictionary:
 		return _raise(target)
 	if l.check: return {"action": "check"}
 	return {"action": "call" if enter or premium else "fold"}
+
+## Samples the chart; styles bend it. Aggressive raises more with hands whose
+## raise is close to the best option; passive turns some raises into calls
+## (a limp when first in). Clear raises and clear folds stay as charted.
+func _from_chart(options: Array, l: Dictionary, bb: int) -> Dictionary:
+	var best = -INF
+	for o in options: best = maxf(best, o.ev)
+	var weights: Array = options.map(func(o): return o.frequency)
+	for i in range(options.size()):
+		if options[i].action != "raise": continue
+		if style == 2 and options[i].ev >= best - 0.25 * bb:
+			var lift = (1.0 - weights[i]) * 0.4
+			var rest = 1.0 - weights[i]
+			for k in range(weights.size()):
+				if k != i and rest > 0: weights[k] *= (rest - lift) / rest
+			weights[i] += lift
+		elif style == 1 and weights[i] > 0 and l.call and rng.randf() < 0.3 * weights[i]:
+			return {"action": "call"}
+	var roll = rng.randf()
+	for i in range(options.size()):
+		roll -= weights[i]
+		if roll < 0: return _raise(options[i].amount) if options[i].action == "raise" else {"action": options[i].action}
+	return {"action": "check" if l.check else "fold"}
 
 static func _private_draw(hole: Array, board: Array) -> float:
 	if board.size() >= 5: return 0.0

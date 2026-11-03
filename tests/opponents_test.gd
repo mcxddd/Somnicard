@@ -65,7 +65,8 @@ func run() -> void:
 			verify(Bot.new(seed_value, seed_value % 3, level).choose(nuts).action == "call", "private nuts continue versus all-in")
 	# Matched decisions, same random seeds: aggression has observable behavior,
 	# independently in ALL difficulty levels. This is not a win-rate assertion.
-	var opening = Table.new([1000, 1000])
+	# 200 BB is outside the precomputed charts, so every level uses its own heuristics here.
+	var opening = Table.new([2000, 2000])
 	opening.start_hand(0)
 	var view = opening.view_for(0)
 	view.seats[0].hole = [11, 23] # KQ offsuit
@@ -74,6 +75,23 @@ func run() -> void:
 		for style in range(3):
 			for sample in range(400): raises[style] += int(Bot.new(10000 + sample, style, level).choose(view).action == "raise")
 		verify(raises[1] < raises[0] and raises[0] < raises[2], "passive < balanced < aggressive raise frequency level " + str(level))
+	# Inside the 100 BB chart, styles still bend advanced play across all starting hands.
+	var charted = Table.new([1000, 1000, 1000, 1000, 1000, 1000])
+	charted.start_hand(0)
+	charted.act(charted.actor, "fold")
+	charted.act(charted.actor, "fold")
+	var chart_view = charted.view_for(charted.actor)
+	var chart_raises = [0, 0, 0]
+	for style in range(3):
+		for sample in range(1326):
+			var a = 0
+			var combo = sample
+			while combo >= 51 - a:
+				combo -= 51 - a
+				a += 1
+			chart_view.seats[chart_view.actor].hole = [a, a + 1 + combo]
+			chart_raises[style] += int(Bot.new(20000 + sample, style, 2).choose(chart_view).action == "raise")
+	verify(chart_raises[1] < chart_raises[0] and chart_raises[0] < chart_raises[2], "chart play: passive < balanced < aggressive raise frequency")
 	verify(Bot._private_draw([0, 14], [21, 22, 23, 24]) == 0.0, "board-only straight draw is not private semi-bluff")
 	verify(Bot._private_draw([12, 23], [0, 5, 8]) >= 0.20, "private flush draw recognized")
 	# Settings drafts, per-seat overrides, resize/count changes and training.

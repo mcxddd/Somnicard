@@ -5,6 +5,8 @@ const Rank = preload("res://scripts/poker/fast_rank.gd")
 const Sizing = preload("res://scripts/ui/bet_sizing.gd")
 const Ranges = preload("res://scripts/poker/range_model.gd")
 const River = preload("res://scripts/poker/river_cfr.gd")
+const Pushfold = preload("res://scripts/poker/pushfold.gd")
+const Chart = preload("res://scripts/poker/preflop_chart.gd")
 var ranges
 var solver
 var precision = 0
@@ -176,6 +178,10 @@ func result() -> Dictionary:
 		amount = Sizing.from_bb(3.0, state.big_blind, state.legal) if state.phase == "preflop" and state.current_bet <= state.big_blind else Sizing.from_pot(0.5, state)
 		reason = "相对推断范围有牌力优势，可考虑价值下注。此金额是经验档位，仍需考虑对手继续范围；不是加注 EV 的最优解。"
 	var strategy: Dictionary = solver.result() if solver != null else {"supported": false, "reason": "此处使用范围权益与底池赔率教学，未运行均衡求解。"}
+	# Precomputed preflop tables replace the heuristic wherever the spot is covered.
+	var short: Dictionary = Pushfold.strategy(state, 0, state.hole)
+	if short.is_empty(): short = Chart.strategy(state, 0, state.hole)
+	if not short.is_empty(): strategy = short
 	if strategy.is_empty() and solver != null:
 		strategy = {"supported": false, "preparing": solver.supported, "precision": precision, "reason": "抽象树仍在准备中，尚无可用策略频率。"}
 	if solver_timed_out:
@@ -188,7 +194,7 @@ func result() -> Dictionary:
 			if choice.frequency > most.frequency: most = choice
 		action = most.action
 		amount = most.amount
-		reason = "频率来自双方范围的受限博弈：下注既可能获取价值，也可能用弱牌争取弃牌。下方 EV 比较的是你所在牌力档位，不能只按裸胜率决定，也不应每次都选最高频行动。"
+		reason = short.reason if not short.is_empty() else "频率来自双方范围的受限博弈：下注既可能获取价值，也可能用弱牌争取弃牌。下方 EV 比较的是你所在牌力档位，不能只按裸胜率决定，也不应每次都选最高频行动。"
 	return {"equity": equity, "win": float(wins) / samples, "tie": float(ties) / samples,
 		"pot_equity": expected_return / eligible_pot if eligible_pot > 0 else 0.0,
 		"cost": cost, "eligible_pot": eligible_pot, "odds": float(cost) / eligible_pot if eligible_pot > 0 else 0.0,

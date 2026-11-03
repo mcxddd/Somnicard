@@ -34,7 +34,8 @@ static func explain(view: Dictionary, analysis: Dictionary, bb: bool) -> Diction
 			if choice.action == action and choice.amount == analysis.amount:
 				frequency = choice.frequency
 				chosen = choice
-		summary = "这次河牌参考%s%s，比例约 %.0f%%。" % [{"check": "过牌", "call": "跟注", "fold": "弃牌", "raise": "加到"}.get(action, action), money.call(analysis.amount) if action == "raise" else "", frequency * 100]
+		var shove = strategy.get("kind", "") == "pushfold" and action == "raise"
+		summary = "这次%s参考%s%s，比例约 %.0f%%。" % [{"pushfold": "短筹码均衡", "preflop": "翻牌前开局表"}.get(strategy.get("kind", ""), "河牌"), "全押" if shove else {"check": "过牌", "call": "跟注", "fold": "弃牌", "raise": "加到"}.get(action, action), money.call(analysis.amount) if action == "raise" and not shove else "", frequency * 100]
 		if action == "fold" and call_option.has("ev"):
 			summary += "跟注的模型净值约 %s，弃牌不再投入。" % Feedback.value_text(call_option.ev, state.big_blind, bb)
 		elif chosen.has("ev"):
