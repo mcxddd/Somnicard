@@ -212,6 +212,11 @@ func update_table(new_view: Dictionary, use_bb: bool, paused: bool = false) -> v
 				for index in range(order.size()):
 					motion_layer.deal(seat_nodes[view.button].panel, seat_nodes[order[index]].cards[round_index], (round_index * order.size() + index) * 0.05)
 		for origin in collecting: motion_layer.chips("collect", origin, pot_label, 0.28)
+		# A new wager on the same street slides from the seat to its bet marker.
+		if not new_hand and not new_phase and previous.seats.size() == view.seats.size():
+			for seat in view.seats:
+				if seat.street_bet > previous.seats[seat.id].street_bet:
+					motion_layer.chips("bet", seat_nodes[seat.id].panel, seat_nodes[seat.id].bet, 0.22)
 		if new_phase and view.phase == "complete":
 			for id in view.result.payouts:
 				if view.result.payouts[id] > 0:

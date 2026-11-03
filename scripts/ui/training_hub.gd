@@ -172,17 +172,34 @@ func show_summary(results: Array) -> void:
 	summary_box.add_child(UI.art(preload("res://assets/art/practice-complete.png"), 130))
 	var counts = {"good": 0, "ok": 0, "miss": 0, "unscored": 0}
 	for r in results: counts[Store.grade(r.feedback)] += 1
-	summary_box.add_child(UI.heading("本组完成"))
+	var scored = results.size() - counts.unscored
+	summary_box.add_child(UI.heading("本组完成 · %d / %d 题是好的选择" % [counts.good, results.size()]))
+	if scored > 0: summary_box.add_child(UI.progress(float(counts.good + counts.ok * 0.5) / scored))
 	var figures: Array = []
 	for grade in ["good", "ok", "miss"]: figures.append([str(counts[grade]), GRADES[grade][1], GRADES[grade][2]])
 	if counts.unscored > 0: figures.append([str(counts.unscored), GRADES.unscored[1], GRADES.unscored[2]])
 	summary_box.add_child(UI.stat_row(figures))
+	# One small card per question: number, topic, a colored result chip.
 	for i in range(results.size()):
 		var r: Dictionary = results[i]
-		var g = GRADES[Store.grade(r.feedback)]
-		var line = host._label("%d. %s  %s %s%s" % [i + 1, Store.topic_name(r.topic), g[0], g[1], " → 已加入复习" if Store.grade(r.feedback) == "miss" else ""], 18, UI.TEXT)
-		line.add_theme_color_override("font_color", g[2])
-		summary_box.add_child(line)
+		var grade = Store.grade(r.feedback)
+		var g = GRADES[grade]
+		var card = UI.panel(UI.CARD, UI.BUTTON_RADIUS, 10)
+		summary_box.add_child(card)
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		card.add_child(row)
+		row.add_child(UI.label(str(i + 1), UI.SIZE_BODY, UI.MUTED))
+		var text = VBoxContainer.new()
+		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text.add_theme_constant_override("separation", 0)
+		row.add_child(text)
+		text.add_child(UI.label(Store.topic_name(r.topic), UI.SIZE_BODY, UI.TEXT))
+		if grade == "miss": text.add_child(UI.caption("已加入复习，之后会再出现"))
+		var chip = UI.label("%s %s" % [g[0], g[1]], UI.SIZE_CAPTION + 1, g[2])
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chip.add_theme_stylebox_override("normal", UI.surface(Color(g[2], 0.14), 10, 6, Color(g[2], 0.45)))
+		row.add_child(chip)
 
 func show_records() -> void:
 	home_page.hide()

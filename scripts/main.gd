@@ -270,7 +270,7 @@ func _return_text() -> String:
 	return "返回选桌" if screen.lobby.visible else "返回主界面" if home.visible else "返回牌桌"
 
 func _update_table_summary() -> void:
-	var depth = [50, 100, 200][screen.depth_picker.selected]
+	var depth = Table.DEPTHS[screen.depth_picker.selected]
 	var levels = {}
 	for id in range(1, selected_count):
 		var level = Profiles.LEVELS[Profiles.resolve(opponent_profiles, id, difficulty).difficulty]
@@ -296,14 +296,14 @@ func _open_lobby() -> void:
 	screen.lobby_scroll.reset_scroll()
 	if game != null:
 		selected_count = player_count
-		screen.depth_picker.select([50, 100, 200].find(starting_bb))
+		screen.depth_picker.select(Table.DEPTHS.find(starting_bb))
 	_select_count(selected_count)
 	screen.start_button.grab_focus()
 	if game != null: _refresh()
 
 func _close_lobby() -> void:
 	selected_count = player_count
-	screen.depth_picker.select([50, 100, 200].find(starting_bb))
+	screen.depth_picker.select(Table.DEPTHS.find(starting_bb))
 	modals.restore_background()
 	screen.lobby.hide()
 	if home.visible: _update_home()
@@ -313,7 +313,7 @@ func _close_lobby() -> void:
 
 func _commit_table() -> void:
 	var count = selected_count
-	var depth = [50, 100, 200][screen.depth_picker.selected]
+	var depth = Table.DEPTHS[screen.depth_picker.selected]
 	if game != null or (storage.enabled() and FileAccess.file_exists("user://session.json")):
 		_request_confirmation("重开 %d 人练习桌？" % count, "所有座位将重置为 %d BB。当前牌桌的进度会被替换，已完成的历史牌局会保留。" % depth, "重置并入座", _apply_new_table.bind(count, depth))
 	else: _apply_new_table(count, depth)
@@ -653,7 +653,7 @@ func _resume_session() -> void:
 	last_table_count = player_count
 	selected_count = player_count
 	starting_bb = int(rebuilt.record.starting_bb)
-	screen.depth_picker.select([50, 100, 200].find(starting_bb))
+	screen.depth_picker.select(Table.DEPTHS.find(starting_bb))
 	storage.session_id = rebuilt.record.session_id
 	storage.saved_hand = int(rebuilt.record.saved_hand)
 	storage.save_status = "记录已保存" if storage.saved_hand == game.hand_number else ""

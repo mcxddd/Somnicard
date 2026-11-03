@@ -112,7 +112,7 @@ func build() -> void:
 	right.add_child(analyze_button)
 	cancel_analysis = UI.button("停止计算", func(): job = null; analysis = {}; _render_details())
 	right.add_child(cancel_analysis)
-	refine_button = UI.button("精细河牌分析 · 每次最多 20 秒", _refine, UI.GREEN)
+	refine_button = UI.button("精细分析 · 每次最多 20 秒", _refine, UI.GREEN)
 	right.add_child(refine_button)
 	analysis_summary = VBoxContainer.new()
 	analysis_summary.add_theme_constant_override("separation", 6)
@@ -216,8 +216,8 @@ func _render_details() -> void:
 	var view: Dictionary = host.frames[host.index].view
 	var enabled = teaching_enabled()
 	var fine_strategy: Dictionary = analysis.get("strategy", {})
-	refine_button.visible = enabled and host._hero_decision() and view.phase == "river" and job == null and (fine_strategy.get("supported", false) or fine_strategy.get("preparing", false)) and (fine_strategy.get("precision", 0) == 0 or fine_strategy.get("budget_limited", false))
-	refine_button.text = "继续精细计算 · 追加最多 20 秒" if refine_pending != null and refine_pending_key == Advisor.cache_key(view) else "精细河牌分析 · 每次最多 20 秒"
+	refine_button.visible = enabled and host._hero_decision() and view.phase in ["turn", "river"] and job == null and (fine_strategy.get("supported", false) or fine_strategy.get("preparing", false)) and (fine_strategy.get("precision", 0) == 0 or fine_strategy.get("budget_limited", false))
+	refine_button.text = "继续精细计算 · 追加最多 20 秒" if refine_pending != null and refine_pending_key == Advisor.cache_key(view) else "精细%s分析 · 每次最多 20 秒" % ("转牌" if view.phase == "turn" else "河牌")
 	teaching_toggle.text = "教学" + (" · 开" if enabled else " · 关")
 	teaching_toggle.add_theme_stylebox_override("normal", UI.surface(UI.GREEN if enabled else Color("243a40"), 9, 12))
 	analysis_next.visible = not host.live_mode

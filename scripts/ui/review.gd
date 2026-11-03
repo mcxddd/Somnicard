@@ -311,6 +311,8 @@ func set_units(bb: bool) -> void:
 func seek(value: int, stop: bool = true) -> void:
 	if frames.is_empty(): return
 	if stop: _stop_play()
+	# Only a single step forward animates (deal, wagers, pot, payout); jumps and rewinds cut.
+	table_view.effects = UI.motion and value == index + 1
 	index = clampi(value, 0, frames.size() - 1)
 	selected_seat = -1
 	analysis_view.analysis_scroll.reset_scroll()

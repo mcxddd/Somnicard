@@ -29,7 +29,7 @@ func choose(view: Dictionary) -> Dictionary:
 			if not preflop and facing: return {"action": "fold"}
 		"minraise":
 			# Min-raise every postflop bet.
-			if not preflop and facing and legal.raise:
+			if not preflop and facing and legal.raise and legal.min_raise_to <= legal.max_raise_to:
 				return _raise(legal.min_raise_to)
 		"jam":
 			# Open-shove the top 40% of starting hands when first in.

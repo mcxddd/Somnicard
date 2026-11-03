@@ -30,7 +30,7 @@ func _run() -> void:
 		ui._open_lobby()
 		ui.screen.count_picker.select(count - 2)
 		ui.screen.count_picker.item_selected.emit(count - 2)
-		ui.screen.depth_picker.select(1)
+		ui.screen.depth_picker.select(2)
 		ui.screen.start_button.pressed.emit()
 		if ui.confirmation.visible: ui.confirmation.accept_button.pressed.emit()
 		verify(not ui.screen.lobby.visible and ui.game.seats.size() == count and ui.bots.size() == count - 1, "custom table starts correct number of bots")
@@ -143,7 +143,7 @@ func _run() -> void:
 	# Confirm chosen depth is used for ALL players, and a table reset is explicit.
 	ui._open_lobby()
 	ui._select_count(6)
-	ui.screen.depth_picker.select(2)
+	ui.screen.depth_picker.select(3)
 	ui.screen.start_button.pressed.emit()
 	verify(ui.confirmation.visible, "table reset requires confirmation")
 	ui.confirmation.accept_button.pressed.emit()

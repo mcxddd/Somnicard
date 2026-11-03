@@ -38,5 +38,6 @@ static func status(analysis: Dictionary) -> String:
 	if strategy.get("budget_limited", false): return "计算达到时间预算 · 先采用经验建议"
 	if strategy.get("kind", "") == "preflop": return "翻牌前 100 BB 近似均衡 · 预先求解"
 	if strategy.get("kind", "") == "pushfold": return "短筹码全押均衡 · 预先求解" + ("" if strategy.spot.exact else "（多人为近似）")
-	if strategy.get("supported", false): return "河牌抽象策略 · 已达模型内目标" if strategy.get("converged", false) else "河牌求解未达目标 · 先采用经验建议"
+	var street = "转牌" if strategy.get("kind", "") == "turn" else "河牌"
+	if strategy.get("supported", false): return "%s抽象策略 · 已达模型内目标" % street if strategy.get("converged", false) else "%s求解未达目标 · 先采用经验建议" % street
 	return "经验建议 · 此局面未运行 GTO 求解"

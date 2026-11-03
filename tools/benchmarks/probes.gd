@@ -13,6 +13,7 @@ var base_level = 1
 var modes: Array = Probe.MODES.slice(1)
 var output = "res://.local/probes.json"
 var seed_base = 707070
+var levels = [0, 1, 2]
 
 func _initialize() -> void: call_deferred("run")
 
@@ -24,10 +25,11 @@ func run() -> void:
 		if arg.begins_with("--modes="): modes = Array(arg.trim_prefix("--modes=").split(","))
 		if arg.begins_with("--out="): output = arg.trim_prefix("--out=")
 		if arg.begins_with("--seed="): seed_base = int(arg.trim_prefix("--seed="))
+		if arg.begins_with("--levels="): levels = Array(arg.trim_prefix("--levels=").split(",")).map(func(n): return clampi(int(n), 0, 2))
 	var start = Time.get_ticks_msec()
 	var results = {}
 	for players in counts:
-		for vs in range(3):
+		for vs in levels:
 			# The baseline is shared by every mode on the same decks.
 			Probe.mode = "baseline"
 			var base: Array = []

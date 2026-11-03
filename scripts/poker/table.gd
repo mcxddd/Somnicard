@@ -7,6 +7,8 @@ const PlayerNames = preload("res://scripts/poker/player_names.gd")
 const STREETS = ["preflop", "flop", "turn", "river"]
 ## Six-max at most: every solver, chart and layout targets 2–6 seats.
 const MAX_SEATS = 6
+## Starting depths in big blinds; 15 BB is the short-stack (push/fold) practice table.
+const DEPTHS = [15, 50, 100, 200]
 var seats: Array = []
 var small_blind: int = 5
 var big_blind: int = 10

@@ -8,9 +8,9 @@ An offline portrait Texas Hold’em practice game built with Godot.
 
 ## 截图
 
-| 主界面 | 9 人桌 · 翻牌后 | 学习路线 |
+| 主界面 | 6 人桌 · 翻牌后 | 学习路线 |
 |---|---|---|
-| <img src="docs/images/home.png" alt="Somnicard 主界面" width="260"> | <img src="docs/images/table.png" alt="9 人桌翻牌后" width="260"> | <img src="docs/images/learn.png" alt="学习路线与课程" width="260"> |
+| <img src="docs/images/home.png" alt="Somnicard 主界面" width="260"> | <img src="docs/images/table.png" alt="6 人桌翻牌后" width="260"> | <img src="docs/images/learn.png" alt="学习路线与课程" width="260"> |
 
 截图来自游戏的实际渲染，分辨率为 390×844。
 

@@ -15,6 +15,9 @@ var headline: Label
 var metrics: Label
 var figures: HBoxContainer
 var reason: Label
+## "What they might hold": one line per live opponent from the range model.
+var reads: Label
+var reads_box: PanelContainer
 var progress: ProgressBar
 var scroll: ScrollContainer
 var job
@@ -80,6 +83,18 @@ func _ready() -> void:
 	content.add_child(metrics)
 	progress = UI.progress(0)
 	content.add_child(progress)
+	# An inset card under the figures: what each live opponent might hold.
+	reads_box = PanelContainer.new()
+	reads_box.add_theme_stylebox_override("panel", UI.surface(Color("0f2328"), 10, 8, Color("24414a")))
+	content.add_child(reads_box)
+	var reads_column = VBoxContainer.new()
+	reads_column.add_theme_constant_override("separation", 2)
+	reads_box.add_child(reads_column)
+	reads_column.add_child(UI.label("对手可能拿着", UI.SIZE_CAPTION, UI.GOLD))
+	reads = UI.label("", UI.SIZE_CAPTION + 1, UI.TEXT)
+	reads.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reads.add_theme_color_override("font_color", Color("cfe3dc"))
+	reads_column.add_child(reads)
 	reason = UI.body("")
 	reason.add_theme_font_size_override("font_size", UI.SIZE_BODY - 2)
 	reason.add_theme_color_override("font_color", UI.TEXT.darkened(0.12))
@@ -173,6 +188,7 @@ func _render() -> void:
 	progress.visible = job != null
 	UI.clear(figures)
 	figures.hide()
+	reads_box.hide()
 	metrics.show()
 	if job != null:
 		headline.text = "正在分析你的决策…"
@@ -194,6 +210,37 @@ func _render() -> void:
 		else: items.append(["%.0f%%" % (analysis.win * 100), "预计胜率", UI.TEXT])
 		for item in items: figures.add_child(UI.stat(item[0], item[1], item[2]))
 		figures.show()
+		reads.text = read_lines(view, analysis)
+		reads_box.visible = not reads.text.is_empty()
+		if reads_box.visible and detailed: reads.text += "
+" + calibration_text()
 		var teaching = Teaching.explain(view, analysis, use_bb)
 		metrics.text = teaching.status
 		reason.text = teaching.summary + ("\n\n" + teaching.context + "\n\n" + teaching.focus if detailed else "")
+
+## One line per live opponent (two at most): made-hand groups after the flop,
+## how concentrated the range is before it, and the likeliest starting hands.
+static func read_lines(snapshot: Dictionary, result: Dictionary) -> String:
+	var lines: Array = []
+	for summary in result.get("ranges", []).slice(0, 2):
+		var name_text = str(snapshot.seats[summary.seat].name)
+		var top = " ".join(summary.top.slice(0, 3).map(func(t): return t.hand))
+		var b: Dictionary = summary.get("buckets", {})
+		var line: String
+		if not b.is_empty():
+			line = "%s：强牌 %.0f%% · 中等 %.0f%% · 听牌 %.0f%% · 空气 %.0f%%" % [name_text, b.strong * 100, b.medium * 100, b.draw * 100, b.air * 100]
+		else:
+			line = "%s：范围集中在约 %.0f%% 的起手牌" % [name_text, 100.0 * summary.effective_combos / maxf(1.0, summary.available_combos)]
+		lines.append(line + "｜常见 " + top + ("（入门对手，范围放宽）" if summary.get("loose", false) else ""))
+	return "\n".join(lines)
+
+## Measured read accuracy against the shipped bots (tools/benchmarks/range_calibration.gd --publish).
+static func calibration_text() -> String:
+	var path = "res://data/range-calibration.json"
+	if not FileAccess.file_exists(path): return ""
+	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not data is Dictionary: return ""
+	var parts: Array = []
+	for level in range(3):
+		parts.append("%s %.0f%%" % [["入门", "标准", "进阶"][level], data.levels[level].coverage50 * 100])
+	return "读牌实测：真实底牌落在“最可能的一半”里的比例（理想 50%）：" + " · ".join(parts) + "。只针对本游戏电脑，不代表真人。"

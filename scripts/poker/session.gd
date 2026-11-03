@@ -20,7 +20,7 @@ static func restore(path: String = "user://session.json") -> Dictionary:
 	if not record.get("session_id") is String or record.session_id.length() > 80 or record.session_id.is_empty(): return {"error": "存档标识无效"}
 	for character in record.session_id:
 		if character not in "0123456789-": return {"error": "存档标识无效"}
-	if not History._integer(record.get("starting_bb"), 50, 200) or int(record.starting_bb) not in [50, 100, 200]: return {"error": "初始筹码无效"}
+	if not History._integer(record.get("starting_bb"), 15, 200) or int(record.starting_bb) not in History.Table.DEPTHS: return {"error": "初始筹码无效"}
 	if not History._integer(record.get("saved_hand"), -1, 100000000): return {"error": "保存进度无效"}
 	if record.get("opponent_settings") is Dictionary:
 		var config: Dictionary = record.opponent_settings

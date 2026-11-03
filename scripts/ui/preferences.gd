@@ -28,7 +28,7 @@ static func load_values(path: String = "user://preferences.cfg", default_sidebar
 	var count = prefs.get_value("table", "players", 2)
 	if count is int: values.players = clampi(count, 2, 6)
 	var depth = prefs.get_value("table", "depth", 100)
-	if depth is int and depth in [50, 100, 200]: values.depth = depth
+	if depth is int and depth in [15, 50, 100, 200]: values.depth = depth
 	return values
 
 static func save_values(values: Dictionary, path: String = "user://preferences.cfg") -> Error:

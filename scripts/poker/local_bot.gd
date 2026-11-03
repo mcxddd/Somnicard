@@ -243,8 +243,11 @@ func _compare_sizes(view: Dictionary, opponents: Array, equity: float, realizati
 	# against callers or in multiway pots. These are explicit policy priors.
 	var frequency = 0.86
 	if equity < 0.62 + 0.025 * maxi(0, opponents.size() - 1):
-		if feature.draw > 0.10 and view.board.size() < 5: frequency = 0.28 * aggression / opponents.size()
-		elif view.legal.call_amount == 0 and opponents.size() == 1: frequency = 0.08 * aggression
+		# Multiway frequencies shrink with the square root of the field, not linearly:
+		# leak probes showed linear shrinking left multiway bets almost all value.
+		var field = sqrt(opponents.size())
+		if feature.draw > 0.10 and view.board.size() < 5: frequency = 0.30 * aggression / field
+		elif view.legal.call_amount == 0: frequency = 0.08 * aggression / field
 		else: frequency = 0.02 * aggression / opponents.size()
 	return best if best > 0 and rng.randf() < frequency else 0
 

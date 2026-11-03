@@ -64,7 +64,7 @@ func run() -> void:
 		passive(ui)
 		if ui.game.phase != "preflop":
 			verify(not origins.is_empty() and count_flights("collect") == origins.size(), "street transition collects every previous positive wager")
-			verify(layer.flights.all(func(f): return f.from in origins and f.duration == 0.28), "collection starts at previous wager locations")
+			verify(layer.flights.filter(func(f): return f.kind == "collect").all(func(f): return f.from in origins and f.duration == 0.28), "collection starts at previous wager locations")
 	await settle()
 	while ui.game.phase != "river": passive(ui)
 	await settle()

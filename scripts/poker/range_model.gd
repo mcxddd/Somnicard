@@ -2,7 +2,16 @@ extends RefCounted
 ## Public-action Bayesian range model. Likelihoods are explicit expert priors,
 ## not solver charts or fitted population data. Preparation is time-slice friendly.
 const Rank = preload("res://scripts/poker/fast_rank.gd")
-const VERSION = "range-1"
+const VERSION = "range-3"
+## Posterior exponent for seats marked loose (entry-level bots). Calibration
+## against the shipped bots: reads of entry bots were overconfident (35% of
+## real hands inside the 50% set); p^0.5 restores about 50%. Others stay at 1.
+const LOOSE_TEMPER = 0.5
+const BUCKETS = ["strong", "medium", "draw", "air"]
+## Floor for chart likelihoods: styles bend the chart, so no charted action is impossible.
+const CHART_FLOOR = 0.03
+## Loaded lazily: the chart module preloads this script.
+static var Chart = null
 var state: Dictionary
 var ids: Array
 var combos: Array = []
@@ -14,6 +23,8 @@ var ready: bool = false
 var observations: Dictionary = {}
 var positions: Dictionary = {}
 var depths: Dictionary = {}
+var tempers: Dictionary = {}
+var chart_nodes: Dictionary = {}
 
 static func public_actions(view: Dictionary) -> Array:
 	var out: Array = []
@@ -145,6 +156,17 @@ func _init(public_state: Dictionary, seat_ids: Array, blockers: Array) -> void:
 		weights[id] = []
 		observations[id] = state.get("actions", []).filter(func(a): return a.seat == id)
 		positions[id] = position(state, id)
+		tempers[id] = LOOSE_TEMPER if state.seats[id].get("loose", false) else 1.0
+		# Seats that play the 100 BB chart (advanced bots): preflop actions read from the chart.
+		chart_nodes[id] = {}
+		if state.seats[id].get("charted", false):
+			if Chart == null: Chart = load("res://scripts/poker/preflop_chart.gd")
+			var all: Array = state.get("actions", [])
+			for i in range(all.size()):
+				if all[i].seat != id or not all[i].board.is_empty(): continue
+				var before = {"board": [], "seats": state.seats, "button": state.get("button", 0), "big_blind": state.big_blind, "actions": all.slice(0, i)}
+				var found = Chart.node_for(before, id)
+				if not found.is_empty(): chart_nodes[id][observations[id].find(all[i])] = found.node
 		var largest_other: int = 0
 		for seat in state.seats:
 			if seat.id != id and seat.in_hand: largest_other = maxi(largest_other, seat.stack + seat.total_bet)
@@ -159,8 +181,15 @@ func prepare_step(batch: int = 16) -> void:
 	for i in range(cursor, mini(combos.size(), cursor + batch)):
 		for id in ids:
 			var weight: float = 1.0
-			for observation in observations[id]: weight *= likelihood(combos[i], observation, positions[id], depths[id])
-			weights[id].append(maxf(1e-18, weight))
+			for k in range(observations[id].size()):
+				var observation = observations[id][k]
+				if chart_nodes[id].has(k):
+					var f = Chart.frequency(chart_nodes[id][k], "call" if observation.action == "check" else observation.action, combos[i])
+					if f >= 0:
+						weight *= maxf(CHART_FLOOR, f)
+						continue
+				weight *= likelihood(combos[i], observation, positions[id], depths[id])
+			weights[id].append(pow(maxf(1e-18, weight), tempers[id]))
 	cursor = mini(combos.size(), cursor + batch)
 	if cursor == combos.size(): _finish()
 
@@ -173,6 +202,8 @@ func _finish() -> void:
 		var square: float = 0.0
 		var classes: Dictionary = {}
 		var class_counts: Dictionary = {}
+		var buckets: Dictionary = {}
+		for b in BUCKETS: buckets[b] = 0.0
 		for i in range(combos.size()):
 			var probability: float = weights[id][i] / total
 			weights[id][i] = probability
@@ -182,14 +213,24 @@ func _finish() -> void:
 			var name_text = hand_class(combos[i])
 			classes[name_text] = classes.get(name_text, 0.0) + probability
 			class_counts[name_text] = class_counts.get(name_text, 0) + 1
+			if state.board.size() >= 3: buckets[bucket(combos[i], state.board)] += probability
 		cumulative[-1] = 1.0
 		cdfs[id] = cumulative
 		var ranked: Array = []
 		for name_text in classes: ranked.append({"hand": name_text, "mass": classes[name_text]})
 		ranked.sort_custom(func(a, b): return a.mass > b.mass)
 		summaries.append({"seat": id, "position": position(state, id), "actions": observations[id].size(),
-			"effective_combos": 1.0 / square, "available_combos": combos.size(), "top": ranked.slice(0, 6), "classes": classes, "class_counts": class_counts})
+			"effective_combos": 1.0 / square, "available_combos": combos.size(), "top": ranked.slice(0, 6), "classes": classes, "class_counts": class_counts,
+			"buckets": buckets if state.board.size() >= 3 else {}, "loose": tempers[id] < 1.0})
 	ready = true
+
+## Made-hand group used by the coach's "what they might hold" line.
+static func bucket(hole: Array, board: Array) -> String:
+	var f = features(hole, board)
+	if f.strength >= 0.78: return "strong"
+	if f.strength >= 0.40: return "medium"
+	if f.draw >= 0.12: return "draw"
+	return "air"
 
 static func hand_class(hole: Array) -> String:
 	var ranks = "23456789TJQKA"

@@ -5,6 +5,7 @@ const Rank = preload("res://scripts/poker/fast_rank.gd")
 const Sizing = preload("res://scripts/ui/bet_sizing.gd")
 const Ranges = preload("res://scripts/poker/range_model.gd")
 const River = preload("res://scripts/poker/river_cfr.gd")
+const Turn = preload("res://scripts/poker/turn_cfr.gd")
 const Pushfold = preload("res://scripts/poker/pushfold.gd")
 const Chart = preload("res://scripts/poker/preflop_chart.gd")
 var ranges
@@ -34,12 +35,14 @@ var error: String = ""
 static func information(view: Dictionary) -> Dictionary:
 	var seats: Array = []
 	for seat in view.seats:
+		# "loose": the player configured this seat as an entry-level bot, shown on its badge.
 		seats.append({"id": seat.id, "stack": seat.stack, "street_bet": seat.street_bet,
-			"total_bet": seat.total_bet, "in_hand": seat.in_hand, "folded": seat.folded})
+			"total_bet": seat.total_bet, "in_hand": seat.in_hand, "folded": seat.folded, "loose": str(seat.get("style", "")).begins_with("入门"),
+			"charted": str(seat.get("style", "")).begins_with("进阶")})
 	return {"seats": seats, "hole": view.seats[0].hole.duplicate(), "board": view.board.duplicate(),
 		"phase": view.phase, "actor": view.actor, "big_blind": view.big_blind, "pot": view.pot,
 		"current_bet": view.current_bet, "legal": view.legal.duplicate(true),
-		"button": view.get("button", 0), "actions": Ranges.public_actions(view), "model": Ranges.VERSION, "solver_version": River.VERSION}
+		"button": view.get("button", 0), "actions": Ranges.public_actions(view), "model": Ranges.VERSION, "solver_version": River.VERSION + "+" + Turn.VERSION}
 
 static func cache_key(view: Dictionary) -> String:
 	return JSON.stringify(information(view))
@@ -93,7 +96,9 @@ func step(batch: int = 12) -> void:
 	if samples >= target:
 		if solve_enabled:
 			if solver == null:
-				solver = River.new(state, 2400 if precision else 1200, precision)
+				# Turn abstraction on the turn, river abstraction on the river.
+				if state.board.size() == 4: solver = Turn.new(state, 1200 if precision else 600, precision)
+				else: solver = River.new(state, 2400 if precision else 1200, precision)
 				solver_started_ms = Time.get_ticks_msec()
 			# UI may set a wall-clock budget. Headless numerical tests have no time cutoff.
 			if solver_budget_ms > 0 and Time.get_ticks_msec() - solver_started_ms >= solver_budget_ms:
@@ -149,8 +154,9 @@ func is_done() -> bool:
 func progress_text() -> String:
 	if ranges != null and not ranges.ready: return "正在更新对手范围 · %d / %d 组合" % [ranges.cursor, ranges.combos.size()]
 	if samples < target: return "正在估算范围权益 · %d / %d" % [samples, target]
-	if solver != null and solver.ready: return "正在求解河牌抽象策略 · %d / %d" % [solver.iterations, solver.target]
-	return "正在准备河牌策略的双方公开范围…"
+	var street = "转牌" if state.board.size() == 4 else "河牌"
+	if solver != null and solver.ready: return "正在求解%s抽象策略 · %d / %d" % [street, solver.iterations, solver.target]
+	return "正在准备%s策略的双方公开范围…" % street
 
 func result() -> Dictionary:
 	if error != "": return {"error": error}

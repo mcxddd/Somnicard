@@ -3,6 +3,7 @@ extends SceneTree
 ## Each block deals the same deck twice with seats swapped (HU) or rotated (multi-way),
 ## so card luck largely cancels. Reports candidate BB/100 with block-level 95% intervals.
 ## Usage: --candidate=res://path/bot.gd --level=2 --vs-level=1 --players=2 --blocks=2000 --seed=424242
+## --opponent=res://path/bot.gd replaces the shipped bot on the other seats (e.g. a frozen older version).
 const Table = preload("res://scripts/poker/table.gd")
 const Bot = preload("res://scripts/poker/local_bot.gd")
 var candidate_path = "res://scripts/poker/local_bot.gd"
@@ -11,6 +12,7 @@ var vs_level = 2
 var players = 2
 var blocks = 1000
 var seed_base = 424242
+var Opponent = Bot
 
 func _initialize() -> void: call_deferred("run")
 
@@ -19,9 +21,10 @@ func run() -> void:
 		if arg.begins_with("--candidate="): candidate_path = arg.trim_prefix("--candidate=")
 		if arg.begins_with("--level="): level = int(arg.trim_prefix("--level="))
 		if arg.begins_with("--vs-level="): vs_level = int(arg.trim_prefix("--vs-level="))
-		if arg.begins_with("--players="): players = clampi(int(arg.trim_prefix("--players=")), 2, 9)
+		if arg.begins_with("--players="): players = clampi(int(arg.trim_prefix("--players=")), 2, Table.MAX_SEATS)
 		if arg.begins_with("--blocks="): blocks = maxi(4, int(arg.trim_prefix("--blocks=")))
 		if arg.begins_with("--seed="): seed_base = int(arg.trim_prefix("--seed="))
+		if arg.begins_with("--opponent="): Opponent = load(arg.trim_prefix("--opponent="))
 	var Candidate = load(candidate_path)
 	var start = Time.get_ticks_msec()
 	var values: Array = []
@@ -48,7 +51,7 @@ func play(Candidate, block: int, rotation: int) -> float:
 	var bots: Array = []
 	for id in range(players):
 		var bot_seed = seed_base + block * 100003 + ((id - rotation + players) % players) * 379
-		bots.append(Candidate.new(bot_seed, 0, level) if id == rotation else Bot.new(bot_seed, 0, vs_level))
+		bots.append(Candidate.new(bot_seed, 0, level) if id == rotation else Opponent.new(bot_seed, 0, vs_level))
 	game.start_hand(0)
 	var moves = 0
 	while game.phase != "complete" and moves < 300:

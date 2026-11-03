@@ -21,7 +21,25 @@ static func data() -> Dictionary:
 
 ## {} outside the chart; otherwise the chart node and this seat's class row.
 static func lookup(view: Dictionary, seat_id: int, hole: Array) -> Dictionary:
-	if not view.board.is_empty() or hole.size() != 2 or view.legal.is_empty() or data().is_empty(): return {}
+	if hole.size() != 2 or view.legal.is_empty(): return {}
+	var found = node_for(view, seat_id)
+	if found.is_empty(): return {}
+	var node: Dictionary = found.node
+	var h = Pushfold.class_index(hole)
+	var options: Array = []
+	var fold_ev = 0.0
+	for a in range(node.actions.size()):
+		var ev = int(node.ev[a].split(",")[h]) / 100.0
+		if node.actions[a].action == "fold": fold_ev = ev
+		options.append({"action": node.actions[a].action, "to_bb": float(node.actions[a].to), "frequency": DIGITS.find(node.frequency[a][h]) / 20.0, "ev_bb": ev})
+	for option in options: option.ev_bb -= fold_ev
+	return {"label": found.label, "players": found.players, "position": node.player, "depth_bb": found.depth_bb, "options": options,
+		"exploitability_bb": float(data().tables[str(found.players)].exploitability), "version": str(data().version)}
+
+## The chart node `seat_id` faces, from public information only: seats, button,
+## blinds and the public actions so far ({} when the hand left the chart).
+static func node_for(view: Dictionary, seat_id: int) -> Dictionary:
+	if not view.board.is_empty() or data().is_empty(): return {}
 	var bb: int = view.big_blind
 	var dealt: Array = []
 	for seat in view.seats:
@@ -65,16 +83,14 @@ static func lookup(view: Dictionary, seat_id: int, hole: Array) -> Dictionary:
 					label = "%s-%s-%d" % [names[o], names[j], raisers.size() - 1]
 	var node: Dictionary = _index.get("%d/%s" % [n, label], {})
 	if node.is_empty() or node.player != names[me]: return {}
+	return {"node": node, "label": label, "players": n, "depth_bb": depth}
+
+## Chart frequency of `action` ("fold" / "call" / "raise") for a hole-card class at a node.
+static func frequency(node: Dictionary, action: String, hole: Array) -> float:
 	var h = Pushfold.class_index(hole)
-	var options: Array = []
-	var fold_ev = 0.0
 	for a in range(node.actions.size()):
-		var ev = int(node.ev[a].split(",")[h]) / 100.0
-		if node.actions[a].action == "fold": fold_ev = ev
-		options.append({"action": node.actions[a].action, "to_bb": float(node.actions[a].to), "frequency": DIGITS.find(node.frequency[a][h]) / 20.0, "ev_bb": ev})
-	for option in options: option.ev_bb -= fold_ev
-	return {"label": label, "players": n, "position": names[me], "depth_bb": depth, "options": options,
-		"exploitability_bb": float(data().tables[str(n)].exploitability), "version": str(data().version)}
+		if node.actions[a].action == action: return DIGITS.find(node.frequency[a][h]) / 20.0
+	return -1.0
 
 ## Advisor strategy record in the same shape as the river solver's.
 static func strategy(view: Dictionary, seat_id: int, hole: Array) -> Dictionary:
