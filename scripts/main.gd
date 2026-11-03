@@ -82,9 +82,6 @@ func _ready() -> void:
 	prefs.show_sidebar = not mobile_layout
 	_load_preferences()
 	_update_scale()
-	# The interface is Chinese on every device: shaping and system font fallback
-	# follow the locale, so CJK punctuation after Latin text ("BB。") finds a CJK font.
-	TranslationServer.set_locale("zh_CN")
 	_build_ui()
 	modals.setup(self)
 	layout_ready = true
