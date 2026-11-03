@@ -13,12 +13,12 @@
 			"reads": 865
 		},
 		{
-			"coverage50": 0.375,
-			"coverage80": 0.698,
+			"coverage50": 0.686,
+			"coverage80": 0.906,
 			"reads": 1838
 		}
 	],
-	"model": "range-2",
+	"model": "range-3",
 	"players": [
 		2,
 		6
