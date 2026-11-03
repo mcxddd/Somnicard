@@ -38,6 +38,11 @@ static func surface(color: Color, radius: int = 12, padding: int = 12, border :=
 static func make_theme(mobile: bool) -> Theme:
 	var font = SystemFont.new()
 	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "sans-serif"])
+	# Android shapes "BB。" as one Latin run in Roboto, which has no CJK punctuation;
+	# an explicit CJK fallback fills those glyphs instead of tofu boxes.
+	var cjk = SystemFont.new()
+	cjk.font_names = PackedStringArray(["Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei"])
+	font.fallbacks = [cjk]
 	var result = Theme.new()
 	result.default_font = font
 	result.default_font_size = 21 if mobile else 18
