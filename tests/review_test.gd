@@ -222,6 +222,7 @@ func _ui_tests(fixture: Dictionary) -> void:
 	verify(ui.support_center.visible and ui.support_center.topic == 1 and not ui.review.visible, "table help uses the shared support center")
 	ui.support_center._licenses()
 	verify(ui.support_center.body.get_child_count() > 10 and ui.support_center.body.get_child(0).text.contains("MIT"), "bundled engine credits available offline")
+	verify(ui.support_center.body.get_children().any(func(c): return c is Label and c.text.contains("SIL Open Font License")), "bundled font licence is listed")
 	ui.support_center.back_action()
 	ui.support_center.back_action()
 	ui._close_lobby()

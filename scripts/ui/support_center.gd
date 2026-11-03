@@ -156,6 +156,9 @@ func _licenses() -> void:
 	UI.clear(body)
 	title.text = "开源许可"
 	_label(Engine.get_license_text(), 17)
+	# The bundled interface font; its full OFL 1.1 text is in assets/fonts/OFL.txt.
+	_label("界面字体 · Noto Sans CJK SC（子集）", 20, UI.GOLD)
+	_label(FileAccess.get_file_as_string("res://assets/fonts/OFL.txt"), 15, UI.MUTED)
 	for component in Engine.get_copyright_info():
 		_label(str(component.get("name", "")), 20, UI.GOLD)
 		for part in component.get("parts", []):

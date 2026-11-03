@@ -8,6 +8,7 @@
 - 牌桌、筹码、扑克牌牌面、徽章、按钮和动效：`scripts/ui/` 内程序绘制。无第三方游戏截图或商标素材。
 - 提示音：`assets/audio/*.wav`，由 `tools/generate-audio.py` 使用正弦波和固定随机种子的噪声合成，无外部采样。22,050 Hz、单声道、16 位 PCM，共 5 个短音效。
 - 保留的站点测试截图：来自本项目 `tools/audit-ui.py` 的实际游戏渲染，经 WebP 编码压缩，未添加不存在的游戏功能。线上官网使用服务器管理工作区的概念插画。
+- `assets/fonts/NotoSansSC-Somnicard.otf`：Noto Sans CJK SC Regular（© 2014-2021 Adobe，SIL Open Font License 1.1）的子集，由 `tools/prepare_font.py` 从 Android 系统自带的 `NotoSansCJK-Regular.ttc` 截取界面用到的约 1,500 个字符，字体名不变（保留字体名只有“Source”）。许可全文在 `assets/fonts/OFL.txt`，游戏的开源许可页面也会显示。打包这个字体是因为 Android 会把“2.5 BB，”整段交给 Roboto 排版，中文标点显示成方框。
 - 引擎及内置第三方依赖：Godot 4.7.2；游戏“帮助与关于 → 引擎与第三方许可”读取引擎许可证、组件版权和许可正文。
 - `native/android/GodotApp.java`：基于 Godot Android 模板修改，保留原 MIT 版权声明。
 
